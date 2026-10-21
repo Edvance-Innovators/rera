@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#173e34">
+  <title>ReRa | Learning space</title>
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/app-overrides.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer crossorigin=""></script>
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <div id="app" class="app-shell" aria-live="polite"><main class="app-main"><div class="app-content">Loading your ReRa space…</div></main></div>
+  <dialog id="studentDialog" class="app-dialog">
+    <div class="dialog-heading"><div><span class="eyebrow">Family profile</span><h2>Add a learner</h2></div><button class="close-icon" data-close="studentDialog" aria-label="Close">×</button></div>
+    <form id="studentForm" class="dialog-body"><div class="form-grid">
+      <label class="field"><span>Learner name</span><input name="name" maxlength="80" required></label>
+      <label class="field"><span>Country</span><select name="country" class="country-select"><option>Rwanda</option><option>Kenya</option><option>Uganda</option><option>Tanzania</option></select></label>
+      <label class="field"><span>Curriculum</span><select name="curriculum" class="curriculum-select"></select></label>
+      <label class="field"><span>Academic level</span><select name="level"><option>Primary</option><option>Secondary</option><option>University</option></select></label>
+      <label class="field"><span>Class / year</span><input name="grade" maxlength="50" placeholder="P6, S2, Year 1" required></label>
+    </div><div class="dialog-actions"><button type="button" class="button-light" data-close="studentDialog">Cancel</button><button class="button button-compact">Save learner</button></div></form>
+  </dialog>
+  <dialog id="requestDialog" class="app-dialog">
+    <div class="dialog-heading"><div><span class="eyebrow">Tutor matching</span><h2>Request learning support</h2></div><button class="close-icon" data-close="requestDialog" aria-label="Close">×</button></div>
+    <form id="requestForm" class="dialog-body"><div class="form-grid">
+      <label class="field"><span>Learner</span><select name="student_id" id="requestStudent" required></select></label>
+      <label class="field"><span>Subject</span><select name="subject" required><option>Mathematics</option><option>English</option><option>Physics</option><option>Chemistry</option><option>Biology</option><option>Kiswahili</option><option>Computer science</option><option>Economics</option><option>French</option><option>Other</option></select></label>
+      <label class="field"><span>Neighborhood / town</span><input name="location" maxlength="120" placeholder="e.g. Gasabo, Kigali" required></label>
+      <label class="field"><span>Search radius</span><select name="radius_km"><option value="5">5 km</option><option value="10" selected>10 km</option><option value="20">20 km</option><option value="50">50 km</option></select></label>
+      <label class="field"><span>Lesson format</span><select name="mode"><option>In person</option><option>Online</option><option>Either</option></select></label>
+      <label class="field"><span>Preferred time</span><select name="availability"><option>Weekday afternoons</option><option>Weekday evenings</option><option>Weekend mornings</option><option>Flexible</option></select></label>
+      <div class="field full"><button type="button" class="button-light" id="pinRequestLocation">Pin lesson area with my location</button><span class="material-upload-note" id="requestPinStatus">Your precise location is shared only with ReRa managers until a match is confirmed.</span><input type="hidden" name="latitude"><input type="hidden" name="longitude"></div>
+      <label class="field full"><span>Learning goal</span><textarea name="goal" maxlength="1000" placeholder="What would help the learner most?"></textarea></label>
+    </div><div class="dialog-actions"><button type="button" class="button-light" data-close="requestDialog">Cancel</button><button class="button button-compact">Submit request</button></div></form>
+  </dialog>
+  <dialog id="materialDialog" class="app-dialog">
+    <div class="dialog-heading"><div><span class="eyebrow">Resource repository</span><h2>Share a learning material</h2></div><button class="close-icon" data-close="materialDialog" aria-label="Close">×</button></div>
+    <form id="materialForm" class="dialog-body"><div class="form-grid">
+      <label class="field full"><span>Title</span><input name="title" maxlength="140" required></label>
+      <label class="field"><span>Country</span><select name="country" class="country-select"><option>Rwanda</option><option>Kenya</option><option>Uganda</option><option>Tanzania</option></select></label>
+      <label class="field"><span>Curriculum</span><select name="curriculum" class="curriculum-select"></select></label>
+      <label class="field"><span>Academic level</span><select name="level"><option>Primary</option><option>Secondary</option><option>University</option><option>All levels</option></select></label>
+      <label class="field"><span>Subject</span><select name="subject"><option>All subjects</option><option>Mathematics</option><option>English</option><option>Physics</option><option>Chemistry</option><option>Biology</option><option>Kiswahili</option><option>Computer science</option><option>Economics</option><option>French</option></select></label>
+      <label class="field full"><span>Description</span><textarea name="description" maxlength="1000" placeholder="A short note about this material"></textarea></label>
+      <label class="field full"><span>PDF file · up to 5 MB</span><input type="file" name="file" accept="application/pdf,.pdf" required><small class="material-upload-note">Only PDF files are stored. Do not upload materials you do not have permission to share.</small></label>
+    </div><div class="dialog-actions"><button type="button" class="button-light" data-close="materialDialog">Cancel</button><button class="button button-compact">Publish material</button></div></form>
+  </dialog>
+  <dialog id="detailDialog" class="app-dialog">
+    <div class="dialog-heading"><div><span class="eyebrow">Learning request</span><h2 id="detailTitle">Request details</h2></div><button class="close-icon" data-close="detailDialog" aria-label="Close">×</button></div>
+    <div class="dialog-body" id="detailBody"></div>
+  </dialog>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>

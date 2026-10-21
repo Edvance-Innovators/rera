@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#173e34">
+  <meta name="description" content="ReRa brings learners, families and trusted educators together across East Africa.">
+  <title>ReRa | Learning, closer to home</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body class="welcome-page">
+  <header class="welcome-nav">
+    <a class="logo" href="/" aria-label="ReRa home"><span class="logo-symbol">R</span><span>ReRa<span class="logo-dot">.</span></span></a>
+    <div class="welcome-nav-actions"><span class="regional-note">Rwanda · Kenya · Uganda · Tanzania</span><button class="text-action" data-auth="login">Sign in</button><button class="button button-small" data-auth="signup">Join ReRa</button></div>
+  </header>
+  <main>
+    <section class="welcome-hero">
+      <div class="hero-copy">
+        <div class="eyebrow"><span></span> A closer connection to learning</div>
+        <h1>Good teaching.<br><em>Closer to home.</em></h1>
+        <p>ReRa connects learners and families with trusted local educators, matched to the right subject, level and curriculum.</p>
+        <div class="hero-actions"><button class="button" data-auth="signup">Find your learning match <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button><button class="button button-outline" data-auth="teacher">I teach</button></div>
+        <div class="hero-trust"><div class="trust-avatars"><span>AM</span><span>PO</span><span>GN</span><span>DU</span></div><span>Local educators, thoughtfully matched</span></div>
+      </div>
+      <div class="hero-image-wrap"><img class="hero-image" src="https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=1400&q=85" alt="Students learning together in a classroom" fetchpriority="high"><div class="hero-caption"><span class="caption-dot"></span><span><strong>Across East Africa</strong><small>Learning shaped around each student</small></span><span class="caption-arrow" aria-hidden="true">↗</span></div></div>
+      <div class="hero-stamp" aria-hidden="true"><span>LOCAL</span><b>×</b><span>LEARNING</span></div>
+    </section>
+    <section class="welcome-proof" aria-label="Regional curriculum coverage"><div><span class="proof-kicker">Built for the way we learn here</span><strong>Four countries.<br>Many ways to thrive.</strong></div><div class="country-list"><span><b>RW</b> Rwanda <small>REB · Cambridge / IB</small></span><span><b>KE</b> Kenya <small>CBC · 8-4-4</small></span><span><b>UG</b> Uganda <small>UNEB</small></span><span><b>TZ</b> Tanzania <small>NECTA</small></span></div><div class="proof-note">From primary foundations to university study, matching starts with the learner's real context.</div></section>
+    <section class="welcome-spaces"><div><div class="eyebrow">One learning community</div><h2>Support for every side<br>of the learning journey.</h2></div><div class="space-list"><button data-auth="signup"><span class="space-number">01</span><span><strong>For families</strong><small>Find support that fits your learner, school and schedule.</small></span><span class="space-arrow">↗</span></button><button data-auth="teacher"><span class="space-number">02</span><span><strong>For educators</strong><small>Share your expertise with learners in your community.</small></span><span class="space-arrow">↗</span></button><div><span class="space-number">03</span><span><strong>For learners</strong><small>Build confidence, one lesson at a time.</small></span></div><div><span class="space-number">04</span><span><strong>For coordinators</strong><small>Match locally. Keep family details protected.</small></span></div></div></section>
+  </main>
+  <footer class="welcome-footer"><a class="logo" href="/"><span class="logo-symbol">R</span><span>ReRa<span class="logo-dot">.</span></span></a><span>Learning, closer to home.</span><span>East Africa</span></footer>
+
+  <dialog id="authDialog" class="auth-dialog">
+    <div class="dialog-heading"><div><span class="eyebrow" id="authEyebrow">Welcome to ReRa</span><h2 id="authTitle">Create your account</h2></div><button class="close-icon" data-close aria-label="Close dialog">×</button></div>
+    <div class="auth-tabs" id="authTabs"><button class="selected" data-auth-mode="signup">Create account</button><button data-auth-mode="login">Sign in</button></div>
+    <form id="authForm" class="auth-form">
+      <label class="form-field" id="nameField"><span>Your name</span><input id="name" name="name" autocomplete="name" minlength="2" maxlength="80" required></label>
+      <label class="form-field"><span>Email address</span><input id="email" name="email" type="email" autocomplete="email" maxlength="254" required></label>
+      <label class="form-field"><span>Password</span><input id="password" name="password" type="password" autocomplete="new-password" minlength="12" maxlength="256" required><small id="passwordHint">Use at least 12 characters.</small></label>
+      <div id="signupFields">
+        <fieldset class="role-field"><legend>I am joining as</legend><div class="role-options"><label><input type="radio" name="role" value="parent" checked><span>Parent / guardian</span></label><label><input type="radio" name="role" value="teacher"><span>Teacher</span></label></div></fieldset>
+        <div class="field-pair"><label class="form-field"><span>Country</span><select id="country" name="country"><option>Rwanda</option><option>Kenya</option><option>Uganda</option><option>Tanzania</option></select></label><label class="form-field"><span>Curriculum</span><select id="curriculum" name="curriculum"></select></label></div>
+        <label class="form-field" id="levelField" hidden><span>Academic levels you teach</span><select id="levels" name="levels" multiple size="3"><option>Primary</option><option>Secondary</option><option>University</option></select><small>Select one or more.</small></label>
+        <label class="form-field" id="subjectField" hidden><span>Subjects you teach</span><select id="subjects" name="subjects" multiple size="4"><option>Mathematics</option><option>English</option><option>Physics</option><option>Chemistry</option><option>Biology</option><option>Kiswahili</option><option>Computer science</option><option>Economics</option><option>French</option></select><small>Select one or more.</small></label>
+        <p class="privacy-copy">We only collect information needed to provide ReRa. Exact location is optional during signup and requested only when it helps coordinate in-person lessons.</p>
+      </div>
+      <p class="form-error" id="authError" role="alert" hidden></p>
+      <button class="button auth-submit" id="authSubmit" type="submit">Create account</button>
+      <p class="auth-switch" id="authSwitch">Already have an account? <button type="button" data-auth-mode="login">Sign in</button></p>
+    </form>
+  </dialog>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="/welcome.js" defer></script>
+</body>
+</html>

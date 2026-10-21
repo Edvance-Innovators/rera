@@ -1,0 +1,543 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f7f4">
+  <title>ReRa | Learning, closer to home</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #182b25;
+      --muted: #78847f;
+      --line: #e5eae5;
+      --paper: #fff;
+      --canvas: #f5f7f4;
+      --green: #176b52;
+      --green-dark: #124a3a;
+      --mint: #e6f2ec;
+      --lime: #d9ed83;
+      --coral: #df775f;
+      --blue: #688bbd;
+      --gold: #c69a3c;
+      font-family: "DM Sans", sans-serif;
+      color: var(--ink);
+      background: var(--canvas);
+      font-synthesis: none;
+      text-rendering: optimizeLegibility;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-width: 320px; background: var(--canvas); }
+    button, input, select, textarea { font: inherit; }
+    button { cursor: pointer; }
+    .shell { min-height: 100vh; display: grid; grid-template-columns: 226px minmax(0, 1fr); }
+    .sidebar { position: sticky; top: 0; height: 100vh; padding: 25px 15px 17px; display: flex; flex-direction: column; color: #f4f8f5; background: #173e34; }
+    .brand { display: flex; align-items: center; gap: 10px; padding: 0 10px; margin: 0 0 33px; color: inherit; text-decoration: none; }
+    .brand-mark { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 10px; color: #173e34; background: var(--lime); font: 800 20px Manrope, sans-serif; }
+    .brand-name { font: 800 19px Manrope, sans-serif; letter-spacing: 0; }
+    .brand-name span { color: var(--lime); }
+    .side-label { padding: 0 12px; margin: 0 0 10px; color: #a9c3b7; font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
+    .side-nav { display: grid; gap: 4px; }
+    .side-nav button { min-height: 42px; display: flex; align-items: center; gap: 11px; padding: 0 12px; border: 0; border-radius: 7px; color: #c2d2ca; background: transparent; text-align: left; font-size: 12px; font-weight: 600; transition: background .15s, color .15s; }
+    .side-nav button:hover, .side-nav button.active { color: white; background: rgba(255,255,255,.12); }
+    .side-nav button.active { box-shadow: inset 3px 0 var(--lime); }
+    .side-nav svg { width: 17px; height: 17px; flex: none; }
+    .side-foot { margin-top: auto; }
+    .region-card { margin: 0 4px 14px; padding: 13px; border: 1px solid rgba(255,255,255,.14); border-radius: 8px; background: rgba(255,255,255,.06); }
+    .region-card span { color: #afc7bc; font-size: 10px; }
+    .region-card strong { display: block; margin-top: 5px; color: #f3f7f2; font-size: 12px; }
+    .region-flags { margin-top: 10px; display: flex; gap: 8px; color: #dce9e2; font-size: 11px; }
+    .profile { display: flex; align-items: center; gap: 9px; padding: 12px 6px 3px; border-top: 1px solid rgba(255,255,255,.14); }
+    .avatar { width: 31px; height: 31px; flex: none; display: grid; place-items: center; border-radius: 50%; color: #244738; background: #d7e7d1; font-size: 10px; font-weight: 700; }
+    .profile strong { display: block; font-size: 11px; }
+    .profile span { color: #afc5ba; font-size: 10px; }
+    main { min-width: 0; }
+    .topbar { min-height: 66px; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 0 30px; border-bottom: 1px solid var(--line); background: rgba(255,255,255,.82); }
+    .crumb { color: var(--muted); font-size: 11px; }
+    .crumb strong { color: var(--ink); font-weight: 600; }
+    .top-actions { display: flex; align-items: center; gap: 14px; }
+    .portal-switch { display: flex; align-items: center; padding: 3px; border: 1px solid var(--line); border-radius: 7px; background: #f8faf8; }
+    .portal-switch button { padding: 7px 10px; border: 0; border-radius: 5px; color: #73807a; background: transparent; font-size: 10px; font-weight: 700; }
+    .portal-switch button.active { color: var(--green-dark); background: white; box-shadow: 0 1px 4px #152f2514; }
+    .icon-btn { position: relative; width: 34px; height: 34px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 7px; color: #56655f; background: white; }
+    .icon-btn svg { width: 16px; height: 16px; }
+    .dot { position: absolute; top: 6px; right: 6px; width: 6px; height: 6px; border: 1px solid white; border-radius: 50%; background: var(--coral); }
+    .content { max-width: 1480px; margin: 0 auto; padding: 28px 30px 42px; }
+    .welcome { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; margin-bottom: 21px; }
+    .eyebrow { margin-bottom: 7px; color: var(--green); font-size: 10px; font-weight: 700; letter-spacing: 1.1px; text-transform: uppercase; }
+    h1 { margin: 0; font: 700 24px Manrope, sans-serif; letter-spacing: 0; }
+    .welcome p { margin: 6px 0 0; color: var(--muted); font-size: 11px; }
+    .button { min-height: 37px; display: inline-flex; justify-content: center; align-items: center; gap: 7px; padding: 0 13px; border: 0; border-radius: 6px; color: white; background: var(--green); font-size: 11px; font-weight: 700; transition: background .15s, transform .15s; }
+    .button:hover { background: var(--green-dark); transform: translateY(-1px); }
+    .button svg { width: 15px; height: 15px; }
+    .button.secondary { color: #52645a; border: 1px solid var(--line); background: white; box-shadow: none; }
+    .button.secondary:hover { color: var(--green-dark); background: #f7faf7; }
+    .button.quiet { min-height: 30px; padding: 0 9px; color: var(--green); background: transparent; }
+    .metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 11px; margin-bottom: 15px; }
+    .metric { min-height: 98px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 7px; background: white; }
+    .metric-head { display: flex; justify-content: space-between; align-items: center; color: #707d76; font-size: 10px; font-weight: 600; }
+    .metric-icon { width: 26px; height: 26px; display: grid; place-items: center; border-radius: 7px; color: var(--green); background: #edf5ef; }
+    .metric:nth-child(2) .metric-icon { color: #ae704e; background: #fbf0e9; }
+    .metric:nth-child(3) .metric-icon { color: #a27d2c; background: #faf5e8; }
+    .metric:nth-child(4) .metric-icon { color: #597cad; background: #eef2f8; }
+    .metric-icon svg { width: 15px; height: 15px; }
+    .metric-value { margin-top: 8px; font: 700 23px Manrope, sans-serif; }
+    .metric-value small { margin-left: 5px; color: var(--green); font: 600 10px "DM Sans", sans-serif; }
+    .metric-sub { margin-top: 2px; color: #98a39e; font-size: 9px; }
+    .grid-two { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(280px, .9fr); gap: 13px; margin-bottom: 15px; }
+    .panel { min-width: 0; border: 1px solid var(--line); border-radius: 7px; background: white; }
+    .panel-head { min-height: 53px; display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 0 16px; border-bottom: 1px solid #edf0ed; }
+    .panel-head h2 { margin: 0; font: 700 12px Manrope, sans-serif; }
+    .panel-head p { margin: 3px 0 0; color: var(--muted); font-size: 9px; }
+    .panel-head .text-button { border: 0; color: var(--green); background: transparent; font-size: 10px; font-weight: 700; }
+    .map-panel { overflow: hidden; }
+    .map-frame { position: relative; height: 216px; background: #e7eee9; }
+    .map-frame iframe { display: block; width: 100%; height: 100%; border: 0; filter: saturate(.76); }
+    .map-label { position: absolute; top: 10px; left: 10px; z-index: 1; padding: 7px 9px; border: 1px solid #e9ede9; border-radius: 5px; color: #3e5147; background: rgba(255,255,255,.94); font-size: 9px; font-weight: 700; box-shadow: 0 2px 8px #18392c1a; }
+    .map-key { display: flex; gap: 13px; padding: 10px 14px; color: #68766f; font-size: 9px; }
+    .map-key span { display: flex; align-items: center; gap: 5px; }
+    .map-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); }
+    .map-dot.request { background: var(--coral); }
+    .map-dot.radius { background: #b9cbb9; }
+    .tutor-list { padding: 2px 14px 5px; }
+    .tutor { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; align-items: center; gap: 9px; padding: 11px 0; border-bottom: 1px solid #f0f2f0; }
+    .tutor:last-child { border-bottom: 0; }
+    .tutor-avatar { width: 33px; height: 33px; display: grid; place-items: center; border-radius: 50%; color: #365849; background: #e4efe6; font-size: 10px; font-weight: 700; }
+    .tutor:nth-child(2) .tutor-avatar { color: #865a43; background: #f7e9df; }
+    .tutor:nth-child(3) .tutor-avatar { color: #4c6386; background: #e8edf5; }
+    .tutor-info strong { display: block; color: #263831; font-size: 10px; }
+    .tutor-info span { display: block; margin-top: 3px; color: var(--muted); font-size: 9px; }
+    .tutor-distance { align-self: start; padding-top: 2px; color: var(--green); font-size: 9px; font-weight: 700; white-space: nowrap; }
+    .verified { display: inline-flex !important; align-items: center; gap: 3px; color: var(--green) !important; }
+    .verified svg { width: 10px; height: 10px; }
+    .filter-row { display: flex; align-items: center; gap: 7px; padding: 11px 13px; border-bottom: 1px solid #edf0ed; }
+    .filter-row input, .filter-row select { min-width: 0; height: 32px; padding: 0 8px; border: 1px solid var(--line); border-radius: 5px; outline: none; color: #53645a; background: white; font-size: 9px; }
+    .filter-row input { flex: 1; min-width: 140px; }
+    .filter-row select:focus, .filter-row input:focus { border-color: #8caf9a; box-shadow: 0 0 0 2px #176b5214; }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; text-align: left; white-space: nowrap; }
+    th { padding: 9px 12px; color: #8a9690; background: #fbfcfb; font-size: 8px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; }
+    td { height: 49px; padding: 6px 12px; border-top: 1px solid #f0f2f0; color: #56645e; font-size: 9px; }
+    tbody tr { cursor: pointer; transition: background .12s; }
+    tbody tr:hover { background: #f8faf8; }
+    .request-id { color: var(--green); font-weight: 700; }
+    .student-cell strong { display: block; color: #2c3a33; font-size: 9px; }
+    .student-cell span { display: block; margin-top: 3px; color: #9aa39f; font-size: 8px; }
+    .subject-tags { display: flex; gap: 4px; }
+    .tag { padding: 4px 6px; border-radius: 4px; color: #52695d; background: #eef4ef; font-size: 8px; }
+    .status { display: inline-flex; align-items: center; gap: 5px; padding: 4px 7px; border-radius: 4px; color: #a27522; background: #faf4e7; font-size: 8px; font-weight: 700; }
+    .status:before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+    .status.pitched { color: #5776a6; background: #edf1f8; }
+    .status.matched, .status.active { color: #357356; background: #eaf3ed; }
+    .match-button { padding: 6px 9px; border: 1px solid #dce9e0; border-radius: 4px; color: var(--green); background: white; font-size: 8px; font-weight: 700; }
+    .match-button:hover { background: #f0f7f2; }
+    .empty { padding: 24px 12px; color: var(--muted); text-align: center; font-size: 11px; }
+    .bottom-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 13px; }
+    .session-list, .progress-list { padding: 5px 15px 9px; }
+    .session-row { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; gap: 10px; align-items: center; min-height: 47px; border-bottom: 1px solid #f0f2f0; }
+    .session-row:last-child { border: 0; }
+    .session-time { color: var(--green); font-size: 9px; font-weight: 700; }
+    .session-row strong { display: block; font-size: 9px; }
+    .session-row span { display: block; margin-top: 3px; color: var(--muted); font-size: 8px; }
+    .small-pill { padding: 4px 6px; border-radius: 4px; color: #59708e; background: #edf2f8; font-size: 8px; }
+    .portal-section { display: grid; gap: 13px; }
+    .portal-banner { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 19px 20px; border: 1px solid #dfe9e1; border-radius: 7px; background: linear-gradient(115deg, #edf5ee, #f7f8ee 70%, #f7efe4); }
+    .portal-banner h2 { margin: 0; font: 700 16px Manrope, sans-serif; }
+    .portal-banner p { max-width: 620px; margin: 5px 0 0; color: #6f7d74; font-size: 10px; line-height: 1.55; }
+    .card-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+    .info-card { padding: 15px; border: 1px solid var(--line); border-radius: 7px; background: white; }
+    .info-card h3 { margin: 0 0 6px; font: 700 11px Manrope, sans-serif; }
+    .info-card p { margin: 0; color: var(--muted); font-size: 9px; line-height: 1.6; }
+    .info-card .big { margin: 9px 0 3px; font: 700 20px Manrope, sans-serif; }
+    .request-card { padding: 14px; border-bottom: 1px solid #edf0ed; }
+    .request-card:last-child { border-bottom: 0; }
+    .request-card-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+    .request-card-head strong { font-size: 10px; }
+    .request-card p { margin: 6px 0 0; color: var(--muted); font-size: 9px; }
+    .progress-track { height: 6px; margin-top: 9px; overflow: hidden; border-radius: 4px; background: #edf1ed; }
+    .progress-track span { display: block; height: 100%; border-radius: inherit; background: var(--green); }
+    .offer-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 13px 15px; border-bottom: 1px solid #edf0ed; }
+    .offer-card:last-child { border-bottom: 0; }
+    .offer-card strong { display: block; font-size: 10px; }
+    .offer-card p { margin: 4px 0 0; color: var(--muted); font-size: 9px; }
+    .offer-actions { display: flex; gap: 6px; }
+    .offer-actions button { min-height: 29px; padding: 0 8px; border: 1px solid var(--line); border-radius: 4px; color: #55655d; background: white; font-size: 8px; font-weight: 700; }
+    .offer-actions button:first-child { border-color: #d7e8db; color: var(--green); background: #f2f8f3; }
+    .resource-list { display: grid; gap: 7px; margin-top: 9px; }
+    .resource { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 9px; border: 1px solid #edf0ed; border-radius: 5px; color: #52655b; font-size: 9px; }
+    .resource button { border: 0; color: var(--green); background: transparent; font-size: 9px; font-weight: 700; }
+    .feedback-row { display: flex; gap: 7px; margin-top: 10px; }
+    .feedback-row button { width: 34px; height: 34px; border: 1px solid var(--line); border-radius: 7px; background: white; font-size: 16px; }
+    .feedback-row button:hover { border-color: #96b39e; background: #f2f8f2; }
+    .toast { position: fixed; z-index: 10; right: 22px; bottom: 22px; padding: 11px 15px; border-radius: 6px; color: white; background: #173e34; box-shadow: 0 10px 30px #15372d2b; font-size: 11px; opacity: 0; transform: translateY(7px); pointer-events: none; transition: .2s; }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    dialog { width: min(520px, calc(100vw - 26px)); max-height: min(88vh, 720px); padding: 0; overflow: auto; border: 1px solid var(--line); border-radius: 8px; color: var(--ink); box-shadow: 0 24px 80px #142c2240; }
+    dialog::backdrop { background: #152b22a3; backdrop-filter: blur(2px); }
+    .dialog-head { position: sticky; top: 0; z-index: 1; display: flex; justify-content: space-between; align-items: center; padding: 15px 18px; border-bottom: 1px solid var(--line); background: white; }
+    .dialog-head h2 { margin: 0; font: 700 14px Manrope, sans-serif; }
+    .close-btn { width: 27px; height: 27px; border: 0; border-radius: 5px; color: #65736c; background: #f1f4f1; font-size: 17px; }
+    .dialog-body { padding: 16px 18px 19px; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 10px; }
+    .field { display: grid; gap: 5px; }
+    .field.full { grid-column: 1 / -1; }
+    .field label { color: #64726b; font-size: 9px; font-weight: 700; }
+    .field input, .field select, .field textarea { width: 100%; min-height: 34px; padding: 7px 9px; border: 1px solid var(--line); border-radius: 5px; outline: none; color: var(--ink); background: white; font-size: 10px; }
+    .field textarea { min-height: 62px; resize: vertical; }
+    .field input:focus, .field select:focus, .field textarea:focus { border-color: #91b19b; box-shadow: 0 0 0 2px #176b5214; }
+    .dialog-actions { display: flex; justify-content: flex-end; gap: 7px; padding-top: 15px; }
+    .matches-list { display: grid; gap: 8px; }
+    .match-card { display: grid; grid-template-columns: 34px minmax(0,1fr) auto; align-items: center; gap: 9px; padding: 10px; border: 1px solid var(--line); border-radius: 6px; }
+    .match-card strong { display: block; font-size: 10px; }
+    .match-card span { display: block; margin-top: 3px; color: var(--muted); font-size: 8px; }
+    .match-card button { min-height: 28px; padding: 0 8px; border: 1px solid #d7e8db; border-radius: 4px; color: var(--green); background: #f2f8f3; font-size: 8px; font-weight: 700; }
+    .privacy-note { margin: 0 0 12px; padding: 9px 10px; border-left: 3px solid var(--green); color: #607268; background: #f1f7f2; font-size: 9px; line-height: 1.5; }
+    @media (max-width: 1050px) {
+      .shell { grid-template-columns: 205px minmax(0,1fr); }
+      .content { padding: 24px 20px 34px; }
+      .topbar { padding: 0 20px; }
+      .portal-switch button { padding: 7px 7px; }
+      .grid-two { grid-template-columns: 1fr; }
+      .map-frame { height: 195px; }
+    }
+    @media (max-width: 720px) {
+      .shell { display: block; padding-bottom: 58px; }
+      .sidebar { position: fixed; z-index: 5; inset: auto 0 0; height: 58px; padding: 0 8px; flex-direction: row; align-items: center; }
+      .brand, .side-label, .side-foot { display: none; }
+      .side-nav { width: 100%; display: flex; justify-content: space-around; gap: 2px; }
+      .side-nav button { width: 48px; min-height: 45px; justify-content: center; padding: 0; font-size: 0; }
+      .side-nav button.active { box-shadow: inset 0 -3px var(--lime); }
+      .side-nav svg { width: 19px; height: 19px; }
+      .topbar { min-height: 60px; padding: 0 12px; gap: 8px; }
+      .top-actions { gap: 7px; }
+      .portal-switch { max-width: calc(100vw - 120px); overflow-x: auto; }
+      .portal-switch button { flex: none; padding: 7px 8px; font-size: 9px; }
+      .icon-btn { display: none; }
+      .content { padding: 22px 12px 27px; }
+      .welcome { align-items: flex-start; }
+      h1 { font-size: 20px; }
+      .welcome p { max-width: 245px; line-height: 1.5; }
+      .welcome .button { width: 38px; min-width: 38px; padding: 0; overflow: hidden; font-size: 0; }
+      .welcome .button svg { width: 17px; height: 17px; flex: none; }
+      .metrics { grid-template-columns: 1fr 1fr; gap: 8px; }
+      .metric { min-height: 91px; padding: 11px; }
+      .metric-value { font-size: 20px; }
+      .bottom-grid, .card-grid { grid-template-columns: 1fr; }
+      .filter-row { flex-wrap: wrap; }
+      .filter-row input { flex: 1 1 100%; }
+      .filter-row select { flex: 1; }
+      .panel-head { padding: 0 12px; }
+      .map-frame { height: 190px; }
+      .portal-banner { align-items: flex-start; padding: 15px; }
+      .portal-banner .button { width: 38px; min-width: 38px; padding: 0; overflow: hidden; font-size: 0; }
+      .portal-banner .button svg { width: 16px; height: 16px; }
+      .toast { right: 12px; bottom: 70px; left: 12px; text-align: center; }
+    }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition-duration: .01ms !important; scroll-behavior: auto !important; } }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar" aria-label="Portal navigation">
+      <a class="brand" href="#home" aria-label="ReRa home"><span class="brand-mark">R</span><span class="brand-name">ReRa<span>.</span></span></a>
+      <p class="side-label" id="sideLabel">Manager space</p>
+      <nav class="side-nav" id="sideNav" aria-label="Section navigation"></nav>
+      <div class="side-foot">
+        <div class="region-card"><span>REGIONAL NETWORK</span><strong>East Africa</strong><div class="region-flags"><span title="Rwanda">RW</span><span title="Kenya">KE</span><span title="Uganda">UG</span><span title="Tanzania">TZ</span></div></div>
+        <div class="profile"><div class="avatar">JM</div><div><strong id="profileName">Jordan M.</strong><span id="profileRole">ReRa manager</span></div></div>
+      </div>
+    </aside>
+    <main>
+      <header class="topbar">
+        <div class="crumb">ReRa <span aria-hidden="true">/</span> <strong id="breadcrumb">Manager space</strong></div>
+        <div class="top-actions">
+          <nav class="portal-switch" id="portalSwitch" aria-label="Choose a portal">
+            <button class="active" data-portal="manager">Manager</button><button data-portal="parent">Parent</button><button data-portal="learner">Learner</button><button data-portal="teacher">Teacher</button>
+          </nav>
+          <button class="icon-btn" id="notifications" aria-label="Notifications" title="Notifications"><span class="dot"></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg></button>
+        </div>
+      </header>
+      <div class="content" id="appContent"></div>
+    </main>
+  </div>
+  <dialog id="requestDialog">
+    <div class="dialog-head"><h2>New learning request</h2><button class="close-btn" data-close="requestDialog" aria-label="Close">×</button></div>
+    <form class="dialog-body" id="requestForm">
+      <div class="form-grid">
+        <div class="field"><label for="learnerRef">Learner reference</label><input id="learnerRef" name="learner" required placeholder="e.g. L-212 or first name"></div>
+        <div class="field"><label for="country">Country</label><select id="country" name="country"><option>Rwanda</option><option>Kenya</option><option>Uganda</option><option>Tanzania</option></select></div>
+        <div class="field"><label for="curriculum">Curriculum</label><select id="curriculum" name="curriculum"></select></div>
+        <div class="field"><label for="level">Academic level</label><select id="level" name="level"><option>Primary</option><option>Secondary</option><option>University</option></select></div>
+        <div class="field"><label for="grade">Class / year</label><input id="grade" name="grade" required placeholder="e.g. P6, S2, Year 1"></div>
+        <div class="field"><label for="subject">Subject</label><select id="subject" name="subject"><option>Mathematics</option><option>English</option><option>Physics</option><option>Chemistry</option><option>Biology</option><option>Kiswahili</option><option>Computer science</option><option>Economics</option><option>French</option><option>Other</option></select></div>
+        <div class="field"><label for="district">District / neighborhood</label><input id="district" name="location" required placeholder="e.g. Gasabo, Kigali"></div>
+        <div class="field"><label for="radius">Search radius</label><select id="radius" name="radius"><option value="5">5 km</option><option value="10" selected>10 km</option><option value="20">20 km</option><option value="50">50 km</option><option value="online">Online</option></select></div>
+        <div class="field"><label for="modality">Lesson format</label><select id="modality" name="mode"><option>In person</option><option>Online</option><option>Either</option></select></div>
+        <div class="field"><label for="availability">Preferred time</label><select id="availability" name="availability"><option>Weekday afternoons</option><option>Weekday evenings</option><option>Weekend mornings</option><option>Flexible</option></select></div>
+        <div class="field full"><label for="learningNeed">Learning goal</label><textarea id="learningNeed" name="goal" placeholder="What would help the learner most?"></textarea></div>
+      </div>
+      <div class="dialog-actions"><button type="button" class="button secondary" data-close="requestDialog">Cancel</button><button class="button" type="submit">Create request</button></div>
+    </form>
+  </dialog>
+  <dialog id="matchesDialog">
+    <div class="dialog-head"><h2 id="matchesTitle">Recommended educators</h2><button class="close-btn" data-close="matchesDialog" aria-label="Close">×</button></div>
+    <div class="dialog-body"><p class="privacy-note">Learner and family contact details stay private until a match is confirmed. Tutors see only the learning criteria and general area.</p><div class="matches-list" id="matchesList"></div></div>
+  </dialog>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script>
+    const curriculaByCountry = {
+      Rwanda: ["REB", "Cambridge / IB"],
+      Kenya: ["CBC", "8-4-4"],
+      Uganda: ["UNEB"],
+      Tanzania: ["NECTA"]
+    };
+    const educators = [
+      { id: "T-042", name: "Aline Mukamana", initials: "AM", country: "Rwanda", area: "Kimironko, Kigali", curricula: ["REB", "Cambridge / IB"], levels: ["Primary", "Secondary"], subjects: ["Mathematics", "Physics"], distance: 2.4, rating: 4.9, lessons: 126, verified: true },
+      { id: "T-019", name: "Eric Niyonzima", initials: "EN", country: "Rwanda", area: "Remera, Kigali", curricula: ["REB"], levels: ["Secondary", "University"], subjects: ["Mathematics", "Physics", "Computer science"], distance: 4.1, rating: 4.8, lessons: 89, verified: true },
+      { id: "T-083", name: "Diane Uwase", initials: "DU", country: "Rwanda", area: "Kacyiru, Kigali", curricula: ["REB", "Cambridge / IB"], levels: ["Primary", "Secondary"], subjects: ["English", "Biology", "Chemistry"], distance: 5.7, rating: 5.0, lessons: 74, verified: true },
+      { id: "T-117", name: "Peter Otieno", initials: "PO", country: "Kenya", area: "Westlands, Nairobi", curricula: ["CBC", "8-4-4"], levels: ["Secondary", "University"], subjects: ["Mathematics", "Economics"], distance: 3.6, rating: 4.9, lessons: 108, verified: true },
+      { id: "T-156", name: "Grace Namusoke", initials: "GN", country: "Uganda", area: "Ntinda, Kampala", curricula: ["UNEB"], levels: ["Primary", "Secondary"], subjects: ["English", "Chemistry", "Biology"], distance: 3.2, rating: 4.8, lessons: 93, verified: true },
+      { id: "T-204", name: "Neema Mushi", initials: "NM", country: "Tanzania", area: "Kinondoni, Dar es Salaam", curricula: ["NECTA"], levels: ["Primary", "Secondary"], subjects: ["Mathematics", "Kiswahili", "Physics"], distance: 4.8, rating: 4.9, lessons: 81, verified: true }
+    ];
+    const requests = [
+      { id: "LR-128", learner: "Learner L-204", country: "Rwanda", curriculum: "REB", level: "Secondary", grade: "S2", subject: "Mathematics", location: "Gasabo, Kigali", radius: 10, mode: "In person", availability: "Weekday afternoons", goal: "Build confidence with algebra and equations", status: "Matching" },
+      { id: "LR-127", learner: "Learner L-198", country: "Kenya", curriculum: "CBC", level: "Primary", grade: "Grade 6", subject: "English", location: "Westlands, Nairobi", radius: 10, mode: "Either", availability: "Weekend mornings", goal: "Reading comprehension and writing", status: "Pitched" },
+      { id: "LR-126", learner: "Learner L-193", country: "Uganda", curriculum: "UNEB", level: "Secondary", grade: "S4", subject: "Chemistry", location: "Ntinda, Kampala", radius: 8, mode: "In person", availability: "Weekday evenings", goal: "Prepare for end-of-term assessments", status: "Matching" },
+      { id: "LR-125", learner: "Learner L-187", country: "Tanzania", curriculum: "NECTA", level: "University", grade: "Year 1", subject: "Mathematics", location: "Kinondoni, Dar es Salaam", radius: 15, mode: "Online", availability: "Flexible", goal: "Review calculus fundamentals", status: "Matched" },
+      { id: "LR-124", learner: "Learner L-182", country: "Rwanda", curriculum: "Cambridge / IB", level: "Primary", grade: "P6", subject: "English", location: "Kacyiru, Kigali", radius: 8, mode: "In person", availability: "Weekend mornings", goal: "Improve reading fluency", status: "Matching" }
+    ];
+    const offers = [
+      { id: "LR-128", country: "Rwanda", curriculum: "REB", level: "Secondary · S2", subject: "Mathematics", area: "Gasabo, Kigali", distance: "2.4 km", schedule: "Weekday afternoons", status: "New offer" },
+      { id: "LR-119", country: "Rwanda", curriculum: "Cambridge / IB", level: "Primary · P6", subject: "English", area: "Kacyiru, Kigali", distance: "5.7 km", schedule: "Weekend mornings", status: "New offer" }
+    ];
+    const sections = {
+      manager: ["Overview", "Learning requests", "Educators", "Sessions", "Payments"],
+      parent: ["Family overview", "My requests", "Sessions", "Progress", "Payments"],
+      learner: ["My learning", "Schedule", "Resources", "Feedback"],
+      teacher: ["Teaching home", "Job offers", "Availability", "Curriculum toolkit"]
+    };
+    let activePortal = "manager";
+    let activeSection = "Overview";
+    let selectedRequest = requests[0];
+    let toastTimer;
+    const $ = id => document.getElementById(id);
+    const escapeHtml = value => String(value).replace(/[&<>"']/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" })[character]);
+
+    function showToast(message) {
+      const toast = $("toast");
+      toast.textContent = message;
+      toast.classList.add("show");
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toast.classList.remove("show"), 2600);
+    }
+
+    function statusClass(status) {
+      return status.toLowerCase().replaceAll(" ", "-");
+    }
+
+    function matchingEducators(request, limit = Number(request.radius)) {
+      return educators.filter(educator => educator.country === request.country && educator.curricula.includes(request.curriculum) && educator.levels.includes(request.level) && educator.subjects.includes(request.subject) && (limit === "online" || Number(limit) === 0 || request.mode === "Online" || educator.distance <= Number(limit)));
+    }
+
+    function tutorMarkup(educator, showPitch = false, requestId = "") {
+      return `<div class="tutor"><div class="tutor-avatar">${escapeHtml(educator.initials)}</div><div class="tutor-info"><strong>${escapeHtml(educator.name)} <span class="verified"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1.2 10 2l2.1-.1.7 2 1.5 1.5-.8 2 .2 2.1-2  .8-1.5 1.5-2-.8-2.1.2-.8-2L3.8 7.7l.8-2-.2-2.1 2-.8z"/><path d="m5.3 8.1 1.6 1.5 3.7-3.7" fill="none" stroke="white" stroke-width="1.2"/></svg>Verified</span></strong><span>${escapeHtml(educator.area)} · ${educator.distance} km · ${educator.rating} ★ · ${educator.lessons} lessons</span></div>${showPitch ? `<button class="match-button" data-action="pitch" data-tutor="${educator.id}" data-request="${requestId}">Pitch privately</button>` : `<span class="tutor-distance">${educator.distance} km</span>`}</div>`;
+    }
+
+    function managerView() {
+      const visible = filterRequests();
+      const firstRequest = requests[0];
+      const nearby = matchingEducators(firstRequest).slice(0, 3);
+      const tableRows = visible.map(request => `<tr data-request="${request.id}"><td class="request-id">${request.id}</td><td class="student-cell"><strong>${escapeHtml(request.learner)}</strong><span>${escapeHtml(request.location)} · ${escapeHtml(request.country)}</span></td><td>${escapeHtml(request.curriculum)}</td><td>${escapeHtml(request.level)} · ${escapeHtml(request.grade)}</td><td><span class="tag">${escapeHtml(request.subject)}</span></td><td>${request.radius} km</td><td><span class="status ${statusClass(request.status)}">${escapeHtml(request.status)}</span></td><td><button class="match-button" data-action="matches" data-request="${request.id}">View matches</button></td></tr>`).join("");
+      const mapCenter = { Rwanda: "-1.966,30.066", Kenya: "-1.264,36.807", Uganda: "0.3476,32.5825", Tanzania: "-6.7924,39.2083" }[firstRequest.country];
+      const mapBox = { Rwanda: "30.025,-2.012,30.11,-1.92", Kenya: "36.76,-1.31,36.86,-1.21", Uganda: "32.54,0.30,32.63,0.40", Tanzania: "39.16,-6.84,39.26,-6.74" }[firstRequest.country];
+      return `<section class="welcome"><div><div class="eyebrow">Tuesday, October 20 · Manager space</div><h1>Learning, closer to home.</h1><p>Coordinate trusted educators around each learner's curriculum, level and neighborhood.</p></div><button class="button" data-action="new-request"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>New learning request</button></section>
+        <section class="metrics" aria-label="Platform overview">
+          <article class="metric"><div class="metric-head"><span>Requests to match</span><span class="metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 4h-3a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-3"/><rect x="8" y="2" width="8" height="4" rx="1.5"/><path d="M8 12h8M8 16h5"/></svg></span></div><div class="metric-value">${requests.filter(item => item.status === "Matching").length}<small>+2 today</small></div><div class="metric-sub">Across four regional curricula</div></article>
+          <article class="metric"><div class="metric-head"><span>Verified educators</span><span class="metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M5 21v-2a7 7 0 0 1 14 0v2m-5-6 2 2 4-4"/></svg></span></div><div class="metric-value">248<small>+12 this month</small></div><div class="metric-sub">Available across 4 countries</div></article>
+          <article class="metric"><div class="metric-head"><span>Lessons this week</span><span class="metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18m-12 5h6"/></svg></span></div><div class="metric-value">186<small>91% attended</small></div><div class="metric-sub">In-person and online sessions</div></article>
+          <article class="metric"><div class="metric-head"><span>Median match time</span><span class="metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span></div><div class="metric-value">4.2h<small>−18%</small></div><div class="metric-sub">Request to confirmed educator</div></article>
+        </section>
+        <section class="grid-two">
+          <article class="panel map-panel"><div class="panel-head"><div><h2>Hyper-local educator network</h2><p>${escapeHtml(firstRequest.location)} · ${firstRequest.radius} km search radius</p></div><button class="text-button" data-action="focus-requests">Open matching queue →</button></div><div class="map-frame"><span class="map-label">${escapeHtml(firstRequest.country)} · ${escapeHtml(firstRequest.location)}</span><iframe title="OpenStreetMap around ${escapeHtml(firstRequest.location)}" src="https://www.openstreetmap.org/export/embed.html?bbox=${encodeURIComponent(mapBox)}&layer=mapnik&marker=${encodeURIComponent(mapCenter)}" loading="lazy"></iframe></div><div class="map-key"><span><i class="map-dot"></i>Verified educator</span><span><i class="map-dot request"></i>Learning request</span><span><i class="map-dot radius"></i>Search area</span></div></article>
+          <article class="panel"><div class="panel-head"><div><h2>Closest qualified educators</h2><p>${escapeHtml(firstRequest.curriculum)} · ${escapeHtml(firstRequest.level)} · ${escapeHtml(firstRequest.subject)}</p></div><button class="text-button" data-action="nav" data-section="Educators">View all</button></div><div class="tutor-list">${nearby.length ? nearby.map(tutor => tutorMarkup(tutor)).join("") : `<div class="empty">No verified educators match this request yet.</div>`}</div></article>
+        </section>
+        <section class="panel" id="requestQueue"><div class="panel-head"><div><h2>Learning request queue</h2><p>Family details stay private while you find the right educator.</p></div><span class="tag" id="requestCount">${visible.length} requests</span></div>
+          <div class="filter-row"><input id="requestSearch" type="search" placeholder="Search learner ref or neighborhood" aria-label="Search requests"><select id="countryFilter" aria-label="Filter by country"><option value="">All countries</option>${Object.keys(curriculaByCountry).map(country => `<option>${country}</option>`).join("")}</select><select id="curriculumFilter" aria-label="Filter by curriculum"><option value="">All curricula</option>${[...new Set(Object.values(curriculaByCountry).flat())].map(value => `<option>${escapeHtml(value)}</option>`).join("")}</select><select id="levelFilter" aria-label="Filter by academic level"><option value="">All levels</option><option>Primary</option><option>Secondary</option><option>University</option></select><select id="subjectFilter" aria-label="Filter by subject"><option value="">All subjects</option>${[...new Set(requests.map(request => request.subject))].map(value => `<option>${escapeHtml(value)}</option>`).join("")}</select></div>
+          <div class="table-wrap"><table><thead><tr><th>Request</th><th>Learner / area</th><th>Curriculum</th><th>Level</th><th>Subject</th><th>Radius</th><th>Status</th><th>Match</th></tr></thead><tbody id="requestRows">${tableRows}</tbody></table><div class="empty" id="requestEmpty" ${visible.length ? "hidden" : ""}>No requests fit these criteria.</div></div></section>
+        <section class="bottom-grid" style="margin-top:15px"><article class="panel"><div class="panel-head"><div><h2>Today's sessions</h2><p>Upcoming across active learning plans</p></div><button class="text-button" data-action="nav" data-section="Sessions">View schedule →</button></div><div class="session-list"><div class="session-row"><div class="session-time">10:00</div><div><strong>Mathematics · Secondary S2</strong><span>Gasabo, Kigali · Educator A.M.</span></div><span class="small-pill">In person</span></div><div class="session-row"><div class="session-time">13:30</div><div><strong>English · Primary Grade 6</strong><span>Westlands, Nairobi · Educator P.O.</span></div><span class="small-pill">Online</span></div><div class="session-row"><div class="session-time">16:00</div><div><strong>Chemistry · Secondary S4</strong><span>Ntinda, Kampala · Educator G.N.</span></div><span class="small-pill">In person</span></div></div></article><article class="panel"><div class="panel-head"><div><h2>Regional curriculum coverage</h2><p>Active learning plans by national curriculum</p></div><button class="text-button" data-action="nav" data-section="Payments">View reports →</button></div><div class="session-list"><div class="session-row"><div class="session-time">REB</div><div><strong>Rwanda Education Board</strong><span>Kigali · Primary and Secondary</span></div><span class="small-pill">64 plans</span></div><div class="session-row"><div class="session-time">CBC</div><div><strong>Competency Based Curriculum</strong><span>Kenya · Primary and Secondary</span></div><span class="small-pill">51 plans</span></div><div class="session-row"><div class="session-time">UNEB</div><div><strong>Uganda National Examinations Board</strong><span>Uganda · Primary and Secondary</span></div><span class="small-pill">38 plans</span></div></div></article></section>`;
+    }
+
+    function filterRequests() {
+      const search = ($("requestSearch")?.value || "").trim().toLowerCase();
+      const country = $("countryFilter")?.value || "";
+      const curriculum = $("curriculumFilter")?.value || "";
+      const level = $("levelFilter")?.value || "";
+      const subject = $("subjectFilter")?.value || "";
+      return requests.filter(request => `${request.id} ${request.learner} ${request.location}`.toLowerCase().includes(search) && (!country || request.country === country) && (!curriculum || request.curriculum === curriculum) && (!level || request.level === level) && (!subject || request.subject === subject));
+    }
+
+    function refreshRequestRows() {
+      const tbody = $("requestRows");
+      if (!tbody) return;
+      const visible = filterRequests();
+      tbody.innerHTML = visible.map(request => `<tr data-request="${request.id}"><td class="request-id">${request.id}</td><td class="student-cell"><strong>${escapeHtml(request.learner)}</strong><span>${escapeHtml(request.location)} · ${escapeHtml(request.country)}</span></td><td>${escapeHtml(request.curriculum)}</td><td>${escapeHtml(request.level)} · ${escapeHtml(request.grade)}</td><td><span class="tag">${escapeHtml(request.subject)}</span></td><td>${request.radius} km</td><td><span class="status ${statusClass(request.status)}">${escapeHtml(request.status)}</span></td><td><button class="match-button" data-action="matches" data-request="${request.id}">View matches</button></td></tr>`).join("");
+      $("requestCount").textContent = `${visible.length} requests`;
+      $("requestEmpty").hidden = visible.length > 0;
+    }
+
+    function parentView() {
+      return `<section class="welcome"><div><div class="eyebrow">Family space · Kigali, Rwanda</div><h1>Good morning, Amina's family.</h1><p>One clear place for tutoring requests, upcoming lessons and learning progress.</p></div><button class="button" data-action="new-request"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>Request a tutor</button></section>
+        <section class="portal-banner"><div><h2>Amina · Secondary, S2</h2><p>REB curriculum · Current focus: Mathematics · Family and learner details are only shared with a tutor after your match is confirmed.</p></div><span class="tag">Learning plan active</span></section>
+        <section class="card-grid"><article class="info-card"><h3>Current learning goal</h3><p>Build confidence with algebra and equations, with a focus on showing each step.</p><div class="big">Mathematics</div><p>REB · Secondary S2</p></article><article class="info-card"><h3>Next session</h3><div class="big">Today · 10:00</div><p>In person · Gasabo, Kigali</p><p style="margin-top:8px">Educator Aline M. · Confirmed</p></article><article class="info-card"><h3>Learning progress</h3><div class="big">72%</div><div class="progress-track"><span style="width:72%"></span></div><p style="margin-top:7px">Algebra foundations · 6 of 8 milestones</p></article></section>
+        <section class="grid-two"><article class="panel"><div class="panel-head"><div><h2>Recommended educators</h2><p>Reviewed by your ReRa manager for Amina's learning plan</p></div><span class="tag">2 vetted</span></div><div class="tutor-list">${educators.slice(0, 2).map(tutor => tutorMarkup(tutor)).join("")}</div></article><article class="panel"><div class="panel-head"><div><h2>Request status</h2><p>Updates from your ReRa manager</p></div></div><div class="request-card"><div class="request-card-head"><strong>Mathematics · Secondary S2</strong><span class="status pitched">Educator proposed</span></div><p>REB curriculum · Gasabo · Weekday afternoons</p><div class="progress-track"><span style="width:75%"></span></div></div><div class="request-card"><div class="request-card-head"><strong>Physics · Secondary S2</strong><span class="status">Matching</span></div><p>REB curriculum · Gasabo · In person</p><div class="progress-track"><span style="width:36%"></span></div></div></article></section>
+        <section class="bottom-grid"><article class="panel"><div class="panel-head"><div><h2>Upcoming sessions</h2><p>Schedule and attendance at a glance</p></div><button class="text-button" data-action="nav" data-section="Sessions">All sessions →</button></div><div class="session-list"><div class="session-row"><div class="session-time">Today<br>10:00</div><div><strong>Mathematics · Aline Mukamana</strong><span>Gasabo, Kigali · In person</span></div><span class="small-pill">Confirmed</span></div><div class="session-row"><div class="session-time">Thu<br>16:30</div><div><strong>English · Diane Uwase</strong><span>Online · 60 minutes</span></div><span class="small-pill">Confirmed</span></div></div></article><article class="panel"><div class="panel-head"><div><h2>Payments</h2><p>Secure, itemized session history</p></div><button class="text-button" data-action="nav" data-section="Payments">Payment history →</button></div><div class="session-list"><div class="session-row"><div class="session-time">MTN</div><div><strong>Next session bundle</strong><span>4 lessons · Due after confirmation</span></div><span class="small-pill">MoMo</span></div><div class="session-row"><div class="session-time">—</div><div><strong>No payment due today</strong><span>Receipts are available in your account</span></div><span class="status active">Up to date</span></div></div></article></section>`;
+    }
+
+    function learnerView() {
+      return `<section class="welcome"><div><div class="eyebrow">Learner space · REB curriculum</div><h1>Your learning, Amina.</h1><p>Keep your next lesson, goals and study resources close at hand.</p></div><button class="button secondary" data-action="nav" data-section="Feedback">Share session feedback</button></section>
+        <section class="portal-banner"><div><h2>Secondary · S2 <span class="tag">REB</span></h2><p>Learning focus: Mathematics · Your family and home address stay private until a tutor match is confirmed.</p></div><span class="tag">Plan in progress</span></section>
+        <section class="card-grid"><article class="info-card"><h3>Mathematics progress</h3><div class="big">72%</div><div class="progress-track"><span style="width:72%"></span></div><p style="margin-top:7px">Algebra foundations · 6 of 8 milestones</p></article><article class="info-card"><h3>This week</h3><div class="big">2 sessions</div><p>1 in person · 1 online</p></article><article class="info-card"><h3>Attendance</h3><div class="big">9 / 10</div><p>Lessons attended this term</p></article></section>
+        <section class="bottom-grid"><article class="panel"><div class="panel-head"><div><h2>My schedule</h2><p>Upcoming lessons with your matched educators</p></div><button class="text-button" data-action="nav" data-section="Schedule">Open calendar →</button></div><div class="session-list"><div class="session-row"><div class="session-time">Today<br>10:00</div><div><strong>Mathematics · Aline Mukamana</strong><span>In person · Gasabo learning center</span></div><span class="small-pill">60 min</span></div><div class="session-row"><div class="session-time">Thu<br>16:30</div><div><strong>English · Diane Uwase</strong><span>Online · Bring reading notes</span></div><span class="small-pill">60 min</span></div><div class="session-row"><div class="session-time">Sat<br>09:00</div><div><strong>Study review · Aline Mukamana</strong><span>In person · Gasabo learning center</span></div><span class="small-pill">45 min</span></div></div></article><article class="panel"><div class="panel-head"><div><h2>My resource locker</h2><p>Shared by your matched educators</p></div></div><div class="dialog-body"><p class="privacy-note">These learning resources are visible to you and your family.</p><div class="resource-list"><div class="resource"><span>Algebra practice · REB S2</span><button data-action="resource" data-resource="Algebra practice">Open</button></div><div class="resource"><span>Linear equations · Worksheet</span><button data-action="resource" data-resource="Linear equations">Open</button></div><div class="resource"><span>REB mathematics syllabus · S2</span><button data-action="resource" data-resource="REB mathematics syllabus">Open</button></div></div></div></article></section>
+        <section class="panel"><div class="panel-head"><div><h2>How was your last lesson?</h2><p>Quick feedback helps your educator shape the next session.</p></div></div><div class="dialog-body"><div class="feedback-row" aria-label="Rate your last session"><button data-action="feedback" data-rating="1" aria-label="Not great">😕</button><button data-action="feedback" data-rating="2" aria-label="Okay">😐</button><button data-action="feedback" data-rating="3" aria-label="Good">🙂</button><button data-action="feedback" data-rating="4" aria-label="Great">😊</button><button data-action="feedback" data-rating="5" aria-label="Excellent">🤩</button></div></div></section>`;
+    }
+
+    function teacherView() {
+      const availableOffers = offers.filter(offer => offer.status === "New offer");
+      return `<section class="welcome"><div><div class="eyebrow">Teacher space · ${educators[0].area}</div><h1>Good morning, Aline.</h1><p>Your private teaching pipeline, availability and curriculum toolkit.</p></div><button class="button" data-action="toggle-availability"><span id="availabilityLabel">Available for work</span></button></section>
+        <section class="portal-banner"><div><h2>Your teaching area</h2><p>${escapeHtml(educators[0].area)} · REB and Cambridge / IB · Primary and Secondary</p></div><div class="field" style="min-width:110px"><label for="teacherRadius">Travel radius</label><select id="teacherRadius" class="field select" style="min-height:34px;padding:6px 9px;border:1px solid var(--line);border-radius:5px;background:white;color:var(--ink);font-size:10px"><option>5 km</option><option selected>10 km</option><option>20 km</option><option>Online only</option></select></div></section>
+        <section class="card-grid"><article class="info-card"><h3>New private offers</h3><div class="big">${availableOffers.length}</div><p>Matching your subjects, level and area</p></article><article class="info-card"><h3>Sessions this week</h3><div class="big">8</div><p>6 confirmed · 2 awaiting confirmation</p></article><article class="info-card"><h3>Educator rating</h3><div class="big">4.9 ★</div><p>From 42 family and learner reviews</p></article></section>
+        <section class="grid-two"><article class="panel"><div class="panel-head"><div><h2>Private job pipeline</h2><p>Family identity and exact address are hidden until a match is confirmed.</p></div><span class="tag">${availableOffers.length} new</span></div>${availableOffers.length ? availableOffers.map(offer => `<div class="offer-card"><div><strong>${escapeHtml(offer.subject)} · ${escapeHtml(offer.level)}</strong><p>${escapeHtml(offer.curriculum)} · ${escapeHtml(offer.area)} · ${escapeHtml(offer.distance)}</p><p>${escapeHtml(offer.schedule)}</p></div><div class="offer-actions"><button data-action="offer-accept" data-offer="${offer.id}">Accept</button><button data-action="offer-decline" data-offer="${offer.id}">Decline</button></div></div>`).join("") : `<div class="empty">No new offers right now. Keep your availability up to date.</div>`}</article><article class="panel"><div class="panel-head"><div><h2>Curriculum toolkit</h2><p>Quick references for the programs you teach</p></div></div><div class="dialog-body"><div class="resource-list"><div class="resource"><span>REB · Secondary mathematics</span><button data-action="resource" data-resource="REB Secondary mathematics">Open</button></div><div class="resource"><span>REB · S2 learning outcomes</span><button data-action="resource" data-resource="REB S2 learning outcomes">Open</button></div><div class="resource"><span>Cambridge / IB · Subject guides</span><button data-action="resource" data-resource="Cambridge subject guides">Open</button></div></div></div></article></section>
+        <section class="panel"><div class="panel-head"><div><h2>Upcoming sessions</h2><p>Confirmed lessons and attendance</p></div><button class="text-button" data-action="nav" data-section="Availability">Update availability →</button></div><div class="session-list"><div class="session-row"><div class="session-time">Today<br>10:00</div><div><strong>Mathematics · Secondary S2 · REB</strong><span>Gasabo, Kigali · Family details shared after match</span></div><span class="small-pill">Confirmed</span></div><div class="session-row"><div class="session-time">Thu<br>16:30</div><div><strong>English · Primary P6 · REB</strong><span>Online lesson</span></div><span class="small-pill">Confirmed</span></div></div></section>`;
+    }
+
+    function otherSectionView() {
+      const section = activeSection;
+      return `<section class="welcome"><div><div class="eyebrow">${escapeHtml(sections[activePortal][0])}</div><h1>${escapeHtml(section)}</h1><p>Tools and updates for your ${escapeHtml(activePortal)} space.</p></div>${activePortal === "manager" ? `<button class="button" data-action="new-request">New learning request</button>` : ""}</section><section class="portal-banner"><div><h2>${escapeHtml(section)} workspace</h2><p>This prototype keeps the core navigation and workflow visible. Connect accounts, regional payment services, live educator availability, and protected learning records to production data before launch.</p></div></section>${activePortal === "manager" ? managerView() : activePortal === "parent" ? parentView() : activePortal === "learner" ? learnerView() : teacherView()}`;
+    }
+
+    function renderPortal() {
+      const nav = $("sideNav");
+      nav.innerHTML = sections[activePortal].map((section, index) => `<button class="${section === activeSection ? "active" : ""}" data-section="${escapeHtml(section)}" aria-current="${section === activeSection ? "page" : "false"}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">${index === 0 ? `<rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="5" rx="1.5"/><rect x="13" y="10" width="8" height="11" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/>` : index === 1 ? `<path d="M8 4h-3a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-3"/><rect x="8" y="2" width="8" height="4" rx="1.5"/><path d="M8 12h8"/>` : index === 2 ? `<circle cx="12" cy="8" r="4"/><path d="M5 21v-2a7 7 0 0 1 14 0v2"/>` : `<path d="M3 3v18h18"/><path d="m7 14 4-4 4 3 6-7"/>`}</svg>${escapeHtml(section)}</button>`).join("");
+      $("sideLabel").textContent = `${activePortal[0].toUpperCase()}${activePortal.slice(1)} space`;
+      $("breadcrumb").textContent = `${activePortal[0].toUpperCase()}${activePortal.slice(1)} space`;
+      $("profileRole").textContent = activePortal === "manager" ? "ReRa manager" : `${activePortal[0].toUpperCase()}${activePortal.slice(1)} portal`;
+      $("profileName").textContent = activePortal === "parent" ? "M. Uwimana" : activePortal === "learner" ? "Amina U." : activePortal === "teacher" ? "Aline M." : "Jordan M.";
+      $("appContent").innerHTML = sections[activePortal].indexOf(activeSection) > 0 ? otherSectionView() : activePortal === "manager" ? managerView() : activePortal === "parent" ? parentView() : activePortal === "learner" ? learnerView() : teacherView();
+      if (activePortal === "manager") bindRequestFilters();
+    }
+
+    function bindRequestFilters() {
+      ["requestSearch", "countryFilter", "curriculumFilter", "levelFilter", "subjectFilter"].forEach(id => $(id)?.addEventListener("input", refreshRequestRows));
+    }
+
+    function updateCurricula() {
+      const country = $("country").value;
+      $("curriculum").innerHTML = curriculaByCountry[country].map(curriculum => `<option>${escapeHtml(curriculum)}</option>`).join("");
+    }
+
+    function openMatches(requestId) {
+      const request = requests.find(item => item.id === requestId);
+      if (!request) return;
+      selectedRequest = request;
+      const matches = matchingEducators(request);
+      $("matchesTitle").textContent = `Educators for ${request.id} · ${request.subject}`;
+      $("matchesList").innerHTML = matches.length ? matches.map(educator => `<div class="match-card"><div class="tutor-avatar">${escapeHtml(educator.initials)}</div><div><strong>${escapeHtml(educator.name)} · ${educator.rating} ★</strong><span>${escapeHtml(educator.area)} · ${educator.distance} km · ${escapeHtml(educator.curricula.filter(item => item === request.curriculum).join(", "))}</span></div><button data-action="pitch" data-tutor="${educator.id}" data-request="${request.id}">Pitch privately</button></div>`).join("") : `<div class="empty">No educators meet every criterion inside this radius. Try expanding the radius or offering online sessions.</div>`;
+      $("matchesDialog").showModal();
+    }
+
+    function createRequest(data) {
+      const request = {
+        id: `LR-${129 + requests.length - 5}`,
+        learner: `Learner ${data.get("learner").trim()}`,
+        country: data.get("country"),
+        curriculum: data.get("curriculum"),
+        level: data.get("level"),
+        grade: data.get("grade").trim(),
+        subject: data.get("subject"),
+        location: data.get("location").trim(),
+        radius: data.get("radius") === "online" ? 0 : Number(data.get("radius")),
+        mode: data.get("mode"),
+        availability: data.get("availability"),
+        goal: data.get("goal").trim(),
+        status: "Matching"
+      };
+      requests.unshift(request);
+      selectedRequest = request;
+      $("requestDialog").close();
+      $("requestForm").reset();
+      updateCurricula();
+      if (activePortal !== "manager") switchPortal("manager");
+      else renderPortal();
+      showToast(`Learning request ${request.id} created`);
+    }
+
+    function switchPortal(portal) {
+      activePortal = portal;
+      activeSection = sections[portal][0];
+      document.querySelectorAll("[data-portal]").forEach(button => button.classList.toggle("active", button.dataset.portal === portal));
+      renderPortal();
+    }
+
+    document.querySelectorAll("[data-portal]").forEach(button => button.addEventListener("click", () => switchPortal(button.dataset.portal)));
+    document.addEventListener("click", event => {
+      const closeButton = event.target.closest("[data-close]");
+      if (closeButton) $(closeButton.dataset.close).close();
+      const navButton = event.target.closest(".side-nav [data-section]");
+      if (navButton) {
+        activeSection = navButton.dataset.section;
+        renderPortal();
+      }
+      const action = event.target.closest("[data-action]");
+      if (!action) return;
+      const name = action.dataset.action;
+      if (name === "new-request") {
+        updateCurricula();
+        $("requestDialog").showModal();
+      } else if (name === "matches") {
+        openMatches(action.dataset.request);
+      } else if (name === "pitch") {
+        const request = requests.find(item => item.id === action.dataset.request);
+        const educator = educators.find(item => item.id === action.dataset.tutor);
+        if (request && educator) {
+          request.status = "Pitched";
+          if (!offers.some(offer => offer.id === request.id)) offers.unshift({ id: request.id, country: request.country, curriculum: request.curriculum, level: `${request.level} · ${request.grade}`, subject: request.subject, area: request.location, distance: `${educator.distance} km`, schedule: request.availability, status: "New offer" });
+          $("matchesDialog").close();
+          renderPortal();
+          showToast(`Private offer sent to ${educator.name}. Family details remain hidden.`);
+        }
+      } else if (name === "focus-requests") {
+        $("requestQueue")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      } else if (name === "nav") {
+        activeSection = action.dataset.section;
+        renderPortal();
+      } else if (name === "offer-accept" || name === "offer-decline") {
+        const offer = offers.find(item => item.id === action.dataset.offer);
+        if (offer) {
+          offer.status = name === "offer-accept" ? "Accepted" : "Declined";
+          renderPortal();
+          showToast(name === "offer-accept" ? "Offer accepted. The manager will coordinate the confirmed match." : "Offer declined. The manager can contact another educator.");
+        }
+      } else if (name === "toggle-availability") {
+        const label = $("availabilityLabel");
+        const available = label.textContent === "Available for work";
+        label.textContent = available ? "Pause availability" : "Available for work";
+        action.classList.toggle("secondary", available);
+        showToast(available ? "Availability paused" : "You are available for new offers");
+      } else if (name === "feedback") {
+        showToast(`Thanks for sharing your ${action.dataset.rating}-star session feedback.`);
+      } else if (name === "resource") {
+        showToast(`${action.dataset.resource} opened in your resource locker.`);
+      }
+    });
+    $("requestForm").addEventListener("submit", event => {
+      event.preventDefault();
+      createRequest(new FormData(event.currentTarget));
+    });
+    $("country").addEventListener("change", updateCurricula);
+    $("notifications").addEventListener("click", () => showToast("You are up to date on ReRa notifications."));
+    renderPortal();
+  </script>
+</body>
+</html>

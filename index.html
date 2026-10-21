@@ -1,0 +1,428 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f6f7f5">
+  <title>ReRa | Learning, closer to home</title>
+  <meta http-equiv="refresh" content="0;url=rera.html">
+  <script>window.location.replace("rera.html");</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #1c2926;
+      --muted: #75817d;
+      --line: #e7ebe7;
+      --paper: #ffffff;
+      --canvas: #f6f7f5;
+      --forest: #176b52;
+      --forest-dark: #124b3b;
+      --mint: #e5f3ed;
+      --lime: #d8ef7e;
+      --coral: #eb8066;
+      --amber: #d9a437;
+      --blue: #6187c5;
+      --shadow: 0 12px 32px rgba(34, 54, 45, .07);
+      font-family: "DM Sans", sans-serif;
+      color: var(--ink);
+      background: var(--canvas);
+      font-synthesis: none;
+      text-rendering: optimizeLegibility;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-width: 320px; background: var(--canvas); }
+    button, input, select { font: inherit; }
+    button { cursor: pointer; }
+    .shell { min-height: 100vh; display: grid; grid-template-columns: 238px minmax(0, 1fr); }
+    .sidebar { position: sticky; top: 0; height: 100vh; padding: 26px 16px 18px; display: flex; flex-direction: column; background: #173e34; color: #f3f7f2; }
+    .brand { display: flex; align-items: center; gap: 11px; padding: 0 10px; margin-bottom: 38px; color: inherit; text-decoration: none; }
+    .brand-mark { width: 35px; height: 35px; display: grid; place-items: center; border-radius: 11px; background: var(--lime); color: #173e34; }
+    .brand-mark svg { width: 21px; height: 21px; }
+    .brand-name { font: 800 18px Manrope, sans-serif; letter-spacing: 0; }
+    .workspace-label { color: #a8c1b5; text-transform: uppercase; font-size: 10px; font-weight: 700; letter-spacing: 1.2px; padding: 0 12px; margin: 0 0 11px; }
+    .nav { display: grid; gap: 5px; }
+    .nav button { border: 0; color: #c1d2c9; background: transparent; text-align: left; display: flex; align-items: center; gap: 12px; min-height: 43px; border-radius: 8px; padding: 0 12px; font-size: 13px; font-weight: 600; transition: background .18s ease, color .18s ease; }
+    .nav button:hover, .nav button.active { color: #fff; background: rgba(255,255,255,.12); }
+    .nav button.active { box-shadow: inset 3px 0 var(--lime); }
+    .nav svg { width: 17px; height: 17px; opacity: .92; }
+    .side-bottom { margin-top: auto; }
+    .plan-box { margin: 0 5px 16px; padding: 14px; border: 1px solid rgba(255,255,255,.14); border-radius: 9px; background: rgba(255,255,255,.06); }
+    .plan-top { display: flex; justify-content: space-between; align-items: center; color: #d8e7de; font-size: 11px; }
+    .plan-pill { color: #20372b; background: var(--lime); padding: 3px 7px; border-radius: 4px; font-weight: 700; font-size: 10px; }
+    .plan-box strong { display: block; margin: 10px 0 4px; font: 700 13px Manrope, sans-serif; }
+    .plan-box p { margin: 0; color: #adc3b8; font-size: 11px; line-height: 1.5; }
+    .progress { height: 4px; margin-top: 12px; border-radius: 3px; background: rgba(255,255,255,.15); overflow: hidden; }
+    .progress span { display: block; width: 68%; height: 100%; background: var(--lime); border-radius: inherit; }
+    .user-mini { display: flex; gap: 10px; align-items: center; padding: 12px 8px 2px; border-top: 1px solid rgba(255,255,255,.14); }
+    .avatar { width: 31px; height: 31px; display: grid; place-items: center; border-radius: 50%; color: #214637; background: #d5e5ce; font-size: 11px; font-weight: 700; flex: none; }
+    .user-mini strong { display: block; font-size: 12px; }
+    .user-mini span { color: #b0c6bb; font-size: 10px; }
+    main { min-width: 0; }
+    .topbar { height: 68px; display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 0 34px; border-bottom: 1px solid var(--line); background: rgba(255,255,255,.72); }
+    .crumb { color: var(--muted); font-size: 12px; }
+    .crumb strong { color: var(--ink); font-weight: 600; }
+    .top-actions { display: flex; align-items: center; gap: 13px; }
+    .role-wrap { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 11px; }
+    .role-wrap select { color: var(--ink); background: white; border: 1px solid var(--line); border-radius: 6px; padding: 8px 27px 8px 9px; font-size: 11px; }
+    .icon-btn { width: 35px; height: 35px; border: 1px solid var(--line); border-radius: 7px; color: #56655f; background: white; display: grid; place-items: center; position: relative; }
+    .icon-btn svg { width: 17px; height: 17px; }
+    .notify-dot { position: absolute; width: 6px; height: 6px; top: 7px; right: 7px; border: 1px solid white; border-radius: 50%; background: var(--coral); }
+    .content { max-width: 1440px; margin: 0 auto; padding: 30px 34px 44px; }
+    .welcome { display: flex; justify-content: space-between; align-items: flex-end; gap: 18px; margin-bottom: 23px; }
+    .eyebrow { color: var(--forest); font-size: 10px; text-transform: uppercase; font-weight: 700; letter-spacing: 1.15px; margin-bottom: 8px; }
+    h1 { margin: 0; font: 700 25px Manrope, sans-serif; letter-spacing: 0; }
+    .welcome p { color: var(--muted); font-size: 12px; margin: 6px 0 0; }
+    .primary-btn { height: 39px; padding: 0 14px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 0; border-radius: 6px; background: var(--forest); color: white; font-size: 12px; font-weight: 700; box-shadow: 0 3px 8px rgba(23,107,82,.15); transition: background .15s, transform .15s; }
+    .primary-btn:hover { background: var(--forest-dark); transform: translateY(-1px); }
+    .primary-btn svg { width: 15px; height: 15px; }
+    .metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 17px; }
+    .metric { min-height: 108px; padding: 16px 17px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); }
+    .metric-head { display: flex; justify-content: space-between; align-items: center; color: #697873; font-size: 11px; font-weight: 600; }
+    .metric-icon { width: 27px; height: 27px; display: grid; place-items: center; border-radius: 7px; background: #edf5f0; color: var(--forest); }
+    .metric:nth-child(2) .metric-icon { color: #bd674e; background: #fbefeb; }
+    .metric:nth-child(3) .metric-icon { color: #a87d20; background: #fbf5e7; }
+    .metric:nth-child(4) .metric-icon { color: #5576ae; background: #eef2f9; }
+    .metric-icon svg { width: 15px; height: 15px; }
+    .metric-value { margin-top: 9px; display: flex; align-items: baseline; gap: 8px; font: 700 24px Manrope, sans-serif; }
+    .metric-change { color: var(--forest); font: 600 10px "DM Sans", sans-serif; }
+    .metric-sub { color: #98a29e; font-size: 10px; margin-top: 2px; }
+    .overview-grid { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(275px, .9fr); gap: 14px; margin-bottom: 17px; }
+    .panel { border: 1px solid var(--line); border-radius: 8px; background: var(--paper); }
+    .panel-header { min-height: 55px; padding: 0 18px; display: flex; align-items: center; justify-content: space-between; gap: 10px; border-bottom: 1px solid #edf0ed; }
+    .panel-header h2 { margin: 0; font: 700 13px Manrope, sans-serif; }
+    .panel-header span { color: var(--muted); font-size: 10px; }
+    .view-link { border: 0; background: transparent; color: var(--forest); font-size: 10px; font-weight: 700; }
+    .schedule { padding: 12px 18px 15px; }
+    .schedule-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 11px; }
+    .schedule-head strong { font: 700 12px Manrope, sans-serif; }
+    .schedule-head span { color: var(--muted); font-size: 10px; }
+    .schedule-list { display: grid; gap: 8px; }
+    .schedule-item { min-height: 50px; display: grid; grid-template-columns: 48px 3px minmax(0, 1fr) auto; gap: 11px; align-items: center; }
+    .schedule-time { font-size: 10px; color: #53615c; font-weight: 600; }
+    .schedule-bar { align-self: stretch; border-radius: 3px; background: var(--forest); }
+    .schedule-item:nth-child(2) .schedule-bar { background: var(--coral); }
+    .schedule-item:nth-child(3) .schedule-bar { background: var(--blue); }
+    .schedule-item:nth-child(4) .schedule-bar { background: var(--amber); }
+    .schedule-info strong { display: block; font-size: 11px; font-weight: 700; }
+    .schedule-info span { color: var(--muted); font-size: 10px; }
+    .schedule-tag { padding: 4px 7px; border-radius: 4px; color: #53655e; background: #f0f3f0; font-size: 9px; font-weight: 600; white-space: nowrap; }
+    .service-mix { padding: 16px 18px 14px; }
+    .mix-total { font: 700 24px Manrope, sans-serif; }
+    .mix-total small { color: var(--muted); font: 400 10px "DM Sans", sans-serif; }
+    .mix-track { height: 8px; display: flex; overflow: hidden; border-radius: 5px; margin: 12px 0 15px; background: #edf0ed; }
+    .mix-track span:nth-child(1) { width: 38%; background: var(--forest); }
+    .mix-track span:nth-child(2) { width: 27%; background: var(--coral); }
+    .mix-track span:nth-child(3) { width: 21%; background: #d8b04c; }
+    .mix-track span:nth-child(4) { width: 14%; background: #7d9dce; }
+    .mix-legend { display: grid; grid-template-columns: 1fr 1fr; gap: 11px 8px; }
+    .legend-item { display: flex; align-items: center; gap: 7px; color: #697873; font-size: 10px; }
+    .legend-dot { width: 7px; height: 7px; flex: none; border-radius: 50%; background: var(--forest); }
+    .legend-item:nth-child(2) .legend-dot { background: var(--coral); }
+    .legend-item:nth-child(3) .legend-dot { background: #d8b04c; }
+    .legend-item:nth-child(4) .legend-dot { background: #7d9dce; }
+    .legend-item b { margin-left: auto; color: var(--ink); font-size: 10px; }
+    .orders { overflow: hidden; }
+    .orders .panel-header { min-height: 59px; }
+    .orders-title { display: flex; align-items: center; gap: 9px; }
+    .count { min-width: 22px; height: 19px; display: grid; place-items: center; padding: 0 5px; border-radius: 5px; color: #486257; background: #eaf2ed; font-size: 10px; font-weight: 700; }
+    .table-tools { padding: 12px 16px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #edf0ed; }
+    .search { position: relative; flex: 1; max-width: 260px; }
+    .search svg { position: absolute; top: 9px; left: 10px; width: 14px; height: 14px; color: #9aa49f; }
+    .search input { width: 100%; height: 33px; padding: 0 10px 0 31px; border: 1px solid var(--line); border-radius: 5px; outline: none; color: var(--ink); background: white; font-size: 10px; }
+    .search input:focus, .filter:focus { border-color: #83b39e; box-shadow: 0 0 0 2px rgba(23,107,82,.08); }
+    .filter { height: 33px; min-width: 116px; padding: 0 27px 0 9px; border: 1px solid var(--line); border-radius: 5px; outline: none; color: #596761; background: white; font-size: 10px; }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; text-align: left; white-space: nowrap; }
+    th { padding: 10px 13px; color: #8a9690; text-transform: uppercase; letter-spacing: .45px; font-size: 9px; font-weight: 700; background: #fbfcfb; }
+    td { height: 53px; padding: 7px 13px; border-top: 1px solid #f0f2f0; color: #56645e; font-size: 10px; }
+    tbody tr { cursor: pointer; transition: background .12s; }
+    tbody tr:hover { background: #f8faf8; }
+    .job-id { color: var(--forest); font-weight: 700; }
+    .customer-cell strong { display: block; color: var(--ink); font-size: 10px; }
+    .customer-cell span { display: block; margin-top: 3px; color: #9aa39f; font-size: 9px; }
+    .service-cell { color: #33443d; font-weight: 600; }
+    .industry-tag { display: inline-flex; align-items: center; gap: 5px; }
+    .status { display: inline-flex; align-items: center; gap: 5px; padding: 4px 7px; border-radius: 4px; font-size: 9px; font-weight: 600; }
+    .status:before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+    .status.scheduled { color: #5676ad; background: #eef2fa; }
+    .status.in-progress { color: #a87d20; background: #fbf5e7; }
+    .status.awaiting { color: #a8644e; background: #fbefeb; }
+    .status.complete { color: #34775e; background: #eaf4ee; }
+    .priority { color: #6c7772; }
+    .priority.high { color: #c2674f; font-weight: 700; }
+    .assignee { display: flex; align-items: center; gap: 6px; }
+    .assignee .avatar { width: 23px; height: 23px; font-size: 8px; background: #e9eee9; color: #4d6257; }
+    .empty-state { padding: 30px 16px; color: var(--muted); text-align: center; font-size: 12px; }
+    .toast { position: fixed; right: 24px; bottom: 24px; z-index: 10; padding: 12px 16px; color: white; background: #173e34; border-radius: 6px; box-shadow: var(--shadow); font-size: 12px; opacity: 0; transform: translateY(8px); pointer-events: none; transition: .2s ease; }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    dialog { width: min(440px, calc(100vw - 28px)); padding: 0; border: 1px solid var(--line); border-radius: 9px; color: var(--ink); box-shadow: 0 24px 80px rgba(20,43,33,.22); }
+    dialog::backdrop { background: rgba(20,36,30,.38); backdrop-filter: blur(2px); }
+    .dialog-head { display: flex; justify-content: space-between; align-items: center; padding: 17px 20px; border-bottom: 1px solid var(--line); }
+    .dialog-head h2 { margin: 0; font: 700 15px Manrope, sans-serif; }
+    .close-btn { width: 28px; height: 28px; display: grid; place-items: center; border: 0; border-radius: 5px; color: #697873; background: #f2f4f2; }
+    .dialog-body { padding: 17px 20px 20px; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 13px 11px; }
+    .field { display: grid; gap: 6px; }
+    .field.full { grid-column: 1 / -1; }
+    .field label { color: #64726c; font-size: 10px; font-weight: 700; }
+    .field input, .field select { height: 36px; width: 100%; padding: 0 9px; border: 1px solid var(--line); border-radius: 5px; color: var(--ink); background: white; font-size: 11px; }
+    .dialog-actions { display: flex; justify-content: flex-end; gap: 8px; padding-top: 18px; }
+    .secondary-btn { height: 36px; padding: 0 12px; border: 1px solid var(--line); border-radius: 5px; color: #56645e; background: white; font-size: 11px; font-weight: 600; }
+    .detail-list { display: grid; grid-template-columns: 105px 1fr; gap: 12px 10px; font-size: 11px; }
+    .detail-list dt { color: var(--muted); }
+    .detail-list dd { margin: 0; font-weight: 600; }
+    @media (max-width: 1000px) {
+      .shell { grid-template-columns: 205px minmax(0,1fr); }
+      .content { padding: 26px 22px 36px; }
+      .topbar { padding: 0 22px; }
+      .overview-grid { grid-template-columns: 1fr; }
+      .service-mix { display: grid; grid-template-columns: 140px 1fr; gap: 0 20px; align-items: center; }
+      .service-mix .mix-track { grid-column: 1 / -1; }
+    }
+    @media (max-width: 720px) {
+      .shell { display: block; padding-bottom: 58px; }
+      .sidebar { position: fixed; z-index: 5; inset: auto 0 0; height: 58px; padding: 0 10px; flex-direction: row; align-items: center; justify-content: center; }
+      .brand, .workspace-label, .side-bottom { display: none; }
+      .nav { width: 100%; display: flex; justify-content: space-around; gap: 3px; }
+      .nav button { min-height: 46px; width: 54px; justify-content: center; padding: 0; font-size: 0; }
+      .nav button.active { box-shadow: inset 0 -3px var(--lime); }
+      .nav svg { width: 19px; height: 19px; }
+      .topbar { height: 58px; padding: 0 15px; }
+      .role-wrap > span { display: none; }
+      .role-wrap select { max-width: 115px; }
+      .content { padding: 23px 14px 30px; }
+      .welcome { align-items: flex-start; }
+      h1 { font-size: 22px; }
+      .welcome p { max-width: 220px; line-height: 1.5; }
+      .primary-btn { width: 39px; padding: 0; font-size: 0; flex: none; }
+      .primary-btn svg { width: 17px; height: 17px; }
+      .metrics { grid-template-columns: 1fr 1fr; gap: 9px; }
+      .metric { min-height: 98px; padding: 12px; }
+      .metric-value { font-size: 21px; }
+      .overview-grid { gap: 10px; }
+      .schedule { padding: 12px; }
+      .schedule-item { grid-template-columns: 43px 3px minmax(0, 1fr) auto; gap: 8px; }
+      .schedule-tag { display: none; }
+      .service-mix { padding: 13px; grid-template-columns: 100px 1fr; gap: 0 12px; }
+      .mix-legend { gap: 10px 5px; }
+      .table-tools { flex-wrap: wrap; padding: 10px; }
+      .search { max-width: none; min-width: 100%; }
+      .filter { flex: 1; min-width: 0; }
+      .orders .panel-header { padding: 0 12px; }
+      th, td { padding-left: 10px; padding-right: 10px; }
+      .toast { left: 14px; right: 14px; bottom: 72px; text-align: center; }
+    }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; } }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar" aria-label="Main navigation">
+      <a class="brand" href="#dashboard" aria-label="Fieldwork home">
+        <span class="brand-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 17 9 7l3 6 2-4 6 8"/><path d="M4 20h16"/></svg></span>
+        <span class="brand-name">fieldwork</span>
+      </a>
+      <p class="workspace-label">Workspace</p>
+      <nav class="nav">
+        <button class="active" data-page="Dashboard" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="5" rx="1.5"/><rect x="13" y="10" width="8" height="11" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/></svg>Dashboard</button>
+        <button data-page="Work orders"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 4h-3a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-3"/><rect x="8" y="2" width="8" height="4" rx="1.5"/><path d="m8 13 2.2 2.2L16 9.5"/></svg>Work orders</button>
+        <button data-page="Customers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>Customers</button>
+        <button data-page="Team"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M5 21v-2a7 7 0 0 1 14 0v2"/><path d="M19 8h3m-1.5-1.5v3"/></svg>Team</button>
+        <button data-page="Reports"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 3v18h18"/><path d="m7 14 4-4 4 3 6-7"/></svg>Reports</button>
+      </nav>
+      <div class="side-bottom">
+        <div class="plan-box">
+          <div class="plan-top"><span>WORKSPACE PLAN</span><span class="plan-pill">GROWTH</span></div>
+          <strong>Operations suite</strong>
+          <p>12 of 18 team seats in use</p>
+          <div class="progress"><span></span></div>
+        </div>
+        <div class="user-mini"><div class="avatar">JM</div><div><strong>Jordan Miller</strong><span>Workspace owner</span></div></div>
+      </div>
+    </aside>
+    <main>
+      <header class="topbar">
+        <div class="crumb">Workspace <span aria-hidden="true">/</span> <strong id="breadcrumb">Dashboard</strong></div>
+        <div class="top-actions">
+          <label class="role-wrap"><span>View as</span><select id="roleSelect" aria-label="Select access level"><option>Owner</option><option>Dispatcher</option><option>Field lead</option></select></label>
+          <button class="icon-btn" id="notificationButton" aria-label="Notifications" title="Notifications"><span class="notify-dot"></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg></button>
+          <div class="avatar" aria-label="Jordan Miller">JM</div>
+        </div>
+      </header>
+      <div class="content">
+        <section class="welcome">
+          <div><div class="eyebrow">Tuesday, October 20, 2026</div><h1 id="pageTitle">Good morning, Jordan</h1><p id="pageSubtitle">Here’s what’s happening across your service operation today.</p></div>
+          <button class="primary-btn" id="newOrderButton"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>New work order</button>
+        </section>
+        <section class="metrics" aria-label="Today's key metrics">
+          <article class="metric"><div class="metric-head"><span>Open work orders</span><span class="metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 4h-3a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-3"/><rect x="8" y="2" width="8" height="4" rx="1.5"/><path d="M8 12h8M8 16h5"/></svg></span></div><div class="metric-value" id="openCount">24 <span class="metric-change">+3</span></div><div class="metric-sub">vs. same day last week</div></article>
+          <article class="metric"><div class="metric-head"><span>Needs attention</span><span class="metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m10.3 3.9-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3.1l-8-14a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4m0 4h.01"/></svg></span></div><div class="metric-value">6 <span class="metric-change" style="color:var(--coral)">2 urgent</span></div><div class="metric-sub">Across 4 service categories</div></article>
+          <article class="metric"><div class="metric-head"><span>On-time completion</span><span class="metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11Z"/><path d="m9 12 2 2 4-4"/></svg></span></div><div class="metric-value">94.8% <span class="metric-change">+2.4%</span></div><div class="metric-sub">Rolling 30-day average</div></article>
+          <article class="metric"><div class="metric-head"><span>Today’s revenue</span><span class="metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2v20m5-15H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span></div><div class="metric-value">$8,420 <span class="metric-change">+8.1%</span></div><div class="metric-sub">From 17 completed jobs</div></article>
+        </section>
+        <section class="overview-grid">
+          <article class="panel">
+            <div class="panel-header"><div><h2>Today’s schedule</h2><span>Tuesday, October 20</span></div><button class="view-link" data-nav="Work orders">Full schedule <span aria-hidden="true">→</span></button></div>
+            <div class="schedule">
+              <div class="schedule-head"><strong>Next up</strong><span>4 of 17 appointments</span></div>
+              <div class="schedule-list">
+                <div class="schedule-item"><span class="schedule-time">09:30 AM</span><span class="schedule-bar"></span><div class="schedule-info"><strong>Quarterly HVAC inspection</strong><span>Northpoint Medical · Alex Chen</span></div><span class="schedule-tag">HVAC</span></div>
+                <div class="schedule-item"><span class="schedule-time">10:15 AM</span><span class="schedule-bar"></span><div class="schedule-info"><strong>Emergency pipe repair</strong><span>Camila Torres · Marcus Lee</span></div><span class="schedule-tag">Plumbing</span></div>
+                <div class="schedule-item"><span class="schedule-time">11:00 AM</span><span class="schedule-bar"></span><div class="schedule-info"><strong>End-of-lease deep clean</strong><span>Harbor House · Priya Nair</span></div><span class="schedule-tag">Cleaning</span></div>
+                <div class="schedule-item"><span class="schedule-time">11:30 AM</span><span class="schedule-bar"></span><div class="schedule-info"><strong>Commercial site walkthrough</strong><span>Foundry Offices · Sam Brooks</span></div><span class="schedule-tag">Property</span></div>
+              </div>
+            </div>
+          </article>
+          <article class="panel">
+            <div class="panel-header"><div><h2>Work by service</h2><span>Active jobs across your workspace</span></div><button class="view-link" id="clearIndustry">Reset</button></div>
+            <div class="service-mix">
+              <div class="mix-total">24 <small>active jobs</small></div>
+              <div class="mix-legend">
+                <div class="legend-item"><span class="legend-dot"></span>Property care <b>38%</b></div>
+                <div class="legend-item"><span class="legend-dot"></span>Cleaning <b>27%</b></div>
+                <div class="legend-item"><span class="legend-dot"></span>Plumbing <b>21%</b></div>
+                <div class="legend-item"><span class="legend-dot"></span>HVAC <b>14%</b></div>
+              </div>
+              <div class="mix-track" aria-label="Property care 38%, Cleaning 27%, Plumbing 21%, HVAC 14%"><span></span><span></span><span></span><span></span></div>
+            </div>
+          </article>
+        </section>
+        <section class="panel orders" id="workOrders">
+          <div class="panel-header"><div class="orders-title"><h2>Work orders</h2><span class="count" id="resultCount">6</span></div><span>Updated just now</span></div>
+          <div class="table-tools">
+            <label class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><input type="search" id="searchInput" placeholder="Search jobs, customers, team" aria-label="Search work orders"></label>
+            <select class="filter" id="industryFilter" aria-label="Filter by industry"><option value="">All industries</option><option>Property care</option><option>Cleaning</option><option>Plumbing</option><option>HVAC</option></select>
+            <select class="filter" id="statusFilter" aria-label="Filter by status"><option value="">All statuses</option><option>Scheduled</option><option>In progress</option><option>Awaiting parts</option><option>Complete</option></select>
+            <select class="filter" id="priorityFilter" aria-label="Filter by priority"><option value="">All priorities</option><option>High</option><option>Normal</option></select>
+          </div>
+          <div class="table-wrap"><table><thead><tr><th>Work order</th><th>Customer</th><th>Service</th><th>Industry</th><th>Schedule</th><th>Priority</th><th>Status</th><th>Assignee</th></tr></thead><tbody id="orderRows"></tbody></table><div class="empty-state" id="emptyState" hidden>No work orders match these criteria.</div></div>
+        </section>
+      </div>
+    </main>
+  </div>
+  <dialog id="newOrderDialog">
+    <div class="dialog-head"><h2>Create work order</h2><button class="close-btn" data-close="newOrderDialog" aria-label="Close">×</button></div>
+    <form class="dialog-body" id="newOrderForm">
+      <div class="form-grid">
+        <div class="field"><label for="customerName">Customer</label><input id="customerName" name="customer" required placeholder="Customer or business"></div>
+        <div class="field"><label for="serviceName">Service</label><input id="serviceName" name="service" required placeholder="e.g. Site inspection"></div>
+        <div class="field"><label for="industryName">Industry</label><select id="industryName" name="industry"><option>Property care</option><option>Cleaning</option><option>Plumbing</option><option>HVAC</option></select></div>
+        <div class="field"><label for="priorityName">Priority</label><select id="priorityName" name="priority"><option>Normal</option><option>High</option></select></div>
+        <div class="field"><label for="scheduleDate">Scheduled date</label><input id="scheduleDate" name="schedule" type="date" required value="2026-10-20"></div>
+        <div class="field"><label for="assigneeName">Assigned to</label><select id="assigneeName" name="assignee"><option>Alex Chen</option><option>Marcus Lee</option><option>Priya Nair</option><option>Sam Brooks</option><option>Unassigned</option></select></div>
+      </div>
+      <div class="dialog-actions"><button type="button" class="secondary-btn" data-close="newOrderDialog">Cancel</button><button class="primary-btn" type="submit">Create work order</button></div>
+    </form>
+  </dialog>
+  <dialog id="detailDialog">
+    <div class="dialog-head"><h2 id="detailTitle">Work order</h2><button class="close-btn" data-close="detailDialog" aria-label="Close">×</button></div>
+    <div class="dialog-body"><dl class="detail-list" id="detailList"></dl><div class="dialog-actions"><button class="secondary-btn" data-close="detailDialog">Close</button></div></div>
+  </dialog>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script>
+    const orders = [
+      { id: "FW-2048", customer: "Northpoint Medical", contact: "Facilities team", service: "Quarterly HVAC inspection", industry: "HVAC", schedule: "Today, 9:30 AM", priority: "High", status: "Scheduled", assignee: "Alex Chen" },
+      { id: "FW-2047", customer: "Camila Torres", contact: "(415) 555-0184", service: "Emergency pipe repair", industry: "Plumbing", schedule: "Today, 10:15 AM", priority: "High", status: "In progress", assignee: "Marcus Lee" },
+      { id: "FW-2046", customer: "Harbor House", contact: "Property management", service: "End-of-lease deep clean", industry: "Cleaning", schedule: "Today, 11:00 AM", priority: "Normal", status: "Scheduled", assignee: "Priya Nair" },
+      { id: "FW-2045", customer: "Foundry Offices", contact: "Facilities team", service: "Commercial site walkthrough", industry: "Property care", schedule: "Today, 11:30 AM", priority: "Normal", status: "Awaiting parts", assignee: "Sam Brooks" },
+      { id: "FW-2044", customer: "Elliot & Co.", contact: "(415) 555-0122", service: "Boiler pressure check", industry: "HVAC", schedule: "Today, 1:00 PM", priority: "Normal", status: "In progress", assignee: "Alex Chen" },
+      { id: "FW-2043", customer: "Juniper Apartments", contact: "Building 3, unit 12", service: "Common area refresh", industry: "Cleaning", schedule: "Today, 2:30 PM", priority: "Normal", status: "Complete", assignee: "Priya Nair" }
+    ];
+    const escapeHtml = value => String(value).replace(/[&<>"']/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" })[character]);
+    const initials = name => name.split(/\s+/).map(part => part[0]).join("").slice(0, 2).toUpperCase();
+    const orderRows = document.getElementById("orderRows");
+    const resultCount = document.getElementById("resultCount");
+    const emptyState = document.getElementById("emptyState");
+    const filters = ["searchInput", "industryFilter", "statusFilter", "priorityFilter"].map(id => document.getElementById(id));
+    const toast = document.getElementById("toast");
+    let toastTimer;
+
+    function renderOrders() {
+      const [search, industry, status, priority] = filters.map(input => input.value.trim().toLowerCase());
+      const visible = orders.filter(order => {
+        const text = `${order.id} ${order.customer} ${order.service} ${order.industry} ${order.assignee}`.toLowerCase();
+        return text.includes(search) && (!industry || order.industry.toLowerCase() === industry) && (!status || order.status.toLowerCase() === status) && (!priority || order.priority.toLowerCase() === priority);
+      });
+      orderRows.innerHTML = visible.map(order => `<tr data-id="${order.id}">
+        <td class="job-id">${escapeHtml(order.id)}</td>
+        <td class="customer-cell"><strong>${escapeHtml(order.customer)}</strong><span>${escapeHtml(order.contact)}</span></td>
+        <td class="service-cell">${escapeHtml(order.service)}</td>
+        <td><span class="industry-tag">${escapeHtml(order.industry)}</span></td>
+        <td>${escapeHtml(order.schedule)}</td>
+        <td class="priority ${order.priority === "High" ? "high" : ""}">${escapeHtml(order.priority)}</td>
+        <td><span class="status ${order.status.toLowerCase().replaceAll(" ", "-")}">${escapeHtml(order.status)}</span></td>
+        <td><span class="assignee"><span class="avatar">${escapeHtml(initials(order.assignee))}</span>${escapeHtml(order.assignee)}</span></td>
+      </tr>`).join("");
+      resultCount.textContent = visible.length;
+      emptyState.hidden = visible.length !== 0;
+    }
+
+    function showToast(message) {
+      toast.textContent = message;
+      toast.classList.add("show");
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toast.classList.remove("show"), 2600);
+    }
+
+    filters.forEach(input => input.addEventListener("input", renderOrders));
+    document.getElementById("clearIndustry").addEventListener("click", () => {
+      document.getElementById("industryFilter").value = "";
+      renderOrders();
+    });
+    document.getElementById("newOrderButton").addEventListener("click", () => document.getElementById("newOrderDialog").showModal());
+    document.querySelectorAll("[data-close]").forEach(button => button.addEventListener("click", () => document.getElementById(button.dataset.close).close()));
+    document.getElementById("newOrderForm").addEventListener("submit", event => {
+      event.preventDefault();
+      const data = new FormData(event.currentTarget);
+      const customer = data.get("customer").trim();
+      const service = data.get("service").trim();
+      orders.unshift({
+        id: `FW-${2049 + orders.length - 6}`,
+        customer,
+        contact: "New customer",
+        service,
+        industry: data.get("industry"),
+        schedule: data.get("schedule") === "2026-10-20" ? "Today, scheduled" : new Date(`${data.get("schedule")}T12:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+        priority: data.get("priority"),
+        status: "Scheduled",
+        assignee: data.get("assignee")
+      });
+      event.currentTarget.reset();
+      document.getElementById("scheduleDate").value = "2026-10-20";
+      document.getElementById("newOrderDialog").close();
+      filters.forEach(filter => filter.value = "");
+      renderOrders();
+      showToast(`Work order created for ${customer}`);
+    });
+    orderRows.addEventListener("click", event => {
+      const row = event.target.closest("tr[data-id]");
+      if (!row) return;
+      const order = orders.find(item => item.id === row.dataset.id);
+      document.getElementById("detailTitle").textContent = `${order.id} · ${order.service}`;
+      document.getElementById("detailList").innerHTML = [
+        ["Customer", order.customer], ["Industry", order.industry], ["Schedule", order.schedule], ["Priority", order.priority], ["Status", order.status], ["Assigned to", order.assignee]
+      ].map(([label, value]) => `<dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd>`).join("");
+      document.getElementById("detailDialog").showModal();
+    });
+    document.querySelectorAll(".nav button, [data-nav]").forEach(button => button.addEventListener("click", () => {
+      const page = button.dataset.page || button.dataset.nav;
+      document.querySelectorAll(".nav button").forEach(item => {
+        item.classList.toggle("active", item.dataset.page === page);
+        if (item.dataset.page === page) item.setAttribute("aria-current", "page");
+        else item.removeAttribute("aria-current");
+      });
+      document.getElementById("breadcrumb").textContent = page;
+      document.getElementById("pageTitle").textContent = page === "Dashboard" ? "Good morning, Jordan" : page;
+      document.getElementById("pageSubtitle").textContent = page === "Dashboard" ? "Here’s what’s happening across your service operation today." : `${page} across your service operation.`;
+      if (page === "Work orders") document.getElementById("workOrders").scrollIntoView({ behavior: "smooth", block: "start" });
+      else if (page !== "Dashboard") showToast(`${page} view selected`);
+    }));
+    document.getElementById("roleSelect").addEventListener("change", event => showToast(`Viewing workspace as ${event.target.value}`));
+    document.getElementById("notificationButton").addEventListener("click", () => showToast("You’re all caught up on notifications."));
+    renderOrders();
+  </script>
+</body>
+</html>
