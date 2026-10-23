@@ -55,6 +55,9 @@ function setAuthMode(mode) {
 }
 
 function openAuth(mode) {
+  authForm.querySelectorAll(".form-field, .password-visibility, #signupFields, #authSubmit, #authSwitch").forEach(element => element.hidden = false);
+  document.getElementById("confirmationPanel").hidden = true;
+  document.getElementById("authSubmit").hidden = false;
   setAuthMode(mode === "teacher" ? "signup" : mode);
   if (mode === "teacher") {
     const teacherOption = document.querySelector('input[name="role"][value="teacher"]');
@@ -107,6 +110,27 @@ document.getElementById("showPasswords").addEventListener("change", event => {
 syncCurricula();
 setAuthMode("signup");
 
+document.getElementById("resendVerification").addEventListener("click", async event => {
+  const button = event.currentTarget;
+  button.disabled = true;
+  button.textContent = "Sending…";
+  try {
+    const response = await fetch("/api/resend-verification", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: button.closest("#confirmationPanel").dataset.email }),
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || "Could not resend the email.");
+    document.getElementById("confirmationMessage").textContent = "Confirmation email sent. Check your inbox and spam folder.";
+  } catch (reason) {
+    document.getElementById("confirmationMessage").textContent = reason.message;
+  } finally {
+    button.disabled = false;
+    button.textContent = "Resend confirmation email";
+  }
+});
+
 if (new URLSearchParams(window.location.search).has("verify-email")) {
   const token = new URLSearchParams(window.location.search).get("verify-email");
   fetch("/api/verify-email", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token }) })
@@ -153,11 +177,17 @@ authForm.addEventListener("submit", async event => {
     if (!result) throw new Error("The server returned an empty response. Please try again.");
     if (!response.ok) throw new Error(result.error || "Could not complete your request.");
     if (authMode === "signup" && result.verification_required) {
-      authForm.hidden = true;
-      error.hidden = false;
-      error.textContent = `Account created. Check ${payload.email} for a confirmation email, then sign in. If it is not in your inbox, check spam or junk.`;
-      submit.disabled = false;
-      submit.textContent = "Create account";
+      authForm.querySelectorAll(".form-field, .password-visibility, #signupFields, #authSubmit, #authSwitch").forEach(element => element.hidden = true);
+      submit.hidden = true;
+      const panel = document.getElementById("confirmationPanel");
+      const message = document.getElementById("confirmationMessage");
+      panel.hidden = false;
+      if (result.email_sent) {
+        message.textContent = `We sent a confirmation link to ${payload.email}. Check your inbox and spam folder, then use Sign in.`;
+      } else {
+        message.textContent = `${result.mail_error || "The confirmation email could not be sent."} Account: ${payload.email}`;
+      }
+      panel.dataset.email = payload.email;
       return;
     }
     window.location.assign("/app.html");

@@ -15,5 +15,9 @@
   },
   "migrations": [
     { "tag": "v1", "new_sqlite_classes": ["ReraStore"] }
-  ]
+  ],
+  "vars": {
+    "PUBLIC_APP_URL": "https://rera.innovatorsedvance.workers.dev",
+    "MAIL_FROM": "ReRa <onboarding@resend.dev>"
+  }
 }

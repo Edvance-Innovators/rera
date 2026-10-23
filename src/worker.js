@@ -76,8 +76,9 @@ async function handleStoreRequest(request, state, env) {
       name, email, derived.salt, derived.hash, String(body.role || "parent"), String(body.country || ""), String(body.curriculum || ""), verificationToken, new Date().toISOString(),
     );
 
-    const verificationUrl = `${url.origin}/?verify-email=${encodeURIComponent(verificationToken)}`;
+    const verificationUrl = `${env.PUBLIC_APP_URL || url.origin}/?verify-email=${encodeURIComponent(verificationToken)}`;
     let emailSent = false;
+    let mailError = "Email service is not configured. Contact the ReRa administrator.";
     if (env.RESEND_API_KEY && env.MAIL_FROM) {
       const mail = await fetch("https://api.resend.com/emails", {
         method: "POST",
@@ -85,8 +86,25 @@ async function handleStoreRequest(request, state, env) {
         body: JSON.stringify({ from: env.MAIL_FROM, to: [email], subject: "Confirm your ReRa account", html: `<p>Confirm your ReRa account by opening this link:</p><p><a href="${verificationUrl}">Confirm my account</a></p>` }),
       });
       emailSent = mail.ok;
+      if (!mail.ok) mailError = "The confirmation email could not be delivered. Please try again.";
     }
-    return response({ ok: true, verification_required: true, email_sent: emailSent }, 201);
+    return response({ ok: true, verification_required: true, email_sent: emailSent, mail_error: mailError }, 201);
+  }
+
+  if (url.pathname === "/api/resend-verification" && request.method === "POST") {
+    const body = await json(request);
+    const email = String(body.email || "").trim().toLowerCase();
+    const rows = state.storage.sql.exec("SELECT id, verification_token FROM users WHERE email = ?", email).toArray();
+    if (!rows.length) return response({ error: "No account was found for this email" }, 404);
+    if (!rows[0].verification_token) return response({ error: "This account is already confirmed" }, 400);
+    const verificationUrl = `${env.PUBLIC_APP_URL || url.origin}/?verify-email=${encodeURIComponent(rows[0].verification_token)}`;
+    if (!env.RESEND_API_KEY || !env.MAIL_FROM) return response({ error: "Email service is not configured" }, 503);
+    const mail = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ from: env.MAIL_FROM, to: [email], subject: "Confirm your ReRa account", html: `<p>Confirm your ReRa account by opening this link:</p><p><a href="${verificationUrl}">Confirm my account</a></p>` }),
+    });
+    return mail.ok ? response({ ok: true }) : response({ error: "The confirmation email could not be delivered" }, 502);
   }
 
   if (url.pathname === "/api/verify-email" && request.method === "POST") {
