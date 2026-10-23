@@ -107,6 +107,22 @@ document.getElementById("showPasswords").addEventListener("change", event => {
 syncCurricula();
 setAuthMode("signup");
 
+if (new URLSearchParams(window.location.search).has("verify-email")) {
+  const token = new URLSearchParams(window.location.search).get("verify-email");
+  fetch("/api/verify-email", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token }) })
+    .then(async response => {
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Could not confirm your email.");
+      document.getElementById("authError").textContent = "Email confirmed. You can now sign in.";
+      document.getElementById("authError").hidden = false;
+      openAuth("login");
+    })
+    .catch(reason => {
+      document.getElementById("authError").textContent = reason.message;
+      document.getElementById("authError").hidden = false;
+    });
+}
+
 authForm.addEventListener("submit", async event => {
   event.preventDefault();
   const error = document.getElementById("authError");
@@ -136,6 +152,14 @@ authForm.addEventListener("submit", async event => {
     }
     if (!result) throw new Error("The server returned an empty response. Please try again.");
     if (!response.ok) throw new Error(result.error || "Could not complete your request.");
+    if (authMode === "signup" && result.verification_required) {
+      authForm.hidden = true;
+      error.hidden = false;
+      error.textContent = `Account created. Check ${payload.email} for a confirmation email, then sign in. If it is not in your inbox, check spam or junk.`;
+      submit.disabled = false;
+      submit.textContent = "Create account";
+      return;
+    }
     window.location.assign("/app.html");
   } catch (reason) {
     error.textContent = reason.message;

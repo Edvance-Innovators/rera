@@ -1,9 +1,19 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "rera-learning-platform",
+  "main": "src/worker.js",
   "compatibility_date": "2026-10-20",
   "assets": {
     "directory": "./public",
+    "binding": "ASSETS",
     "not_found_handling": "404-page"
-  }
+  },
+  "durable_objects": {
+    "bindings": [
+      { "name": "RERA_STORE", "class_name": "ReraStore" }
+    ]
+  },
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["ReraStore"] }
+  ]
 }
