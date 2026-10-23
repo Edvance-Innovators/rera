@@ -38,6 +38,7 @@ function setAuthMode(mode) {
   document.getElementById("passwordConfirmField").hidden = !signup;
   document.getElementById("passwordConfirm").disabled = !signup;
   document.getElementById("passwordConfirm").required = signup;
+  document.getElementById("passwordMatch").textContent = "";
   document.getElementById("nameField").hidden = !signup;
   document.getElementById("name").required = signup;
   document.getElementById("signupFields").hidden = !signup;
@@ -79,6 +80,30 @@ document.querySelectorAll("input[name=role]").forEach(input => input.addEventLis
   ["subjects", "levels"].forEach(id => document.getElementById(id).disabled = !isTeacher);
 }));
 document.getElementById("country").addEventListener("change", syncCurricula);
+
+const passwordInput = document.getElementById("password");
+const passwordConfirmInput = document.getElementById("passwordConfirm");
+const passwordMatch = document.getElementById("passwordMatch");
+
+function updatePasswordConfirmation() {
+  if (authMode !== "signup" || !passwordConfirmInput.value) {
+    passwordMatch.textContent = "";
+    passwordConfirmInput.setCustomValidity("");
+    return;
+  }
+  const matches = passwordInput.value === passwordConfirmInput.value;
+  passwordMatch.textContent = matches ? "Passwords match." : "Passwords do not match.";
+  passwordConfirmInput.setCustomValidity(matches ? "" : "Passwords do not match");
+}
+
+passwordInput.addEventListener("input", updatePasswordConfirmation);
+passwordConfirmInput.addEventListener("input", updatePasswordConfirmation);
+document.getElementById("showPasswords").addEventListener("change", event => {
+  const type = event.target.checked ? "text" : "password";
+  passwordInput.type = type;
+  passwordConfirmInput.type = type;
+});
+
 syncCurricula();
 setAuthMode("signup");
 
@@ -87,10 +112,11 @@ authForm.addEventListener("submit", async event => {
   const error = document.getElementById("authError");
   const submit = document.getElementById("authSubmit");
   error.hidden = true;
-  if (authMode === "signup" && document.getElementById("password").value !== document.getElementById("passwordConfirm").value) {
+  updatePasswordConfirmation();
+  if (authMode === "signup" && passwordInput.value !== passwordConfirmInput.value) {
     error.textContent = "Passwords do not match.";
     error.hidden = false;
-    document.getElementById("passwordConfirm").focus();
+    passwordConfirmInput.focus();
     return;
   }
   submit.disabled = true;

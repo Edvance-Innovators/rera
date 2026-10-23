@@ -47,15 +47,18 @@ async function api(path, options = {}) {
 }
 
 async function refreshData() {
-  const tasks = ["/api/me", "/api/requests", "/api/resources"];
+  const me = await api("/api/me");
+  if (!me?.user?.role) throw new Error("Your account could not be loaded.");
+  currentUser = me.user;
+
+  const tasks = ["/api/requests", "/api/resources"];
   if (currentUser.role === "parent") tasks.push("/api/students", "/api/pitches", "/api/feedback");
   if (currentUser.role === "teacher") tasks.push("/api/pitches", "/api/feedback");
   if (currentUser.role === "manager") tasks.push("/api/teachers", "/api/feedback");
   const results = await Promise.all(tasks.map(path => api(path)));
-  currentUser = results[0].user;
-  requests = results[1];
-  resources = results[2];
-  let cursor = 3;
+  requests = results[0];
+  resources = results[1];
+  let cursor = 2;
   if (currentUser.role === "parent") {
     students = results[cursor++];
     pitches = results[cursor++];
