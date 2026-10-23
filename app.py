@@ -403,6 +403,7 @@ class ReRaHandler(BaseHTTPRequestHandler):
         name = str(payload.get("name", "")).strip()
         email = str(payload.get("email", "")).strip().lower()
         password = str(payload.get("password", ""))
+        password_confirm = str(payload.get("password_confirm", ""))
         role = str(payload.get("role", ""))
         country = str(payload.get("country", ""))
         curriculum = str(payload.get("curriculum", ""))
@@ -414,6 +415,8 @@ class ReRaHandler(BaseHTTPRequestHandler):
             raise ValueError("Enter a valid email address")
         if len(password) < 12 or len(password) > 256:
             raise ValueError("Use a password between 12 and 256 characters")
+        if password != password_confirm:
+            raise ValueError("Passwords do not match")
         if role not in ROLES:
             raise ValueError("Choose a parent or teacher account")
         if country not in COUNTRIES or curriculum not in CURRICULA[country]:

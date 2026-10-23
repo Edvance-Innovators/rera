@@ -35,6 +35,9 @@ function setAuthMode(mode) {
   document.getElementById("password").autocomplete = signup ? "new-password" : "current-password";
   document.getElementById("password").minLength = signup ? 12 : 1;
   document.getElementById("passwordHint").hidden = !signup;
+  document.getElementById("passwordConfirmField").hidden = !signup;
+  document.getElementById("passwordConfirm").disabled = !signup;
+  document.getElementById("passwordConfirm").required = signup;
   document.getElementById("nameField").hidden = !signup;
   document.getElementById("name").required = signup;
   document.getElementById("signupFields").hidden = !signup;
@@ -84,15 +87,28 @@ authForm.addEventListener("submit", async event => {
   const error = document.getElementById("authError");
   const submit = document.getElementById("authSubmit");
   error.hidden = true;
+  if (authMode === "signup" && document.getElementById("password").value !== document.getElementById("passwordConfirm").value) {
+    error.textContent = "Passwords do not match.";
+    error.hidden = false;
+    document.getElementById("passwordConfirm").focus();
+    return;
+  }
   submit.disabled = true;
   submit.textContent = authMode === "signup" ? "Creating account…" : "Signing in…";
   const form = new FormData(authForm);
   const payload = authMode === "signup"
-    ? { name: form.get("name"), email: form.get("email"), password: form.get("password"), role: form.get("role"), country: form.get("country"), curriculum: form.get("curriculum"), subjects: [...document.getElementById("subjects").selectedOptions].map(option => option.value), levels: [...document.getElementById("levels").selectedOptions].map(option => option.value) }
+    ? { name: form.get("name"), email: form.get("email"), password: form.get("password"), password_confirm: form.get("passwordConfirm"), role: form.get("role"), country: form.get("country"), curriculum: form.get("curriculum"), subjects: [...document.getElementById("subjects").selectedOptions].map(option => option.value), levels: [...document.getElementById("levels").selectedOptions].map(option => option.value) }
     : { email: form.get("email"), password: form.get("password") };
   try {
     const response = await fetch(`/api/${authMode}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload), credentials: "same-origin" });
-    const result = await response.json();
+    const responseText = await response.text();
+    let result;
+    try {
+      result = responseText ? JSON.parse(responseText) : null;
+    } catch {
+      throw new Error("The server returned an invalid response. Please try again.");
+    }
+    if (!result) throw new Error("The server returned an empty response. Please try again.");
     if (!response.ok) throw new Error(result.error || "Could not complete your request.");
     window.location.assign("/app.html");
   } catch (reason) {
