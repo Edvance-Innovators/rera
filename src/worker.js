@@ -56,8 +56,14 @@ function response(data, status = 200, headers = {}) {
 }
 
 async function sendVerificationEmail(env, email, verificationUrl) {
-  if (!env.RESEND_API_KEY || !env.MAIL_FROM) {
-    return { sent: false, error: "Email service is not configured. Contact the ReRa administrator." };
+  const missingSettings = [];
+  if (!env.RESEND_API_KEY) missingSettings.push("RESEND_API_KEY");
+  if (!env.MAIL_FROM) missingSettings.push("MAIL_FROM");
+  if (missingSettings.length) {
+    return {
+      sent: false,
+      error: `Email service is not configured (missing ${missingSettings.join(" and ")}). Ask the ReRa administrator to configure the deployed Worker.`,
+    };
   }
 
   let mail;

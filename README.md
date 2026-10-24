@@ -49,15 +49,13 @@ A mobile-first interface optimized for local gig-economy educators and professio
 
 ## Confirmation email setup
 
-Confirmation emails are sent through Resend. Before deploying, verify a sending domain in Resend and configure its approved sender address as `MAIL_FROM` in `wrangler.jsonc`, for example `ReRa <no-reply@mail.example.com>`. Do not use `onboarding@resend.dev` for production recipients; Resend's test sender is restricted to testing.
+Confirmation emails are sent through Resend. Verify a sending domain in Resend, then configure an approved sender address as `MAIL_FROM`, for example `ReRa <no-reply@mail.example.com>`. Do not use `onboarding@resend.dev` for production recipients; Resend's test sender is restricted to testing.
 
-Set the Resend API key as a Cloudflare Worker secret, not as a checked-in variable, then deploy:
+Set `RESEND_API_KEY` as a secret on the same Cloudflare Worker environment that serves the site (production or preview). The sender address is configured as the non-secret `MAIL_FROM` Worker variable in `wrangler.jsonc`. For another environment, set it in the Cloudflare dashboard:
 
 ```sh
 npx wrangler secret put RESEND_API_KEY
 npx wrangler deploy
 ```
 
-If a confirmation email is rejected, signup reports the Resend HTTP status and the Worker logs record that status. The user can retry with **Resend confirmation email** after correcting the sender or API configuration.
-
-
+Enter the Resend API key at the prompt, then deploy the Worker. Verify that the sender domain is approved in Resend. If a setting is missing, signup identifies its name. If Resend rejects an email, signup reports the HTTP status and the Worker logs record it. The user can retry with **Resend confirmation email** after correcting the configuration.
