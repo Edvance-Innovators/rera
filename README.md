@@ -51,6 +51,8 @@ A mobile-first interface optimized for local gig-economy educators and professio
 
 Confirmation emails are sent through Resend. Verify a sending domain in Resend, then configure an approved sender address as `MAIL_FROM`, for example `ReRa <no-reply@mail.example.com>`. Do not use `onboarding@resend.dev` for production recipients; Resend's test sender is restricted to testing.
 
+Accounts remain pending until the confirmation link is used. If confirmation email delivery fails, the pending account is removed immediately so the address can be used to sign up again. Otherwise, unconfirmed accounts are automatically removed after 48 hours. Confirmed accounts are not affected.
+
 Set `RESEND_API_KEY` as a secret on the same Cloudflare Worker environment that serves the site (production or preview). The sender address is configured as the non-secret `MAIL_FROM` Worker variable in `wrangler.jsonc`. For another environment, set it in the Cloudflare dashboard:
 
 ```sh

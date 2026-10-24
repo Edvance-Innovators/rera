@@ -19,13 +19,54 @@ export class ReraStore {
         verification_token TEXT,
         created_at TEXT NOT NULL
       )`);
+      const columns = this.state.storage.sql.exec("PRAGMA table_info(users)").toArray();
+      if (!columns.some(column => column.name === "verification_expires_at")) {
+        this.state.storage.sql.exec("ALTER TABLE users ADD COLUMN verification_expires_at TEXT");
+      }
+      this.state.storage.sql.exec(
+        `UPDATE users
+        SET verification_expires_at = strftime('%Y-%m-%dT%H:%M:%fZ', created_at, '+48 hours')
+        WHERE email_verified = 0 AND verification_token IS NOT NULL AND verification_expires_at IS NULL`,
+      );
       this.state.storage.sql.exec(`CREATE TABLE IF NOT EXISTS sessions (
         token TEXT PRIMARY KEY,
         user_id INTEGER NOT NULL,
         expires_at TEXT NOT NULL
       )`);
     });
+    await deleteExpiredUnverifiedAccounts(this.state);
+    await scheduleVerificationCleanup(this.state);
     return handleStoreRequest(request, this.state, this.env);
+  }
+
+  async alarm() {
+    await deleteExpiredUnverifiedAccounts(this.state);
+    await scheduleVerificationCleanup(this.state);
+  }
+}
+
+const VERIFICATION_TTL_MS = 48 * 60 * 60 * 1000;
+
+async function deleteExpiredUnverifiedAccounts(state) {
+  const now = new Date().toISOString();
+  const expired = state.storage.sql.exec(
+    "SELECT id FROM users WHERE email_verified = 0 AND verification_token IS NOT NULL AND verification_expires_at <= ?",
+    now,
+  ).toArray();
+  for (const user of expired) {
+    state.storage.sql.exec("DELETE FROM sessions WHERE user_id = ?", user.id);
+    state.storage.sql.exec("DELETE FROM users WHERE id = ?", user.id);
+  }
+}
+
+async function scheduleVerificationCleanup(state) {
+  const next = state.storage.sql.exec(
+    "SELECT MIN(verification_expires_at) AS expires_at FROM users WHERE email_verified = 0 AND verification_token IS NOT NULL",
+  ).toArray()[0]?.expires_at;
+  if (next) {
+    await state.storage.setAlarm(Date.parse(next));
+  } else {
+    await state.storage.deleteAlarm();
   }
 }
 
@@ -62,7 +103,7 @@ async function sendVerificationEmail(env, email, verificationUrl) {
   if (missingSettings.length) {
     return {
       sent: false,
-      error: `Email service to be configured (missing ${missingSettings.join(" and ")}). Wait for ReRa administrators to configure that!.`,
+      error: `Email service is not configured (missing ${missingSettings.join(" and ")}). Contact the ReRa administrator.`,
     };
   }
 
@@ -101,51 +142,60 @@ async function handleStoreRequest(request, state, env) {
     if (!name || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return response({ error: "Enter a valid name and email address" }, 400);
     if (password.length < 12 || password !== String(body.password_confirm || "")) return response({ error: "Use a matching password with at least 12 characters" }, 400);
 
+    await deleteExpiredUnverifiedAccounts(state);
     if (state.storage.sql.exec("SELECT 1 FROM users WHERE email = ?", email).toArray().length) return response({ error: "An account already exists for this email" }, 409);
 
     const derived = await hashPassword(password);
     const verificationToken = crypto.randomUUID();
+    const verificationExpiresAt = new Date(Date.now() + VERIFICATION_TTL_MS).toISOString();
     state.storage.sql.exec(
-      "INSERT INTO users (name, email, password_salt, password_hash, role, country, curriculum, verification_token, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-      name, email, derived.salt, derived.hash, String(body.role || "parent"), String(body.country || ""), String(body.curriculum || ""), verificationToken, new Date().toISOString(),
+      "INSERT INTO users (name, email, password_salt, password_hash, role, country, curriculum, verification_token, verification_expires_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      name, email, derived.salt, derived.hash, String(body.role || "parent"), String(body.country || ""), String(body.curriculum || ""), verificationToken, verificationExpiresAt, new Date().toISOString(),
     );
+    await scheduleVerificationCleanup(state);
 
     const verificationUrl = `${env.PUBLIC_APP_URL || url.origin}/?verify-email=${encodeURIComponent(verificationToken)}`;
     const delivery = await sendVerificationEmail(env, email, verificationUrl);
-    return response({
-      ok: true,
-      verification_required: true,
-      email_sent: delivery.sent,
-      mail_error: delivery.sent ? null : delivery.error,
-    }, 201);
+    if (!delivery.sent) {
+      state.storage.sql.exec("DELETE FROM users WHERE email = ? AND email_verified = 0 AND verification_token = ?", email, verificationToken);
+      await scheduleVerificationCleanup(state);
+      return response({ error: `${delivery.error} The unconfirmed account was removed; you can sign up again with this email once email delivery is available.` }, delivery.error.startsWith("Email service is not configured") ? 503 : 502);
+    }
+    return response({ ok: true, verification_required: true, email_sent: true, mail_error: null }, 201);
   }
 
   if (url.pathname === "/api/resend-verification" && request.method === "POST") {
     const body = await json(request);
     const email = String(body.email || "").trim().toLowerCase();
+    await deleteExpiredUnverifiedAccounts(state);
     const rows = state.storage.sql.exec("SELECT id, verification_token FROM users WHERE email = ?", email).toArray();
     if (!rows.length) return response({ error: "No account was found for this email" }, 404);
     if (!rows[0].verification_token) return response({ error: "This account is already confirmed" }, 400);
     const verificationUrl = `${env.PUBLIC_APP_URL || url.origin}/?verify-email=${encodeURIComponent(rows[0].verification_token)}`;
     const delivery = await sendVerificationEmail(env, email, verificationUrl);
     if (delivery.sent) return response({ ok: true });
+    state.storage.sql.exec("DELETE FROM users WHERE id = ? AND email_verified = 0 AND verification_token = ?", rows[0].id, rows[0].verification_token);
+    await scheduleVerificationCleanup(state);
     return response(
-      { error: delivery.error },
+      { error: `${delivery.error} The unconfirmed account was removed; you can sign up again with this email once email delivery is available.` },
       delivery.error.startsWith("Email service is not configured") ? 503 : 502,
     );
   }
 
   if (url.pathname === "/api/verify-email" && request.method === "POST") {
     const body = await json(request);
-    const rows = state.storage.sql.exec("SELECT id FROM users WHERE verification_token = ?", String(body.token || "")).toArray();
+    await deleteExpiredUnverifiedAccounts(state);
+    const rows = state.storage.sql.exec("SELECT id FROM users WHERE verification_token = ? AND verification_expires_at > ?", String(body.token || ""), new Date().toISOString()).toArray();
     if (!rows.length) return response({ error: "This confirmation link is invalid or has expired" }, 400);
-    state.storage.sql.exec("UPDATE users SET email_verified = 1, verification_token = NULL WHERE id = ?", rows[0].id);
+    state.storage.sql.exec("UPDATE users SET email_verified = 1, verification_token = NULL, verification_expires_at = NULL WHERE id = ?", rows[0].id);
+    await scheduleVerificationCleanup(state);
     return response({ ok: true });
   }
 
   if (url.pathname === "/api/login" && request.method === "POST") {
     const body = await json(request);
     const email = String(body.email || "").trim().toLowerCase();
+    await deleteExpiredUnverifiedAccounts(state);
     const rows = state.storage.sql.exec("SELECT * FROM users WHERE email = ?", email).toArray();
     if (!rows.length) return response({ error: "Email or password was not recognized" }, 401);
     const user = rows[0];
