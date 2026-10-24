@@ -62,7 +62,7 @@ async function sendVerificationEmail(env, email, verificationUrl) {
   if (missingSettings.length) {
     return {
       sent: false,
-      error: `Email service is not configured (missing ${missingSettings.join(" and ")}). Ask the ReRa administrator to configure the deployed Worker.`,
+      error: `Email service to be configured (missing ${missingSettings.join(" and ")}). Wait for ReRa administrators to configure that!.`,
     };
   }
 
