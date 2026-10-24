@@ -485,6 +485,10 @@ class ReRaHandler(BaseHTTPRequestHandler):
             return
         if path == "/api/students":
             return self.list_students(user)
+        if path == "/api/families":
+            if user["role"] != "manager":
+                return self.error(403, "Manager access required")
+            return self.list_families()
         if path == "/api/requests":
             return self.list_requests(user)
         if path == "/api/teachers":
@@ -523,6 +527,36 @@ class ReRaHandler(BaseHTTPRequestHandler):
         with connect_db() as db:
             rows = db.execute("SELECT id, name, country, curriculum, level, grade FROM students WHERE parent_id = ? ORDER BY id", (user["id"],)).fetchall()
         return self.respond(200, [dict(row) for row in rows])
+
+    def list_families(self) -> None:
+        with connect_db() as db:
+            rows = db.execute("""SELECT u.id AS parent_id, u.name AS parent_name, u.email AS parent_email,
+                u.country AS parent_country, u.curriculum AS parent_curriculum, u.created_at AS parent_created_at,
+                s.id AS student_id, s.name AS student_name, s.country AS student_country,
+                s.curriculum AS student_curriculum, s.level AS student_level, s.grade AS student_grade
+                FROM users u LEFT JOIN students s ON s.parent_id = u.id
+                WHERE u.role = 'parent' ORDER BY u.created_at DESC, u.id, s.id""").fetchall()
+        families = {}
+        for row in rows:
+            family = families.setdefault(row["parent_id"], {
+                "id": row["parent_id"],
+                "name": row["parent_name"],
+                "email": row["parent_email"],
+                "country": row["parent_country"],
+                "curriculum": row["parent_curriculum"],
+                "created_at": row["parent_created_at"],
+                "learners": [],
+            })
+            if row["student_id"] is not None:
+                family["learners"].append({
+                    "id": row["student_id"],
+                    "name": row["student_name"],
+                    "country": row["student_country"],
+                    "curriculum": row["student_curriculum"],
+                    "level": row["student_level"],
+                    "grade": row["student_grade"],
+                })
+        return self.respond(200, list(families.values()))
 
     def create_request(self, payload: dict) -> None:
         user = self.require_user({"parent"})

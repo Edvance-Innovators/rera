@@ -10,6 +10,7 @@ const app = $("app");
 let currentUser;
 let activeSection = "";
 let students = [];
+let families = [];
 let requests = [];
 let teachers = [];
 let pitches = [];
@@ -54,7 +55,7 @@ async function refreshData() {
   const tasks = ["/api/requests", "/api/resources"];
   if (currentUser.role === "parent") tasks.push("/api/students", "/api/pitches", "/api/feedback");
   if (currentUser.role === "teacher") tasks.push("/api/pitches", "/api/feedback");
-  if (currentUser.role === "manager") tasks.push("/api/teachers", "/api/feedback");
+  if (currentUser.role === "manager") tasks.push("/api/teachers", "/api/feedback", "/api/families");
   const results = await Promise.all(tasks.map(path => api(path)));
   requests = results[0];
   resources = results[1];
@@ -69,11 +70,12 @@ async function refreshData() {
   } else {
     teachers = results[cursor++];
     feedback = results[cursor];
+    families = results[cursor + 1];
   }
 }
 
 function sectionsForUser() {
-  if (currentUser.role === "manager") return ["Overview", "Learning requests", "Educator network", "Material repository", "Curriculum repository"];
+  if (currentUser.role === "manager") return ["Overview", "Families & learners", "Learning requests", "Educator network", "Material repository", "Curriculum repository"];
   if (currentUser.role === "teacher") return ["Teaching home", "Job offers", "My materials", "Teaching profile", "Curriculum repository"];
   return learnerView
     ? ["My learning", "My schedule", "Study materials", "Curriculum repository", "Feedback"]
@@ -113,10 +115,22 @@ function managerView() {
   const matching = requests.filter(request => request.status === "Matching").length;
   const unverified = teachers.filter(teacher => !teacher.verified).length;
   const openCount = requests.length;
-  const metrics = `<section class="metric-grid">${metric("Requests to match", matching, `${openCount} total family requests`, `<path d="M8 4H5a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-3"/><rect x="8" y="2" width="8" height="4" rx="1.5"/><path d="M8 12h8"/>`)}${metric("Educators", teachers.length, `${unverified} awaiting review`, `<circle cx="12" cy="8" r="4"/><path d="M5 21v-2a7 7 0 0 1 14 0v2"/>`)}${metric("Learning materials", resources.filter(item => item.kind === "material").length, "Teacher-shared resources", `<path d="M4 4h16v16H4zM8 8h8M8 12h8m-8 4h5"/>`)}${metric("Curriculum guides", resources.filter(item => item.kind === "curriculum").length, "Official regional links", `<path d="M12 3v18m-8-8h16"/>`)}</section>`;
+  const learnerCount = families.reduce((count, family) => count + family.learners.length, 0);
+  const metrics = `<section class="metric-grid">${metric("Requests to match", matching, `${openCount} total family requests`, `<path d="M8 4H5a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-3"/><rect x="8" y="2" width="8" height="4" rx="1.5"/><path d="M8 12h8"/>`)}${metric("Registered families", families.length, "Parent accounts", `<circle cx="12" cy="8" r="4"/><path d="M5 21v-2a7 7 0 0 1 14 0v2"/>`)}${metric("Educators", teachers.length, `${unverified} awaiting review`, `<circle cx="12" cy="8" r="4"/><path d="M5 21v-2a7 7 0 0 1 14 0v2"/>`)}${metric("Learners", learnerCount, "Mapped to parent accounts", `<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/>`)}</section>`;
   const requestOptions = requests.map(request => `<option value="${request.id}" ${String(request.id) === String(selectedRequestId || requests[0]?.id) ? "selected" : ""}>${escapeHtml(request.id)} · ${escapeHtml(request.location_label)} · ${escapeHtml(request.subject)}</option>`).join("");
   const requestRows = requests.map(request => `<tr><td class="tag">LR-${request.id}</td><td><strong>${escapeHtml(request.learner_name)}</strong><br><span>${escapeHtml(request.location_label)} · ${escapeHtml(request.country)}</span></td><td>${escapeHtml(request.curriculum)}</td><td>${escapeHtml(request.level)} · ${escapeHtml(request.grade)}</td><td><span class="tag">${escapeHtml(request.subject)}</span></td><td>${request.radius_km} km</td><td><span class="status ${escapeHtml(request.status.toLowerCase())}">${escapeHtml(request.status)}</span></td><td><button class="match-button" data-action="view-request" data-request="${request.id}">Qualified tutors</button></td></tr>`).join("");
   return `${heading("Coordinate the right match.", "Requests, verified educators and learner context in one private workspace.", `<button class="button button-compact" data-action="resource-new">Share material</button>`)}${metrics}<section class="app-grid"><article class="panel"><div class="panel-head"><div><h2>Real educator locations</h2><p>Only verified, available educators who meet selected request criteria are shown.</p></div><span class="tag">OpenStreetMap</span></div><div class="map-actions"><select id="mapRequestSelect" class="form-control" aria-label="Choose map request">${requestOptions || "<option>No learning requests</option>"}</select><button class="button-light" data-action="refresh-map">Refresh pins</button></div><div class="map-container"><div id="managerMap" class="map" aria-label="Map of lesson request area and matching educators"></div></div><div class="map-key"><span><i class="map-dot request"></i>Lesson area, exact pin</span><span><i class="map-dot"></i>Verified tutor</span></div><div class="map-notice">Exact learner pins are visible only to authorized managers. Parents must grant location permission for in-person matching.</div></article><article class="panel"><div class="panel-head"><div><h2>Educator review</h2><p>New tutor accounts require manager verification.</p></div><span class="tag">${unverified} to review</span></div>${teachers.length ? teachers.map(teacher => `<div class="tutor-row"><span class="tutor-avatar">${initials(teacher.name)}</span><div class="tutor-info"><strong>${escapeHtml(teacher.name)}</strong><span>${escapeHtml(teacher.country)} · ${escapeHtml(teacher.curriculum)} · ${escapeHtml(teacher.subjects.join(", "))} · ${escapeHtml(teacher.levels.join(", "))}</span></div>${teacher.verified ? `<span class="status verified">Verified</span>` : `<button class="match-button" data-action="verify" data-teacher="${teacher.id}">Review & verify</button>`}</div>`).join("") : `<div class="empty">Tutor applications will appear here.</div>`}</article></section><section class="panel"><div class="panel-head"><div><h2>Learning requests</h2><p>Private learner records. Only managers can see precise lesson coordinates.</p></div><span class="tag">${requests.length} requests</span></div><div class="filter-row"><input class="form-control" id="managerSearch" type="search" placeholder="Search learner, neighborhood, subject"><select class="form-control" id="managerCountry"><option value="">All countries</option>${Object.keys(curriculaByCountry).map(country => `<option>${country}</option>`).join("")}</select><select class="form-control" id="managerLevel"><option value="">All levels</option>${levels.map(level => `<option>${level}</option>`).join("")}</select></div><div class="table-wrap"><table class="table"><thead><tr><th>Ref</th><th>Learner / neighborhood</th><th>Curriculum</th><th>Academic level</th><th>Subject</th><th>Radius</th><th>Status</th><th>Matching</th></tr></thead><tbody id="managerRows">${requestRows}</tbody></table>${requests.length ? "" : `<div class="empty">Family requests appear here after a parent creates an account and adds a learner.</div>`}</div></section>`;
+}
+
+function familyDirectoryView() {
+  const cards = families.map(family => {
+    const learnerCards = family.learners.map(learner => {
+      const learnerRequests = requests.filter(request => String(request.parent_id) === String(family.id) && String(request.student_id) === String(learner.id));
+      return `<div class="family-learner"><div><strong>${escapeHtml(learner.name)}</strong><span>${escapeHtml(learner.level)} · ${escapeHtml(learner.grade)} · ${escapeHtml(learner.country)} · ${escapeHtml(learner.curriculum)}</span></div>${learnerRequests.length ? learnerRequests.map(request => `<div class="family-request"><span>${escapeHtml(request.subject)} · ${escapeHtml(request.location_label)} · ${escapeHtml(request.status)}</span><button class="match-button" data-action="view-request" data-request="${request.id}">Recommend teachers</button></div>`).join("") : `<span class="family-no-request">No tutoring request yet</span>`}</div>`;
+    }).join("");
+    return `<article class="panel family-card" data-family-card data-search="${escapeHtml(`${family.name} ${family.email} ${family.learners.map(learner => learner.name).join(" ")}`.toLowerCase())}" data-country="${escapeHtml(family.country)}"><div class="panel-head"><div><h2>${escapeHtml(family.name)}</h2><p><a href="mailto:${escapeHtml(family.email)}">${escapeHtml(family.email)}</a></p></div><span class="tag">${escapeHtml(family.country)} · ${escapeHtml(family.curriculum)}</span></div><div class="family-learners">${learnerCards || `<div class="empty">No learner profiles have been added.</div>`}</div></article>`;
+  }).join("");
+  return `${heading("Families and learners.", "See each registered parent alongside their learners and open requests. Recommend qualified teachers from a learner's request.")}<section class="panel"><div class="filter-row"><input class="form-control" id="familySearch" type="search" placeholder="Search parent or learner"><select class="form-control" id="familyCountry"><option value="">All countries</option>${Object.keys(curriculaByCountry).map(country => `<option>${escapeHtml(country)}</option>`).join("")}</select><span class="tag">${families.length} families · ${families.reduce((count, family) => count + family.learners.length, 0)} learners</span></div><div class="family-directory">${cards || `<div class="empty">Registered parent accounts will appear here.</div>`}</div></section>`;
 }
 
 function initials(name) {
@@ -152,6 +166,7 @@ function resourceCard(resource) {
 
 function otherSectionView() {
   if (currentUser.role === "manager") {
+    if (activeSection === "Families & learners") return familyDirectoryView();
     if (activeSection === "Learning requests") return `${managerView()}`;
     if (activeSection === "Educator network") return `${heading("Educator network.", "Review educator profiles and verification before matching.")}<section class="panel"><div class="tutor-list">${teachers.length ? teachers.map(teacher => `<div class="tutor-row"><span class="tutor-avatar">${initials(teacher.name)}</span><div class="tutor-info"><strong>${escapeHtml(teacher.name)}</strong><span>${escapeHtml(teacher.country)} · ${escapeHtml(teacher.curriculum)} · ${escapeHtml(teacher.levels.join(", "))} · ${escapeHtml(teacher.subjects.join(", "))}</span></div>${teacher.verified ? `<span class="status verified">Verified</span>` : `<button class="match-button" data-action="verify" data-teacher="${teacher.id}">Review & verify</button>`}</div>`).join("") : `<div class="empty">No educator accounts yet.</div>`}</div></section>`;
     if (activeSection === "Material repository") return `${heading("A shared library for learning.", "PDF materials published by verified educators.", `<button class="button button-compact" data-action="resource-new">Share material</button>`)}${resourceRepository(resources, "material", false)}`;
@@ -441,11 +456,12 @@ function locateRequestArea() {
 function bindForms() {
   $("studentForm")?.addEventListener("submit", async event => {
     event.preventDefault();
-    const body = Object.fromEntries(new FormData(event.currentTarget).entries());
+    const form = event.currentTarget;
+    const body = Object.fromEntries(new FormData(form).entries());
     try {
       await api("/api/students", { method: "POST", body: JSON.stringify(body) });
       $("studentDialog").close();
-      event.currentTarget.reset();
+      form.reset();
       await refreshData();
       render();
       showToast("Learner profile saved to your family account.");
@@ -523,9 +539,16 @@ function bindGlobalEvents() {
         row.hidden = !text.includes(search) || !matchesCountry || !matchesLevel;
       });
     }
+    if (event.target.id === "familySearch" || event.target.id === "familyCountry") {
+      const search = $("familySearch")?.value.toLowerCase() || "";
+      const country = $("familyCountry")?.value || "";
+      document.querySelectorAll("[data-family-card]").forEach(card => {
+        card.hidden = !card.dataset.search.includes(search) || Boolean(country && card.dataset.country !== country);
+      });
+    }
   });
   document.addEventListener("change", event => {
-    if (event.target.id === "managerCountry" || event.target.id === "managerLevel") event.target.dispatchEvent(new Event("input", { bubbles: true }));
+    if (["managerCountry", "managerLevel", "familyCountry"].includes(event.target.id)) event.target.dispatchEvent(new Event("input", { bubbles: true }));
   });
 }
 

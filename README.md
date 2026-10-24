@@ -20,6 +20,7 @@ ReRa is custom-built to support the unique, diverse educational systems of **Eas
 ### 1. 🏢 The Manager Space (The Middleman Company Dashboard)
 The central command center of the platform. Managers act as the absolute coordinators of the educational ecosystem to maintain quality control and data privacy.
 *   **Hyper-Local Proximity Mapping:** A real-time dispatch dashboard where managers can visually locate teachers within a specific radius of a learner's house or school.
+*   **Family Directory:** A manager-only view that maps registered parent accounts to their learner profiles and open tutoring requests, with teacher recommendations available from each request.
 *   **Curriculum & Level Filtering:** Advanced search matrices allowing managers to filter educators by country-specific curricula (e.g., CBC vs. REB), academic levels (Primary, Secondary, University), and targeted subject expertise.
 *   **Private Brokerage Hub:** An outreach center where managers can privately pitch an upcoming "Learning Request" to the closest teachers, keeping the client's (parent/student) private data safe until a match is confirmed.
 *   **Escrow & Billing Management:** Oversees local payment integrations (Mobile Money like MTN MoMo, Airtel Money, and card payments) and processes payouts to teachers upon successful lesson delivery.
