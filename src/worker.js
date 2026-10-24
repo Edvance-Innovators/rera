@@ -55,6 +55,34 @@ function response(data, status = 200, headers = {}) {
   });
 }
 
+async function sendVerificationEmail(env, email, verificationUrl) {
+  if (!env.RESEND_API_KEY || !env.MAIL_FROM) {
+    return { sent: false, error: "Email service is not configured. Contact the ReRa administrator." };
+  }
+
+  let mail;
+  try {
+    mail = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        from: env.MAIL_FROM,
+        to: [email],
+        subject: "Confirm your ReRa account",
+        html: `<p>Confirm your ReRa account by opening this link:</p><p><a href="${verificationUrl}">Confirm my account</a></p>`,
+      }),
+    });
+  } catch {
+    return { sent: false, error: "Could not reach Resend. Please try again." };
+  }
+
+  if (!mail.ok) {
+    console.error(`Resend rejected a confirmation email with HTTP ${mail.status}`);
+    return { sent: false, error: `Resend rejected the confirmation email (HTTP ${mail.status}).` };
+  }
+  return { sent: true };
+}
+
 async function handleStoreRequest(request, state, env) {
   const url = new URL(request.url);
   if (!["POST", "GET"].includes(request.method)) return response({ error: "Method not allowed" }, 405);
@@ -77,18 +105,13 @@ async function handleStoreRequest(request, state, env) {
     );
 
     const verificationUrl = `${env.PUBLIC_APP_URL || url.origin}/?verify-email=${encodeURIComponent(verificationToken)}`;
-    let emailSent = false;
-    let mailError = "Email service is not configured. Contact the ReRa administrator.";
-    if (env.RESEND_API_KEY && env.MAIL_FROM) {
-      const mail = await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ from: env.MAIL_FROM, to: [email], subject: "Confirm your ReRa account", html: `<p>Confirm your ReRa account by opening this link:</p><p><a href="${verificationUrl}">Confirm my account</a></p>` }),
-      });
-      emailSent = mail.ok;
-      if (!mail.ok) mailError = "The confirmation email could not be delivered. Please try again.";
-    }
-    return response({ ok: true, verification_required: true, email_sent: emailSent, mail_error: mailError }, 201);
+    const delivery = await sendVerificationEmail(env, email, verificationUrl);
+    return response({
+      ok: true,
+      verification_required: true,
+      email_sent: delivery.sent,
+      mail_error: delivery.sent ? null : delivery.error,
+    }, 201);
   }
 
   if (url.pathname === "/api/resend-verification" && request.method === "POST") {
@@ -98,13 +121,12 @@ async function handleStoreRequest(request, state, env) {
     if (!rows.length) return response({ error: "No account was found for this email" }, 404);
     if (!rows[0].verification_token) return response({ error: "This account is already confirmed" }, 400);
     const verificationUrl = `${env.PUBLIC_APP_URL || url.origin}/?verify-email=${encodeURIComponent(rows[0].verification_token)}`;
-    if (!env.RESEND_API_KEY || !env.MAIL_FROM) return response({ error: "Email service is not configured" }, 503);
-    const mail = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ from: env.MAIL_FROM, to: [email], subject: "Confirm your ReRa account", html: `<p>Confirm your ReRa account by opening this link:</p><p><a href="${verificationUrl}">Confirm my account</a></p>` }),
-    });
-    return mail.ok ? response({ ok: true }) : response({ error: "The confirmation email could not be delivered" }, 502);
+    const delivery = await sendVerificationEmail(env, email, verificationUrl);
+    if (delivery.sent) return response({ ok: true });
+    return response(
+      { error: delivery.error },
+      delivery.error.startsWith("Email service is not configured") ? 503 : 502,
+    );
   }
 
   if (url.pathname === "/api/verify-email" && request.method === "POST") {

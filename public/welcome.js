@@ -113,6 +113,7 @@ setAuthMode("signup");
 document.getElementById("resendVerification").addEventListener("click", async event => {
   const button = event.currentTarget;
   button.disabled = true;
+  document.getElementById("confirmationMessage").textContent = "Sending another confirmation email…";
   button.textContent = "Sending…";
   try {
     const response = await fetch("/api/resend-verification", {
