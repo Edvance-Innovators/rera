@@ -27,6 +27,10 @@ function escapeHtml(value) {
 
 function showToast(message) {
   const toast = $("toast");
+  if (!toast) {
+    console.error("ReRa status notification is unavailable:", message);
+    return;
+  }
   toast.textContent = message;
   toast.classList.add("show");
   clearTimeout(toastTimeout);
@@ -457,15 +461,23 @@ function bindForms() {
   $("studentForm")?.addEventListener("submit", async event => {
     event.preventDefault();
     const form = event.currentTarget;
-    const body = Object.fromEntries(new FormData(form).entries());
+    if (!(form instanceof HTMLFormElement)) {
+      showToast("The learner form is unavailable. Reload the page and try again.");
+      return;
+    }
     try {
+      const body = Object.fromEntries(new FormData(form).entries());
       await api("/api/students", { method: "POST", body: JSON.stringify(body) });
-      $("studentDialog").close();
+      const dialog = $("studentDialog");
+      if (dialog?.open) dialog.close();
       form.reset();
       await refreshData();
       render();
       showToast("Learner profile saved to your family account.");
-    } catch (error) { showToast(error.message); }
+    } catch (error) {
+      console.error("Could not save learner profile:", error);
+      showToast(error.message || "Could not save the learner profile. Please try again.");
+    }
   });
   $("requestForm")?.addEventListener("submit", event => { event.preventDefault(); submitRequest(event.currentTarget); });
   $("pinRequestLocation")?.addEventListener("click", locateRequestArea);
