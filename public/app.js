@@ -470,7 +470,8 @@ function bindForms() {
       await api("/api/students", { method: "POST", body: JSON.stringify(body) });
       const dialog = $("studentDialog");
       if (dialog?.open) dialog.close();
-      form.reset();
+      const learnerForm = $("studentForm");
+      if (learnerForm instanceof HTMLFormElement) HTMLFormElement.prototype.reset.call(learnerForm);
       await refreshData();
       render();
       showToast("Learner profile saved to your family account.");
