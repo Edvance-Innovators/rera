@@ -320,11 +320,13 @@ async function postStoreData(request, state, url) {
       || !LEVELS.has(level) || !grade || grade.length > 50) {
       return response({ error: "Complete the learner name, country, curriculum, level, and grade" }, 400);
     }
-    const created = state.storage.sql.exec(
+    state.storage.sql.exec(
       "INSERT INTO students(parent_id, name, country, curriculum, level, grade, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
       user.id, name, country, curriculum, level, grade, new Date().toISOString(),
     );
-    return response({ id: created.lastRowId, name }, 201);
+    const id = state.storage.sql.exec("SELECT last_insert_rowid() AS id").one()?.id;
+    if (id == null) throw new Error("Could not retrieve the new learner ID");
+    return response({ id, name }, 201);
   }
   if (url.pathname === "/api/requests") {
     const studentId = Number(body.student_id);
@@ -341,14 +343,16 @@ async function postStoreData(request, state, url) {
     let longitude = body.longitude;
     if (mode === "In person" && !validCoordinates(latitude, longitude)) return response({ error: "Allow location access or choose online lessons" }, 400);
     if (mode === "Online" || !validCoordinates(latitude, longitude)) latitude = longitude = null;
-    const created = state.storage.sql.exec(`INSERT INTO learning_requests
+    state.storage.sql.exec(`INSERT INTO learning_requests
       (parent_id, student_id, country, curriculum, level, grade, subject, location_label, latitude, longitude,
        radius_km, mode, availability, goal, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     user.id, studentId, student.country, student.curriculum, student.level, student.grade,
     subject, location, latitude, longitude, radius, mode, String(body.availability || "Flexible").slice(0, 80),
     String(body.goal || "").trim().slice(0, 1000), new Date().toISOString());
-    return response({ id: created.lastRowId, status: "Matching" }, 201);
+    const id = state.storage.sql.exec("SELECT last_insert_rowid() AS id").one()?.id;
+    if (id == null) throw new Error("Could not retrieve the new learning request ID");
+    return response({ id, status: "Matching" }, 201);
   }
   if (url.pathname === "/api/teacher/profile") {
     if (user.role !== "teacher") return response({ error: "This action is not available for your account" }, 403);
