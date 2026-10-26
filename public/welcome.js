@@ -9,6 +9,53 @@ const authForm = document.getElementById("authForm");
 let authMode = "signup";
 let toastTimer;
 
+function welcomeIcon(name) {
+  const paths = {
+    account: `<circle cx="12" cy="8" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0"/>`,
+    book: `<path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v17H6.5A2.5 2.5 0 0 1 4 17.5z"/><path d="M4 16a2.5 2.5 0 0 1 2.5-2.5H20M8 7h7"/>`,
+    refresh: `<path d="M20 7v5h-5M4 17v-5h5"/><path d="M5.6 9A7 7 0 0 1 18 6l2 2M4 16l2 2a7 7 0 0 0 12.4-3"/>`,
+    check: `<path d="m5 12 4 4L19 6"/>`,
+    arrow: `<path d="M5 12h14M13 6l6 6-6 6"/>`
+  };
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("fill", "none");
+  svg.setAttribute("stroke", "currentColor");
+  svg.setAttribute("stroke-width", "1.8");
+  svg.setAttribute("stroke-linecap", "round");
+  svg.setAttribute("stroke-linejoin", "round");
+  svg.setAttribute("aria-hidden", "true");
+  svg.classList.add("button-icon");
+  svg.innerHTML = paths[name] || paths.arrow;
+  return svg;
+}
+
+function decorateWelcomeButtons(root = document) {
+  root.querySelectorAll("button:not(.close-icon):not([data-icon-decorated]):not(.space-list button)").forEach(button => {
+    if (button.querySelector("svg")) {
+      button.dataset.iconDecorated = "true";
+      return;
+    }
+    const text = button.textContent.trim().toLowerCase();
+    const name = button.dataset.auth === "teacher" || text.includes("teach")
+      ? "book"
+      : text.includes("resend")
+        ? "refresh"
+        : text.includes("create") || text.includes("join") || text.includes("match")
+          ? "check"
+          : text.includes("sign in")
+            ? "account"
+            : "arrow";
+    button.prepend(welcomeIcon(name));
+    button.dataset.iconDecorated = "true";
+  });
+}
+
+function setButtonLabel(button, label) {
+  const icon = button.querySelector(".button-icon");
+  button.replaceChildren(...(icon ? [icon, document.createTextNode(label)] : [document.createTextNode(label)]));
+}
+
 function showToast(message) {
   const toast = document.getElementById("toast");
   toast.textContent = message;
@@ -28,7 +75,7 @@ function setAuthMode(mode) {
   const signup = authMode === "signup";
   document.getElementById("authTitle").textContent = signup ? "Create your account" : "Welcome back";
   document.getElementById("authEyebrow").textContent = signup ? "Welcome to ReRa" : "Your learning community";
-  document.getElementById("authSubmit").textContent = signup ? "Create account" : "Sign in";
+  setButtonLabel(document.getElementById("authSubmit"), signup ? "Create account" : "Sign in");
   document.getElementById("authSwitch").innerHTML = signup
     ? 'Already have an account? <button type="button" data-auth-mode="login">Sign in</button>'
     : 'New to ReRa? <button type="button" data-auth-mode="signup">Create an account</button>';
@@ -52,6 +99,7 @@ function setAuthMode(mode) {
     field.disabled = !signup || document.querySelector("input[name=role]:checked").value !== "teacher";
   });
   document.getElementById("authError").hidden = true;
+  decorateWelcomeButtons(authDialog);
 }
 
 function openAuth(mode) {
@@ -109,12 +157,13 @@ document.getElementById("showPasswords").addEventListener("change", event => {
 
 syncCurricula();
 setAuthMode("signup");
+decorateWelcomeButtons(document);
 
 document.getElementById("resendVerification").addEventListener("click", async event => {
   const button = event.currentTarget;
   button.disabled = true;
   document.getElementById("confirmationMessage").textContent = "Sending another confirmation email…";
-  button.textContent = "Sending…";
+  setButtonLabel(button, "Sending…");
   try {
     const response = await fetch("/api/resend-verification", {
       method: "POST",
@@ -128,7 +177,7 @@ document.getElementById("resendVerification").addEventListener("click", async ev
     document.getElementById("confirmationMessage").textContent = reason.message;
   } finally {
     button.disabled = false;
-    button.textContent = "Resend confirmation email";
+    setButtonLabel(button, "Resend confirmation email");
   }
 });
 
@@ -161,7 +210,7 @@ authForm.addEventListener("submit", async event => {
     return;
   }
   submit.disabled = true;
-  submit.textContent = authMode === "signup" ? "Creating account…" : "Signing in…";
+  setButtonLabel(submit, authMode === "signup" ? "Creating account…" : "Signing in…");
   const form = new FormData(authForm);
   const payload = authMode === "signup"
     ? { name: form.get("name"), email: form.get("email"), password: form.get("password"), password_confirm: form.get("passwordConfirm"), role: form.get("role"), country: form.get("country"), curriculum: form.get("curriculum"), subjects: [...document.getElementById("subjects").selectedOptions].map(option => option.value), levels: [...document.getElementById("levels").selectedOptions].map(option => option.value) }
@@ -196,6 +245,6 @@ authForm.addEventListener("submit", async event => {
     error.textContent = reason.message;
     error.hidden = false;
     submit.disabled = false;
-    submit.textContent = authMode === "signup" ? "Create account" : "Sign in";
+    setButtonLabel(submit, authMode === "signup" ? "Create account" : "Sign in");
   }
 });

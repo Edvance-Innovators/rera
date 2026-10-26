@@ -4,6 +4,17 @@ const curriculaByCountry = {
   Uganda: ["UNEB"],
   Tanzania: ["NECTA"]
 };
+const officialCurriculumSources = [
+  { title: "REB curriculum and learning resources", country: "Rwanda", curriculum: "REB", description: "Curriculum, teaching and learning resources from the Rwanda Education Board.", url: "https://www.reb.gov.rw/curriculum-teaching-learning-resources-department" },
+  { title: "Cambridge International programmes", country: "Rwanda", curriculum: "Cambridge / IB", description: "Cambridge Pathway programmes and qualifications.", url: "https://www.cambridgeinternational.org/programmes-and-qualifications/" },
+  { title: "International Baccalaureate programmes", country: "Rwanda", curriculum: "Cambridge / IB", description: "Official programme information from the International Baccalaureate.", url: "https://www.ibo.org/programmes/" },
+  { title: "Kenya CBC curriculum", country: "Kenya", curriculum: "CBC", description: "Curriculum information from the Kenya Institute of Curriculum Development.", url: "https://kicd.ac.ke/" },
+  { title: "Kenya 8-4-4 curriculum", country: "Kenya", curriculum: "8-4-4", description: "Curriculum and education resources from the Kenya Institute of Curriculum Development.", url: "https://kicd.ac.ke/" },
+  { title: "UNEB examinations and assessment", country: "Uganda", curriculum: "UNEB", description: "Official information from the Uganda National Examinations Board.", url: "https://uneb.ac.ug/" },
+  { title: "Uganda curriculum resources", country: "Uganda", curriculum: "UNEB", description: "Curriculum development and learning resources from the National Curriculum Development Centre.", url: "https://www.ncdc.go.ug/" },
+  { title: "NECTA examinations and assessment", country: "Tanzania", curriculum: "NECTA", description: "Official information from the National Examinations Council of Tanzania.", url: "https://www.necta.go.tz/" },
+  { title: "Tanzania curriculum resources", country: "Tanzania", curriculum: "NECTA", description: "Curriculum resources from the Tanzania Institute of Education.", url: "https://www.tie.go.tz/" }
+].map(source => ({ ...source, kind: "curriculum", level: "All levels", subject: "All subjects" }));
 const levels = ["Primary", "Secondary", "University"];
 const $ = id => document.getElementById(id);
 const app = $("app");
@@ -23,6 +34,77 @@ let learnerView = false;
 
 function escapeHtml(value) {
   return String(value ?? "").replace(/[&<>"']/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" })[character]);
+}
+
+function iconSvg(name) {
+  const paths = {
+    learner: `<circle cx="12" cy="8" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0"/>`,
+    search: `<circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.5 4.5"/>`,
+    book: `<path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v17H6.5A2.5 2.5 0 0 1 4 17.5z"/><path d="M4 16a2.5 2.5 0 0 1 2.5-2.5H20M8 7h7"/>`,
+    location: `<path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/>`,
+    refresh: `<path d="M20 7v5h-5M4 17v-5h5"/><path d="M5.6 9A7 7 0 0 1 18 6l2 2M4 16l2 2a7 7 0 0 0 12.4-3"/>`,
+    check: `<path d="m5 12 4 4L19 6"/>`,
+    close: `<path d="m6 6 12 12M18 6 6 18"/>`,
+    remove: `<path d="M4 7h16M10 11v6M14 11v6M5 7l1 14h12l1-14M9 7V4h6v3"/>`,
+    save: `<path d="M5 3h12l4 4v14H3V3z"/><path d="M7 3v6h10V3M7 21v-8h10v8"/>`,
+    arrow: `<path d="M5 12h14M13 6l6 6-6 6"/>`,
+    external: `<path d="M14 4h6v6M20 4l-9 9"/><path d="M18 13v6a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h6"/>`,
+    family: `<circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 20a6 6 0 0 1 12 0M15 15a5 5 0 0 1 6 5"/>`,
+    material: `<path d="M4 4h16v16H4z"/><path d="M8 8h8M8 12h8M8 16h5"/>`,
+    rating: `<path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3l-5.6 2.9 1.1-6.2L3 9.6l6.2-.9z"/>`
+  };
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("fill", "none");
+  svg.setAttribute("stroke", "currentColor");
+  svg.setAttribute("stroke-width", "1.8");
+  svg.setAttribute("stroke-linecap", "round");
+  svg.setAttribute("stroke-linejoin", "round");
+  svg.setAttribute("aria-hidden", "true");
+  svg.classList.add("button-icon");
+  svg.innerHTML = paths[name] || paths.arrow;
+  return svg;
+}
+
+function buttonIconName(button) {
+  const action = button.dataset.action;
+  if (action === "student-new" || action === "learner-view") return "learner";
+  if (action === "request-new" || action === "view-request") return "search";
+  if (action === "resource-new") return "material";
+  if (action === "refresh-map") return "refresh";
+  if (action === "verify" || action === "offer-accept") return "check";
+  if (action === "offer-decline" || action === "resource-delete") return "remove";
+  if (action === "teacher-location") return "location";
+  if (action === "pitch") return "arrow";
+  if (action === "feedback") return "rating";
+  if (action === "parent-view") return "family";
+  const text = button.textContent.trim().toLowerCase();
+  if (text === "cancel" || text.includes("decline")) return "close";
+  if (text.includes("save")) return "save";
+  if (text.includes("search") || text.includes("tutor") || text.includes("recommend")) return "search";
+  if (text.includes("location") || text.includes("pin")) return "location";
+  if (text.includes("curriculum") || text.includes("material") || text.includes("pdf")) return "book";
+  if (text.includes("accept") || text.includes("verify") || text.includes("submit")) return "check";
+  if (text.includes("remove") || text.includes("delete")) return "remove";
+  if (text.includes("refresh")) return "refresh";
+  if (text.includes("learner")) return "learner";
+  return "arrow";
+}
+
+function decorateButtons(root) {
+  root.querySelectorAll("button:not(.close-icon):not(.icon-btn):not([data-icon-decorated])").forEach(button => {
+    if (button.querySelector("svg")) {
+      button.dataset.iconDecorated = "true";
+      return;
+    }
+    button.prepend(iconSvg(buttonIconName(button)));
+    button.dataset.iconDecorated = "true";
+  });
+}
+
+function setButtonLabel(button, label) {
+  const icon = button.querySelector(".button-icon");
+  button.replaceChildren(...(icon ? [icon, document.createTextNode(label)] : [document.createTextNode(label)]));
 }
 
 function showToast(message) {
@@ -91,6 +173,7 @@ function renderShell() {
   const initials = currentUser.name.split(/\s+/).map(part => part[0]).join("").slice(0, 2).toUpperCase();
   app.innerHTML = `<aside class="sidebar"><a class="logo" href="/"><span class="logo-symbol">R</span><span>ReRa<span class="logo-dot">.</span></span></a><p class="side-label">${escapeHtml(currentUser.role)} space</p><nav class="side-nav" aria-label="Main navigation">${sectionsForUser().map((section, index) => `<button class="${section === activeSection ? "active" : ""}" data-section="${escapeHtml(section)}" aria-current="${section === activeSection ? "page" : "false"}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">${navIcon(index)}</svg>${escapeHtml(section)}</button>`).join("")}</nav><div class="sidebar-foot"><div class="region-card"><span>REGIONAL NETWORK</span><strong>${escapeHtml(currentUser.country)} · ${escapeHtml(currentUser.curriculum)}</strong><div class="region-flags"><span>RW</span><span>KE</span><span>UG</span><span>TZ</span></div></div><div class="profile"><div class="avatar">${escapeHtml(initials)}</div><div><strong>${escapeHtml(currentUser.name)}</strong><span>${escapeHtml(currentUser.role)} account</span></div></div></div></aside>
     <main class="app-main"><header class="topbar"><div class="crumb">ReRa <span aria-hidden="true">/</span> <strong>${escapeHtml(activeSection)}</strong></div><div class="top-actions">${currentUser.role === "parent" ? `<nav class="portal-switch" aria-label="Family or learner view"><button class="${learnerView ? "" : "active"}" data-action="parent-view">Family</button><button class="${learnerView ? "active" : ""}" data-action="learner-view">Learner</button></nav>` : `<span class="tag">${escapeHtml(currentUser.role)} portal</span>`}<button class="icon-btn" data-action="logout" aria-label="Sign out" title="Sign out"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 17l5-5-5-5m5 5H3"/><path d="M12 3h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6"/></svg></button></div></header><div class="app-content" id="pageContent">${renderSection()}</div></main>`;
+  decorateButtons(app);
   bindDynamicForms();
   bindResourceFilters();
   if (currentUser.role === "manager" && ["Overview", "Learning requests"].includes(activeSection)) setTimeout(initManagerMap, 40);
@@ -160,12 +243,17 @@ function teacherView() {
 
 function resourceRepository(items, kind, officialOnly) {
   const title = kind === "curriculum" ? "Curriculum repository" : "Learning materials";
-  const list = items.filter(item => item.kind === kind);
-  return `<article class="panel"><div class="panel-head"><div><h2>${title}</h2><p>${kind === "curriculum" ? "Official national curriculum references and study guides." : "PDF resources shared by ReRa educators."}</p></div>${!officialOnly && ["teacher", "manager"].includes(currentUser.role) ? `<button class="text-button" data-action="resource-new">Add PDF</button>` : ""}</div><div class="filter-row"><input class="form-control" data-resource-search="${kind}" type="search" placeholder="Search ${kind === "curriculum" ? "curricula" : "materials"}"><select class="form-control" data-resource-country="${kind}"><option value="">All countries</option>${Object.keys(curriculaByCountry).map(country => `<option>${country}</option>`).join("")}</select><select class="form-control" data-resource-curriculum="${kind}"><option value="">All curricula</option>${Object.values(curriculaByCountry).flat().map(curriculum => `<option>${escapeHtml(curriculum)}</option>`).join("")}</select></div><div class="resource-list" data-resource-list="${kind}">${list.length ? list.map(resourceCard).join("") : `<div class="empty">No ${kind === "curriculum" ? "curriculum references" : "materials"} found.</div>`}</div></article>`;
+  const list = kind === "curriculum" ? officialCurriculumSources : items.filter(item => item.kind === kind);
+  return `<article class="panel repository-panel ${kind === "curriculum" ? "curriculum-panel" : ""}"><div class="panel-head"><div><h2>${title}</h2><p>${kind === "curriculum" ? "Official curriculum and assessment sources. Search by country, curriculum or website address." : "PDF resources shared by ReRa educators."}</p></div>${!officialOnly && ["teacher", "manager"].includes(currentUser.role) ? `<button class="text-button" data-action="resource-new">Add PDF</button>` : ""}</div><div class="filter-row"><label class="repository-search"><span class="sr-only">Search ${kind === "curriculum" ? "curriculum sources" : "learning materials"}</span>${iconSvg("search").outerHTML}<input class="form-control" data-resource-search="${kind}" type="search" placeholder="${kind === "curriculum" ? "Search by country, curriculum or website…" : "Search learning materials…"}" autocomplete="off"></label><select class="form-control" data-resource-country="${kind}" aria-label="Filter by country"><option value="">All countries</option>${Object.keys(curriculaByCountry).map(country => `<option>${country}</option>`).join("")}</select><select class="form-control" data-resource-curriculum="${kind}" aria-label="Filter by curriculum"><option value="">All curricula</option>${Object.values(curriculaByCountry).flat().map(curriculum => `<option>${escapeHtml(curriculum)}</option>`).join("")}</select><span class="repository-count" data-resource-count="${kind}" aria-live="polite">${list.length} ${kind === "curriculum" ? "sources" : "materials"}</span></div><div class="resource-list ${kind === "curriculum" ? "curriculum-grid" : ""}" data-resource-list="${kind}">${list.length ? (kind === "curriculum" ? list.map(curriculumSourceCard).join("") : list.map(resourceCard).join("")) : `<div class="empty">No ${kind === "curriculum" ? "curriculum references" : "materials"} found.</div>`}</div><div class="empty repository-empty" data-resource-empty="${kind}" hidden>No matching ${kind === "curriculum" ? "curriculum sources" : "materials"} found. Try another search or filter.</div></article>`;
 }
 
 function resourceCard(resource) {
   return `<div class="resource-card" data-resource-card data-title="${escapeHtml(`${resource.title} ${resource.description} ${resource.country} ${resource.curriculum} ${resource.level} ${resource.subject}`.toLowerCase())}" data-country="${escapeHtml(resource.country)}" data-curriculum="${escapeHtml(resource.curriculum)}"><div><strong>${escapeHtml(resource.title)}</strong><span>${escapeHtml(resource.country)} · ${escapeHtml(resource.curriculum)} · ${escapeHtml(resource.level)} · ${escapeHtml(resource.subject)}</span><span>${escapeHtml(resource.description)}${resource.author ? ` · ${escapeHtml(resource.author)}` : ""}</span></div>${resource.download_url ? `<a href="${escapeHtml(resource.download_url)}">Download</a>` : `<a href="${escapeHtml(resource.url)}" target="_blank" rel="noopener noreferrer">Official site ↗</a>`}${resource.can_delete ? `<button data-action="resource-delete" data-resource="${resource.id}" aria-label="Remove ${escapeHtml(resource.title)}">Remove</button>` : ""}</div>`;
+}
+
+function curriculumSourceCard(source) {
+  const searchable = `${source.title} ${source.description} ${source.country} ${source.curriculum} ${source.url}`.toLowerCase();
+  return `<article class="resource-card curriculum-card" data-resource-card data-title="${escapeHtml(searchable)}" data-country="${escapeHtml(source.country)}" data-curriculum="${escapeHtml(source.curriculum)}"><div class="resource-card-copy"><strong>${escapeHtml(source.title)}</strong><span class="resource-meta">${escapeHtml(source.country)} · ${escapeHtml(source.curriculum)}</span><span class="resource-description">${escapeHtml(source.description)}</span><a class="source-address" href="${escapeHtml(source.url)}" target="_blank" rel="noopener noreferrer">${iconSvg("external").outerHTML}<span>${escapeHtml(source.url)}</span></a></div></article>`;
 }
 
 function otherSectionView() {
@@ -294,6 +382,7 @@ async function viewMatches(requestId) {
   const detail = $("detailDialog");
   $("detailTitle").textContent = `Educators for ${request.subject}`;
   $("detailBody").innerHTML = `<p class="privacy-note">Tutor offers include curriculum, level, subject and a general area only. The learner's name and exact location are never shared before confirmation.</p>${matched.length ? `<div class="tutor-list">${matched.map(teacher => `<div class="tutor-row"><span class="tutor-avatar">${initials(teacher.name)}</span><div class="tutor-info"><strong>${escapeHtml(teacher.name)} · Verified</strong><span>${escapeHtml(teacher.curriculum)} · ${escapeHtml(teacher.levels.join(", "))} · ${escapeHtml(teacher.subjects.join(", "))}</span><span>${teacher.latitude == null ? "Online / location not shared" : "Within requested travel radius"}</span></div><button class="match-button" data-action="pitch" data-request="${request.id}" data-teacher="${teacher.id}">Pitch privately</button></div>`).join("")}</div>` : `<div class="empty">No verified and available educator currently meets every criterion for this request. Verify a qualified educator, widen the radius, or suggest online lessons.</div>`}`;
+  decorateButtons($("detailBody"));
   detail.showModal();
 }
 
@@ -340,14 +429,14 @@ async function submitRequest(form) {
   }
   const button = $("pinRequestLocation");
   button.disabled = true;
-  button.textContent = "Requesting location permission…";
+  setButtonLabel(button, "Requesting location permission…");
   getCoordinates(form, (latitude, longitude) => {
     button.disabled = false;
-    button.textContent = "Pin lesson area with my location";
+    setButtonLabel(button, "Pin lesson area with my location");
     create(latitude, longitude);
   }, message => {
     button.disabled = false;
-    button.textContent = "Pin lesson area with my location";
+    setButtonLabel(button, "Pin lesson area with my location");
     $("requestPinStatus").textContent = message;
     showToast(message);
   });
@@ -370,10 +459,16 @@ function bindResourceFilters() {
     const kind = input.dataset.resourceSearch;
     const country = document.querySelector(`[data-resource-country="${kind}"]`)?.value || "";
     const curriculum = document.querySelector(`[data-resource-curriculum="${kind}"]`)?.value || "";
+    let visibleCount = 0;
     document.querySelectorAll(`[data-resource-list="${kind}"] [data-resource-card]`).forEach(card => {
       const matches = card.dataset.title.includes(input.value.toLowerCase()) && (!country || card.dataset.country === country) && (!curriculum || card.dataset.curriculum === curriculum);
       card.hidden = !matches;
+      if (matches) visibleCount += 1;
     });
+    const count = document.querySelector(`[data-resource-count="${kind}"]`);
+    if (count) count.textContent = `${visibleCount} ${kind === "curriculum" ? "sources" : "materials"}`;
+    const empty = document.querySelector(`[data-resource-empty="${kind}"]`);
+    if (empty) empty.hidden = visibleCount > 0;
   }));
   document.querySelectorAll("[data-resource-country], [data-resource-curriculum]").forEach(select => select.addEventListener("change", () => {
     const search = document.querySelector(`[data-resource-search="${select.dataset.resourceCountry || select.dataset.resourceCurriculum}"]`);
@@ -443,16 +538,16 @@ function locateRequestArea() {
   const form = $("requestForm");
   const button = $("pinRequestLocation");
   button.disabled = true;
-  button.textContent = "Waiting for location permission…";
+  setButtonLabel(button, "Waiting for location permission…");
   startLocationRequest((latitude, longitude) => {
     form.elements.latitude.value = latitude;
     form.elements.longitude.value = longitude;
     button.disabled = false;
-    button.textContent = "Lesson area pinned";
+    setButtonLabel(button, "Lesson area pinned");
     $("requestPinStatus").textContent = "Pinned. Only ReRa managers can see this precise point until your match is confirmed.";
   }, message => {
     button.disabled = false;
-    button.textContent = "Pin lesson area with my location";
+    setButtonLabel(button, "Pin lesson area with my location");
     $("requestPinStatus").textContent = message;
   });
 }
@@ -489,7 +584,7 @@ function bindForms() {
     if (!file || file.type !== "application/pdf" || file.size > 5 * 1024 * 1024) return showToast("Choose a PDF file no larger than 5 MB.");
     const button = form.querySelector("button.button");
     button.disabled = true;
-    button.textContent = "Publishing…";
+    setButtonLabel(button, "Publishing…");
     try {
       const base64 = await fileToBase64(file);
       const data = new FormData(form);
@@ -503,7 +598,7 @@ function bindForms() {
       render();
       showToast("PDF added to the learning materials repository.");
     } catch (error) { showToast(error.message); }
-    finally { button.disabled = false; button.textContent = "Publish material"; }
+    finally { button.disabled = false; setButtonLabel(button, "Publish material"); }
   });
   $("teacherProfileForm")?.addEventListener("submit", async event => {
     event.preventDefault();
@@ -568,6 +663,7 @@ function bindGlobalEvents() {
 async function start() {
   bindForms();
   bindGlobalEvents();
+  decorateButtons(document);
   try {
     await refreshData();
     render();
