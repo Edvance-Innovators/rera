@@ -67,6 +67,16 @@ npx wrangler deploy
 
 Enter the Resend API key at the prompt, then deploy the Worker. Verify that the sender domain is approved in Resend. If a setting is missing, signup identifies its name. If Resend rejects an email, signup reports the HTTP status and the Worker logs record it. The user can retry with **Resend confirmation email** after correcting the configuration.
 
+## Creating a local manager
+
+For the local Python app and its SQLite database, run:
+
+```sh
+python3 app.py create-manager --name "ReRa Manager" --email you@example.com
+```
+
+The command prompts for a manager password and country. If the email already belongs to a parent account, the command promotes it, changes its password and profile name/curriculum, and signs out its existing sessions. This affects only the local database, not the deployed Worker.
+
 ## Creating the first deployed manager
 
 Public signup intentionally supports only parent and teacher accounts. To create the first manager in the deployed Worker's Durable Object account store:

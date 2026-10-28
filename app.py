@@ -915,6 +915,16 @@ class ReRaHandler(BaseHTTPRequestHandler):
 
 def create_manager(name: str, email: str) -> None:
     initialize_database()
+    email = email.strip().lower()
+    with connect_db() as db:
+        existing_user = db.execute("SELECT role FROM users WHERE email = ?", (email,)).fetchone()
+    if existing_user and existing_user["role"] == "manager":
+        print(f"A manager account already exists for {email}.")
+        return
+    if existing_user and existing_user["role"] != "parent":
+        print(f"The email {email} belongs to a {existing_user['role']} account and cannot be promoted.", file=sys.stderr)
+        raise SystemExit(2)
+
     password = getpass("Manager password (12+ characters): ")
     if len(password) < 12:
         print("Password must be at least 12 characters.", file=sys.stderr)
@@ -924,10 +934,26 @@ def create_manager(name: str, email: str) -> None:
         print("Choose a supported country.", file=sys.stderr)
         raise SystemExit(2)
     curriculum = sorted(CURRICULA[country])[0]
+    hashed_password = password_hash(password)
+    promoted = False
     with connect_db() as db:
-        db.execute("""INSERT INTO users(name, email, password_hash, role, country, curriculum, created_at)
-            VALUES (?, ?, ?, 'manager', ?, ?, ?)""", (name, email.lower(), password_hash(password), country, curriculum, now_iso()))
-    print(f"Manager account created for {email}.")
+        existing_user = db.execute("SELECT id, role FROM users WHERE email = ?", (email,)).fetchone()
+        if existing_user:
+            if existing_user["role"] != "parent":
+                print(f"The email {email} belongs to a {existing_user['role']} account and cannot be promoted.", file=sys.stderr)
+                raise SystemExit(2)
+            db.execute("DELETE FROM sessions WHERE user_id = ?", (existing_user["id"],))
+            db.execute("""UPDATE users
+                SET name = ?, password_hash = ?, role = 'manager', country = ?, curriculum = ?
+                WHERE id = ?""", (name, hashed_password, country, curriculum, existing_user["id"]))
+            promoted = True
+        else:
+            db.execute("""INSERT INTO users(name, email, password_hash, role, country, curriculum, created_at)
+                VALUES (?, ?, ?, 'manager', ?, ?, ?)""", (name, email, hashed_password, country, curriculum, now_iso()))
+    if promoted:
+        print(f"Parent account promoted to manager for {email}. Sign in again with the manager password.")
+    else:
+        print(f"Manager account created for {email}.")
 
 
 def main() -> None:
