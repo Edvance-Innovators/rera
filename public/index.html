@@ -10,8 +10,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/styles.css">
-  <link rel="stylesheet" href="/app-overrides.css?v=20261028-glass-fix">
-  <link rel="stylesheet" href="/welcome-dashboard.css?v=20261028-learning-settings-3">
+  <link rel="stylesheet" href="/app-overrides.css?v=20261028-manager-match-flow">
+  <link rel="stylesheet" href="/welcome-dashboard.css?v=20261028-ai-study-partners">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer crossorigin=""></script>
 </head>
@@ -80,6 +80,18 @@
       <article id="network-opportunities"><span class="network-number">04 / OPPORTUNITIES</span><h2>Educator opportunities</h2><p>Build a verified teaching profile and be considered for relevant learner matches.</p><button class="network-action" data-auth="teacher">Join the network</button></article>
     </section>
     <section class="community-strip" id="community"><div><span class="dashboard-kicker">Four countries, many ways to thrive</span><strong>From primary foundations to university study, start with the learner's real context.</strong></div><div class="community-countries"><span>Rwanda <small>REB · Cambridge / IB</small></span><span>Kenya <small>CBC · 8-4-4</small></span><span>Uganda <small>UNEB</small></span><span>Tanzania <small>NECTA</small></span></div></section>
+    <section class="ai-partners" id="ai-partners" aria-labelledby="aiPartnersTitle">
+      <div class="ai-partners-heading"><div><span class="dashboard-kicker">A little extra practice</span><h2 id="aiPartnersTitle">AI study partners</h2><p>Explore tools that can support revision between lessons. A real educator remains at the heart of every ReRa learning plan.</p></div><span class="ai-partners-note">Examples only · availability varies</span></div>
+      <div class="ai-partner-grid">
+        <article class="ai-partner-card ai-partner-coming"><span class="ai-partner-type">IN DEVELOPMENT</span><h3>ReRa guided tutor</h3><p>A curriculum-aware study companion designed to complement ReRa educators.</p><span class="ai-coming-label">Coming soon</span></article>
+        <article class="ai-partner-card"><span class="ai-partner-type">NOTES &amp; REVISION</span><h3>RemNote AI</h3><p>Turn learning notes into a more active revision routine.</p><a href="https://www.remnote.com/" target="_blank" rel="noopener noreferrer">Explore RemNote <span aria-hidden="true">↗</span></a></article>
+        <article class="ai-partner-card"><span class="ai-partner-type">GUIDED PRACTICE</span><h3>Khanmigo</h3><p>Try guided practice and explanations for supported subjects.</p><a href="https://www.khanmigo.ai/" target="_blank" rel="noopener noreferrer">Explore Khanmigo <span aria-hidden="true">↗</span></a></article>
+        <article class="ai-partner-card"><span class="ai-partner-type">STUDY FROM SOURCES</span><h3>NotebookLM</h3><p>Study from selected class notes and learning materials.</p><a href="https://notebooklm.google.com/" target="_blank" rel="noopener noreferrer">Explore NotebookLM <span aria-hidden="true">↗</span></a></article>
+        <article class="ai-partner-card"><span class="ai-partner-type">STEP-BY-STEP STUDY</span><h3>ChatGPT Study Mode</h3><p>Work through a topic with guided questions and explanations.</p><a href="https://chatgpt.com/" target="_blank" rel="noopener noreferrer">Explore Study Mode <span aria-hidden="true">↗</span></a></article>
+        <article class="ai-partner-card"><span class="ai-partner-type">FLASHCARDS &amp; PRACTICE</span><h3>Quizlet</h3><p>Revisit key terms and practise recall between educator sessions.</p><a href="https://quizlet.com/" target="_blank" rel="noopener noreferrer">Explore Quizlet <span aria-hidden="true">↗</span></a></article>
+      </div>
+      <p class="ai-partners-footnote">These are independent third-party services, not built-in ReRa integrations. Check age requirements, privacy settings and costs with a parent or educator, and never share sensitive personal information.</p>
+    </section>
   </main>
   <footer class="welcome-footer"><a class="logo" href="/"><span class="logo-symbol">R</span><span>ReRa<span class="logo-dot">.</span></span></a><span>Learning, closer to home.</span><span>East Africa</span></footer>
 
@@ -134,6 +146,6 @@
   </dialog>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <script src="/regional-images.js?v=20261028-local-photos" defer></script>
-  <script src="/welcome.js?v=20261028-account-state-fix" defer></script>
+  <script src="/welcome.js?v=20261028-ai-study-partners" defer></script>
 </body>
 </html>

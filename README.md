@@ -15,6 +15,8 @@ ReRa is custom-built to support the unique, diverse educational systems of **Eas
 
 The welcome page cycles through learning environments tagged with their country and curriculum. Signed-in users can open **Closer to home** to view approximate locations of verified, available educators within a selected radius; the search defaults to 10 km and requires browser location access.
 
+The welcome page also suggests an AI study partner for each regional learning template and links to examples including RemNote AI, Khanmigo, NotebookLM, ChatGPT Study Mode and Quizlet. These are independent third-party tools, not built-in ReRa integrations; learners should use them as extra practice alongside a human educator and review age, privacy and cost requirements with a parent or educator. ReRa's own guided AI tutor is marked as coming soon.
+
 ---
 
 ## 👥 The Four Dedicated Portals (Spaces)
@@ -24,7 +26,7 @@ The central command center of the platform. Managers act as the absolute coordin
 *   **Hyper-Local Proximity Mapping:** A real-time dispatch dashboard where managers can visually locate teachers within a specific radius of a learner's house or school.
 *   **Family Directory:** A manager-only view that maps registered parent accounts to their learner profiles and open tutoring requests, with teacher recommendations available from each request.
 *   **Curriculum & Level Filtering:** Advanced search matrices allowing managers to filter educators by country-specific curricula (e.g., CBC vs. REB), academic levels (Primary, Secondary, University), and targeted subject expertise.
-*   **Private Brokerage Hub:** An outreach center where managers can privately pitch an upcoming "Learning Request" to the closest teachers, keeping the client's (parent/student) private data safe until a match is confirmed.
+*   **Manager-led matching:** Managers review each request, shortlist verified educators by curriculum, level, subject and location, then privately pitch an educator. After the educator accepts, ReRa coordinates the family introduction; learner details stay private until then.
 *   **Escrow & Billing Management:** Oversees local payment integrations (Mobile Money like MTN MoMo, Airtel Money, and card payments) and processes payouts to teachers upon successful lesson delivery.
 
 ### 2. 🎒 The Learner Space (The Student Portal)

@@ -6,29 +6,36 @@ const curriculaByCountry = {
 };
 const learningTemplates = {
   Rwanda: [
-    { title: "A steady study rhythm", curriculum: "REB", level: "Primary", focus: "Weekly learning plan", detail: "Short practice sessions, reading time and a simple family check-in." },
-    { title: "Exam-ready sprint", curriculum: "REB", level: "Secondary", focus: "Revision planner", detail: "Break subjects into focused review blocks, practice and recap." },
-    { title: "Cambridge subject planner", curriculum: "Cambridge / IB", level: "Secondary", focus: "Coursework planner", detail: "Track syllabus goals, assignments and exam preparation by subject." },
-    { title: "University study map", curriculum: "REB", level: "University", focus: "Term study plan", detail: "Organize lectures, independent study, deadlines and review sessions." }
+    { title: "A steady study rhythm", curriculum: "REB", level: "Primary", focus: "Weekly learning plan", detail: "Short practice sessions, reading time and a simple family check-in.", aiTutor: "RemNote AI" },
+    { title: "Exam-ready sprint", curriculum: "REB", level: "Secondary", focus: "Revision planner", detail: "Break subjects into focused review blocks, practice and recap.", aiTutor: "Khanmigo" },
+    { title: "Cambridge subject planner", curriculum: "Cambridge / IB", level: "Secondary", focus: "Coursework planner", detail: "Track syllabus goals, assignments and exam preparation by subject.", aiTutor: "NotebookLM" },
+    { title: "University study map", curriculum: "REB", level: "University", focus: "Term study plan", detail: "Organize lectures, independent study, deadlines and review sessions.", aiTutor: "ChatGPT Study Mode" }
   ],
   Kenya: [
-    { title: "CBC competency week", curriculum: "CBC", level: "Primary", focus: "Weekly learning plan", detail: "Balance classroom themes, practical activities and foundational skills." },
-    { title: "Junior school project brief", curriculum: "CBC", level: "Secondary", focus: "Project planner", detail: "Turn a competency into manageable research, practice and reflection." },
-    { title: "KCSE revision runway", curriculum: "8-4-4", level: "Secondary", focus: "Exam revision", detail: "Set subject targets, past-paper practice and weekly progress checks." },
-    { title: "Campus term planner", curriculum: "8-4-4", level: "University", focus: "Term study plan", detail: "Keep coursework, independent reading and assessment dates together." }
+    { title: "CBC competency week", curriculum: "CBC", level: "Primary", focus: "Weekly learning plan", detail: "Balance classroom themes, practical activities and foundational skills.", aiTutor: "Khanmigo" },
+    { title: "Junior school project brief", curriculum: "CBC", level: "Secondary", focus: "Project planner", detail: "Turn a competency into manageable research, practice and reflection.", aiTutor: "Quizlet" },
+    { title: "KCSE revision runway", curriculum: "8-4-4", level: "Secondary", focus: "Exam revision", detail: "Set subject targets, past-paper practice and weekly progress checks.", aiTutor: "RemNote AI" },
+    { title: "Campus term planner", curriculum: "8-4-4", level: "University", focus: "Term study plan", detail: "Keep coursework, independent reading and assessment dates together.", aiTutor: "NotebookLM" }
   ],
   Uganda: [
-    { title: "PLE confidence builder", curriculum: "UNEB", level: "Primary", focus: "Primary revision", detail: "Build a balanced routine for core subjects, practice and rest." },
-    { title: "UCE subject tracker", curriculum: "UNEB", level: "Secondary", focus: "Lower secondary", detail: "Track topic coverage, class exercises and focused revision by subject." },
-    { title: "UACE exam pathway", curriculum: "UNEB", level: "Secondary", focus: "Advanced level plan", detail: "Plan subject combinations, deeper study and timed exam practice." },
-    { title: "University semester map", curriculum: "UNEB", level: "University", focus: "Semester study plan", detail: "Map lectures, reading, coursework and exam preparation across a term." }
+    { title: "PLE confidence builder", curriculum: "UNEB", level: "Primary", focus: "Primary revision", detail: "Build a balanced routine for core subjects, practice and rest.", aiTutor: "Quizlet" },
+    { title: "UCE subject tracker", curriculum: "UNEB", level: "Secondary", focus: "Lower secondary", detail: "Track topic coverage, class exercises and focused revision by subject.", aiTutor: "ChatGPT Study Mode" },
+    { title: "UACE exam pathway", curriculum: "UNEB", level: "Secondary", focus: "Advanced level plan", detail: "Plan subject combinations, deeper study and timed exam practice.", aiTutor: "Khanmigo" },
+    { title: "University semester map", curriculum: "UNEB", level: "University", focus: "Semester study plan", detail: "Map lectures, reading, coursework and exam preparation across a term.", aiTutor: "RemNote AI" }
   ],
   Tanzania: [
-    { title: "Standard 7 foundations", curriculum: "NECTA", level: "Primary", focus: "Primary revision", detail: "Create a gentle weekly routine for core skills and exam practice." },
-    { title: "Form II progress plan", curriculum: "NECTA", level: "Secondary", focus: "Topic tracker", detail: "Set topic goals, practice checkpoints and a clear weekly review." },
-    { title: "CSEE revision schedule", curriculum: "NECTA", level: "Secondary", focus: "Exam revision", detail: "Share revision time across subjects, past papers and rest days." },
-    { title: "University coursework map", curriculum: "NECTA", level: "University", focus: "Term study plan", detail: "Bring lectures, research, coursework and assessment dates into one plan." }
+    { title: "Standard 7 foundations", curriculum: "NECTA", level: "Primary", focus: "Primary revision", detail: "Create a gentle weekly routine for core skills and exam practice.", aiTutor: "NotebookLM" },
+    { title: "Form II progress plan", curriculum: "NECTA", level: "Secondary", focus: "Topic tracker", detail: "Set topic goals, practice checkpoints and a clear weekly review.", aiTutor: "RemNote AI" },
+    { title: "CSEE revision schedule", curriculum: "NECTA", level: "Secondary", focus: "Exam revision", detail: "Share revision time across subjects, past papers and rest days.", aiTutor: "Quizlet" },
+    { title: "University coursework map", curriculum: "NECTA", level: "University", focus: "Term study plan", detail: "Bring lectures, research, coursework and assessment dates into one plan.", aiTutor: "Khanmigo" }
   ]
+};
+const aiTutorLinks = {
+  "RemNote AI": "https://www.remnote.com/",
+  Khanmigo: "https://www.khanmigo.ai/",
+  NotebookLM: "https://notebooklm.google.com/",
+  "ChatGPT Study Mode": "https://chatgpt.com/",
+  Quizlet: "https://quizlet.com/"
 };
 const learningTemplateIcons = [
   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18m-13 4h3m-3 3h7"/></svg>`,
@@ -143,7 +150,7 @@ function startHeroSlideTimer() {
 
 function renderLearningTemplates(country) {
   const grid = document.getElementById("templateGrid");
-  grid.innerHTML = learningTemplates[country].map((template, index) => `<article class="template-card template-tone-${index + 1}"><div class="template-card-top"><span class="template-index">0${index + 1}</span><span class="template-level">${template.level}</span></div><div class="template-mark" aria-hidden="true">${learningTemplateIcons[index]}</div><div class="template-card-copy"><span class="template-focus">${template.focus}</span><h3>${template.title}</h3><p>${template.detail}</p></div><div class="template-card-foot"><span>${country} · ${template.curriculum}</span><button type="button" class="template-start" data-auth="signup" data-template-country="${country}" data-template-curriculum="${template.curriculum}">Start this plan <span aria-hidden="true">↗</span></button></div></article>`).join("");
+  grid.innerHTML = learningTemplates[country].map((template, index) => `<article class="template-card template-tone-${index + 1}"><div class="template-card-top"><span class="template-index">0${index + 1}</span><span class="template-level">${template.level}</span></div><div class="template-mark" aria-hidden="true">${learningTemplateIcons[index]}</div><div class="template-card-copy"><span class="template-focus">${template.focus}</span><h3>${template.title}</h3><p>${template.detail}</p></div><div class="template-ai-note"><span>Human educator + extra AI practice</span><a href="${aiTutorLinks[template.aiTutor]}" target="_blank" rel="noopener noreferrer" aria-label="Explore ${template.aiTutor}, a suggested extra study partner for ${template.title}">${template.aiTutor} <span aria-hidden="true">↗</span></a></div><div class="template-card-foot"><span>${country} · ${template.curriculum}</span><button type="button" class="template-start" data-auth="signup" data-template-country="${country}" data-template-curriculum="${template.curriculum}">Start this plan <span aria-hidden="true">↗</span></button></div></article>`).join("");
   document.querySelectorAll(".region-tab").forEach(button => {
     const selected = button.dataset.region === country;
     button.classList.toggle("selected", selected);
