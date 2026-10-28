@@ -11,7 +11,7 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/styles.css">
   <link rel="stylesheet" href="/app-overrides.css?v=20261026-curriculum-cards">
-  <link rel="stylesheet" href="/welcome-dashboard.css?v=20261028-overlay-colors-icons">
+  <link rel="stylesheet" href="/welcome-dashboard.css?v=20261028-auth-rail-links">
 </head>
 <body class="welcome-page">
   <header class="welcome-nav">
@@ -29,7 +29,7 @@
         <a class="rail-link rail-help" href="#community" aria-label="Learning community" title="Learning community"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9a2.5 2.5 0 1 1 4.3 1.7c-1.1 1-1.9 1.2-1.9 2.8m0 3h.01"/></svg></a>
       </aside>
       <div class="dashboard-main" id="home">
-        <div class="dashboard-topline"><div><span class="dashboard-kicker">A learning space made for here</span><h1>Make room<br>to <em>move forward.</em></h1><p>Local learning plans, shaped around the curriculum, classroom and goals that matter to your family.</p><div class="hero-actions"><button class="button" data-auth="signup">Build a learning plan <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button><button class="button button-outline" data-auth="teacher">I teach</button></div><div class="dashboard-social"><div class="social-initials"><span>AM</span><span>PO</span><span>GN</span><span>DU</span></div><span>Families and educators, learning together</span></div></div>
+        <div class="dashboard-topline"><div><span class="dashboard-kicker">A learning space made for here</span><h1>Make room<br>to <em>move forward.</em></h1><p>Local learning plans, shaped around the curriculum, classroom and goals that matter to your family.</p><div class="hero-actions"><button class="button" data-auth="signup">Build a learning plan <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button><button class="button button-outline" data-auth="teacher">I teach</button></div><nav class="dashboard-social" aria-label="Explore the ReRa community"><a class="social-link" href="#network-educators" aria-label="Educators"><span class="social-initial">AM</span><span>Educators</span></a><a class="social-link" href="#network-spaces" aria-label="Teaching spaces"><span class="social-initial">PO</span><span>Teaching spaces</span></a><a class="social-link" href="#network-competitions" aria-label="Competition preparation"><span class="social-initial">GN</span><span>Competitions</span></a><a class="social-link" href="#network-opportunities" aria-label="Educator opportunities"><span class="social-initial">DU</span><span>Opportunities</span></a></nav></div>
           <div class="hero-art"><img src="https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=1200&q=85" alt="Students learning together in a classroom" fetchpriority="high"><div class="art-label"><span class="art-pulse"></span><span><strong>Closer to home</strong><small>One community. Many paths.</small></span></div><span class="art-note note-one">REB <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10"/></svg></span><span class="art-note note-two">CBC <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 1.9 5.8L20 11l-6.1 2.2L12 19l-1.9-5.8L4 11l6.1-2.2z"/></svg></span><span class="art-spark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 1.9 5.8L20 11l-6.1 2.2L12 19l-1.9-5.8L4 11l6.1-2.2z"/></svg></span></div>
         </div>
         <section class="template-section" id="templates" aria-labelledby="templateTitle">
@@ -44,14 +44,28 @@
         </section>
       </div>
     </section>
+    <section class="network-links" id="network-links" aria-label="Explore the ReRa community">
+      <article id="network-educators"><span class="network-number">01 / PEOPLE</span><h2>Educators</h2><p>Connect learners and families with local teachers matched by subject and level.</p><button class="network-action" data-auth="signup">Find an educator</button></article>
+      <article id="network-spaces"><span class="network-number">02 / TEACHING</span><h2>Teaching spaces</h2><p>Share your subjects, availability and teaching area with the ReRa network.</p><button class="network-action" data-auth="teacher">Create a profile</button></article>
+      <article id="network-competitions"><span class="network-number">03 / PREPARATION</span><h2>Competition prep</h2><p>Start from local study plans for exam practice, revision and academic goals.</p><a class="network-action" href="#templates">Browse study plans <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10"/></svg></a></article>
+      <article id="network-opportunities"><span class="network-number">04 / OPPORTUNITIES</span><h2>Educator opportunities</h2><p>Build a verified teaching profile and be considered for relevant learner matches.</p><button class="network-action" data-auth="teacher">Join the network</button></article>
+    </section>
     <section class="community-strip" id="community"><div><span class="dashboard-kicker">Four countries, many ways to thrive</span><strong>From primary foundations to university study, start with the learner's real context.</strong></div><div class="community-countries"><span>Rwanda <small>REB · Cambridge / IB</small></span><span>Kenya <small>CBC · 8-4-4</small></span><span>Uganda <small>UNEB</small></span><span>Tanzania <small>NECTA</small></span></div></section>
   </main>
   <footer class="welcome-footer"><a class="logo" href="/"><span class="logo-symbol">R</span><span>ReRa<span class="logo-dot">.</span></span></a><span>Learning, closer to home.</span><span>East Africa</span></footer>
 
   <dialog id="authDialog" class="auth-dialog">
-    <div class="dialog-heading"><div><span class="eyebrow" id="authEyebrow">Welcome to ReRa</span><h2 id="authTitle">Create your account</h2></div><button class="close-icon" data-close aria-label="Close dialog">×</button></div>
-    <div class="auth-tabs" id="authTabs"><button class="selected" data-auth-mode="signup">Create account</button><button data-auth-mode="login">Sign in</button></div>
-    <form id="authForm" class="auth-form">
+    <aside class="auth-rail" aria-label="Sign-in navigation">
+      <a class="auth-rail-mark" href="/" aria-label="ReRa home">R</a>
+      <a class="auth-rail-link" href="/#home" data-close aria-label="Home" title="Home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg></a>
+      <a class="auth-rail-link" href="/#templates" data-close aria-label="Learning templates" title="Learning templates"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v17H6.5A2.5 2.5 0 0 1 4 17.5z"/><path d="M4 16a2.5 2.5 0 0 1 2.5-2.5H20M8 7h7"/></svg></a>
+      <button class="auth-rail-link" type="button" data-auth-mode="signup" aria-label="Create account" title="Create account"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M3 20a6 6 0 0 1 12 0m4-8v6m-3-3h6"/></svg></button>
+      <button class="auth-rail-link auth-rail-bottom" type="button" data-auth-mode="login" aria-label="Sign in" title="Sign in"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 17l5-5-5-5m5 5H3"/><path d="M12 3h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6"/></svg></button>
+    </aside>
+    <div class="auth-content">
+      <div class="dialog-heading"><div><span class="eyebrow" id="authEyebrow">Welcome to ReRa</span><h2 id="authTitle">Create your account</h2></div><button class="close-icon" data-close aria-label="Close dialog">×</button></div>
+      <div class="auth-tabs" id="authTabs"><button class="selected" data-auth-mode="signup">Create account</button><button data-auth-mode="login">Sign in</button></div>
+      <form id="authForm" class="auth-form">
       <label class="form-field" id="nameField"><span>Your name</span><input id="name" name="name" autocomplete="name" minlength="2" maxlength="80" required></label>
       <label class="form-field"><span>Email address</span><input id="email" name="email" type="email" autocomplete="email" maxlength="254" required></label>
       <label class="form-field"><span>Password</span><input id="password" name="password" type="password" autocomplete="new-password" minlength="12" maxlength="256" required><small id="passwordHint">Use at least 12 characters.</small></label>
@@ -73,7 +87,8 @@
       </section>
       <button class="button auth-submit" id="authSubmit" type="submit">Create account</button>
       <p class="auth-switch" id="authSwitch">Already have an account? <button type="button" data-auth-mode="login">Sign in</button></p>
-    </form>
+      </form>
+    </div>
   </dialog>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <script src="/welcome.js?v=20261026-button-icons" defer></script>

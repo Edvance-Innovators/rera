@@ -324,3 +324,53 @@
   .auth-tabs { padding-right: 12px; padding-left: 12px; }
   .auth-form { padding-right: 12px; padding-left: 12px; }
 }
+
+.dashboard-social { align-items: flex-start; gap: 7px; flex-wrap: wrap; }
+.social-link { display: inline-flex; align-items: center; gap: 5px; min-height: 31px; padding: 2px 6px 2px 2px; border: 1px solid transparent; border-radius: 20px; color: #777087; font-size: 8px; text-decoration: none; transition: background .16s, border-color .16s, transform .16s; }
+.social-link:hover { transform: translateY(-1px); border-color: #ffffffbd; color: #48365f; background: #ffffff65; }
+.social-link:focus-visible { outline: 2px solid #7947c7; outline-offset: 2px; }
+.social-initial { display: grid; width: 27px; height: 27px; flex: 0 0 27px; place-items: center; border: 2px solid #f8f4fc; border-radius: 50%; color: #fff; background: #7562aa; font-size: 7px; font-weight: 700; }
+.social-link:nth-child(2) .social-initial { background: #df6099; }
+.social-link:nth-child(3) .social-initial { background: #48a995; }
+.social-link:nth-child(4) .social-initial { background: #e59b3c; }
+
+.network-links { display: grid; width: min(1240px, calc(100% - 64px)); grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 9px; margin: 0 auto 16px; }
+.network-links article { min-width: 0; padding: 15px; border: 1px solid #ffffffa8; border-radius: 7px; background: #ffffff63; box-shadow: 0 8px 22px #40315b0b; backdrop-filter: blur(14px) saturate(125%); scroll-margin-top: 20px; }
+.network-number { color: #8460b7; font-size: 7px; font-weight: 700; letter-spacing: .8px; }
+.network-links h2 { margin: 7px 0 5px; color: #342b46; font: 600 14px/1.2 "Space Grotesk", sans-serif; letter-spacing: 0; }
+.network-links p { min-height: 44px; margin: 0 0 9px; color: #817a8e; font-size: 9px; line-height: 1.5; }
+.network-action { display: inline-flex; align-items: center; gap: 6px; min-height: 26px; padding: 0; border: 0; color: #654192; background: transparent; font-size: 8px; font-weight: 700; text-decoration: none; }
+.network-action:hover { color: #d0448e; }
+.network-action .button-icon, .network-action>svg { width: 13px; height: 13px; flex: 0 0 13px; }
+
+.auth-dialog { display: grid; grid-template-columns: 42px minmax(0, 1fr); overflow: hidden; background: #fbfaffa8; }
+.auth-content { min-width: 0; max-height: min(90dvh, 780px); overflow-y: auto; overscroll-behavior: contain; scrollbar-color: #c9b8e4 transparent; scrollbar-width: thin; }
+.auth-rail { display: flex; min-height: 100%; flex-direction: column; align-items: center; gap: 9px; padding: 12px 5px; border-right: 1px solid #ffffff99; background: #ffffff38; backdrop-filter: blur(18px) saturate(135%); }
+.auth-rail-mark, .auth-rail-link { display: grid; width: 30px; height: 30px; flex: 0 0 30px; place-items: center; border: 0; border-radius: 9px; color: #766a8e; background: transparent; text-decoration: none; }
+.auth-rail-mark { margin-bottom: 5px; color: #fff; background: #382852; font: 700 14px "Space Grotesk", sans-serif; }
+.auth-rail-link svg { width: 16px; height: 16px; }
+.auth-rail-link:hover { color: #fff; background: #7947c7; }
+.auth-rail-link:focus-visible, .auth-rail-mark:focus-visible { outline: 2px solid #7947c7; outline-offset: 2px; }
+.auth-rail-bottom { margin-top: auto; }
+
+@media (max-width: 980px) {
+  .network-links { width: calc(100% - 34px); grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 650px) {
+  .auth-dialog { grid-template-columns: 35px minmax(0, 1fr); background: #fbfaff9e; }
+  .auth-content { max-height: 94dvh; }
+  .auth-rail { gap: 8px; padding: 10px 3px; }
+  .auth-rail-mark, .auth-rail-link { width: 27px; height: 27px; flex-basis: 27px; border-radius: 8px; }
+  .auth-rail-link svg { width: 15px; height: 15px; }
+  .network-links { width: calc(100% - 18px); grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+  .network-links article { padding: 11px; }
+  .network-links h2 { font-size: 12px; }
+  .network-links p { min-height: 52px; font-size: 8px; }
+}
+
+@media (max-width: 370px) {
+  .auth-dialog { grid-template-columns: 32px minmax(0, 1fr); }
+  .auth-rail { padding-right: 2px; padding-left: 2px; }
+  .auth-rail-mark, .auth-rail-link { width: 26px; height: 26px; flex-basis: 26px; }
+}
