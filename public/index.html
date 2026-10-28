@@ -10,8 +10,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/styles.css">
-  <link rel="stylesheet" href="/app-overrides.css?v=20261028-manager-match-flow">
-  <link rel="stylesheet" href="/welcome-dashboard.css?v=20261028-ai-study-partners">
+  <link rel="stylesheet" href="/app-overrides.css?v=20261028-join-today-readability">
+  <link rel="stylesheet" href="/welcome-dashboard.css?v=20261028-join-today-stats-readability">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer crossorigin=""></script>
 </head>
@@ -92,6 +92,32 @@
       </div>
       <p class="ai-partners-footnote">These are independent third-party services, not built-in ReRa integrations. Check age requirements, privacy settings and costs with a parent or educator, and never share sensitive personal information.</p>
     </section>
+    <section class="join-today" aria-labelledby="joinTodayTitle">
+      <span class="dashboard-kicker">Your learning journey starts here</span>
+      <h2 id="joinTodayTitle">Make your next step count.</h2>
+      <p>Find the right support for your goals, with trusted educators at the center.</p>
+      <button class="join-today-button" id="joinTodayButton" type="button" data-auth="signup">JOIN TODAY! <span aria-hidden="true">↗</span></button>
+    </section>
+    <section class="education-stats" aria-labelledby="educationStatsTitle">
+      <div class="education-stats-heading"><span class="dashboard-kicker">The bigger picture</span><h2 id="educationStatsTitle">Learning and work are changing worldwide</h2></div>
+      <div class="education-ticker" role="region" aria-label="Global education and workforce statistics">
+        <div class="education-ticker-track">
+          <div class="education-stat-group">
+            <a class="education-stat" href="https://uis.unesco.org/en/topic/education" target="_blank" rel="noopener noreferrer"><strong>~1.4 billion</strong><span>learners in primary and secondary education worldwide</span><small>UNESCO Institute for Statistics · global estimate</small></a>
+            <a class="education-stat" href="https://www.unesco.org/en/articles/250-million-children-out-school-what-you-need-know-about-unescos-latest-education-data" target="_blank" rel="noopener noreferrer"><strong>~250 million</strong><span>children and young people are out of school</span><small>UNESCO · 2023 data release</small></a>
+            <a class="education-stat" href="https://www.unesco.org/en/literacy/need-know" target="_blank" rel="noopener noreferrer"><strong>~754 million</strong><span>adults lack basic literacy skills</span><small>UNESCO · 2023 estimate</small></a>
+            <a class="education-stat" href="https://www.weforum.org/publications/the-future-of-jobs-report-2025/" target="_blank" rel="noopener noreferrer"><strong>170M created · 92M displaced</strong><span>jobs projected to be created and displaced by 2030</span><small>World Economic Forum · all major trends, not robots alone</small></a>
+          </div>
+          <div class="education-stat-group" aria-hidden="true">
+            <a class="education-stat" href="https://uis.unesco.org/en/topic/education" tabindex="-1"><strong>~1.4 billion</strong><span>learners in primary and secondary education worldwide</span><small>UNESCO Institute for Statistics · global estimate</small></a>
+            <a class="education-stat" href="https://www.unesco.org/en/articles/250-million-children-out-school-what-you-need-know-about-unescos-latest-education-data" tabindex="-1"><strong>~250 million</strong><span>children and young people are out of school</span><small>UNESCO · 2023 data release</small></a>
+            <a class="education-stat" href="https://www.unesco.org/en/literacy/need-know" tabindex="-1"><strong>~754 million</strong><span>adults lack basic literacy skills</span><small>UNESCO · 2023 estimate</small></a>
+            <a class="education-stat" href="https://www.weforum.org/publications/the-future-of-jobs-report-2025/" tabindex="-1"><strong>170M created · 92M displaced</strong><span>jobs projected to be created and displaced by 2030</span><small>World Economic Forum · all major trends, not robots alone</small></a>
+          </div>
+        </div>
+      </div>
+      <p class="education-stats-note">Figures are approximate and reflect the years shown or the linked source; select a statistic for details. Workforce projections include economic, demographic, technological and other trends, not automation alone.</p>
+    </section>
   </main>
   <footer class="welcome-footer"><a class="logo" href="/"><span class="logo-symbol">R</span><span>ReRa<span class="logo-dot">.</span></span></a><span>Learning, closer to home.</span><span>East Africa</span></footer>
 
@@ -146,6 +172,6 @@
   </dialog>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <script src="/regional-images.js?v=20261028-local-photos" defer></script>
-  <script src="/welcome.js?v=20261028-ai-study-partners" defer></script>
+  <script src="/welcome.js?v=20261028-join-today-stats-readability" defer></script>
 </body>
 </html>

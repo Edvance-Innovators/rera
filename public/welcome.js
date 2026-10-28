@@ -92,6 +92,20 @@ function renderHeroSlides() {
 
 function setWelcomeAccount(user) {
   const actions = document.getElementById("welcomeAuthActions");
+  const joinButton = document.getElementById("joinTodayButton");
+  if (joinButton) {
+    if (user) {
+      delete joinButton.dataset.auth;
+      joinButton.dataset.action = "join-dashboard";
+      joinButton.setAttribute("aria-label", "Open your ReRa dashboard");
+      setButtonLabel(joinButton, "OPEN MY DASHBOARD");
+    } else {
+      delete joinButton.dataset.action;
+      joinButton.dataset.auth = "signup";
+      joinButton.setAttribute("aria-label", "Join ReRa today");
+      setButtonLabel(joinButton, "JOIN TODAY!");
+    }
+  }
   if (!actions) return;
   if (!user) {
     actions.innerHTML = `<button class="text-action" data-auth="login">Sign in</button><button class="button button-small" data-auth="signup">Join ReRa</button>`;
@@ -364,6 +378,10 @@ function openAuth(mode) {
 }
 
 document.addEventListener("click", event => {
+  if (event.target.closest('[data-action="join-dashboard"]')) {
+    window.location.assign("/app.html");
+    return;
+  }
   const logoutButton = event.target.closest('[data-action="logout"]');
   if (logoutButton) {
     logoutWelcomeAccount(logoutButton);

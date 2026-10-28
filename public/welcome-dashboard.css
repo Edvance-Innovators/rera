@@ -346,6 +346,94 @@
   .region-tab { transition: none; }
 }
 
+.welcome-nav .nav-status { font-size: 11px; }
+.welcome-nav .regional-note { font-size: 13px; }
+.welcome-nav .text-action { font-size: 14px; }
+.welcome-nav .button { font-size: 13px; }
+.dashboard-kicker { font-size: 11px; }
+.dashboard-topline p { font-size: 16px; }
+.dashboard-main .button { font-size: 14px; }
+.dashboard-social { font-size: 11px; }
+.social-link { font-size: 10px; }
+.art-label small { font-size: 10px; }
+.educator-preview-kicker,.template-index,.template-level,.template-focus,.template-ai-note span,.template-card-foot>span { font-size: 10px; }
+.educator-preview-title { font-size: 14px; }
+.educator-preview-caption { font-size: 10px; }
+.preview-person-copy strong { font-size: 11px; }
+.preview-person-copy small,.preview-view { font-size: 9px; }
+.template-heading h2,.ai-partners-heading h2 { font-size: 28px; }
+.template-heading p,.ai-partners-heading p { font-size: 14px; }
+.template-total { font-size: 12px; }
+.template-total b { font-size: 19px; }
+.region-tab { font-size: 12px; }
+.region-code { font-size: 9px; }
+.template-card h3 { font-size: 16px; }
+.template-card { min-height: 270px; }
+.template-card-copy p { font-size: 12px; }
+.template-ai-note a,.template-start { font-size: 11px; }
+.community-strip strong { font-size: 16px; }
+.community-countries span { font-size: 12px; }
+.community-countries small { font-size: 10px; }
+.network-number,.ai-partner-type { font-size: 9px; }
+.network-links h2,.ai-partner-card h3 { font-size: 17px; }
+.network-links p,.ai-partner-card p { font-size: 12px; }
+.network-action,.ai-partner-card a,.ai-coming-label { font-size: 11px; }
+.ai-partners-note,.ai-partners-footnote { font-size: 11px; }
+.welcome-footer { font-size: 12px; }
+.auth-dialog .auth-tabs button,.auth-dialog .form-field,.auth-dialog .role-field legend,.auth-dialog .role-options span,.auth-dialog .auth-switch,.auth-dialog .auth-switch button { font-size: 13px; }
+.auth-dialog .form-field input,.auth-dialog .form-field select,.auth-dialog .form-field textarea { font-size: 15px; }
+.auth-dialog .form-field small,.auth-dialog .privacy-copy,.auth-dialog .form-error { font-size: 12px; }
+.auth-dialog .auth-submit { font-size: 14px; }
+.nearby-controls,.nearby-privacy { font-size: 12px; }
+
+.join-today { display: grid; justify-items: center; gap: 9px; width: min(1240px, calc(100% - 64px)); margin: 0 auto 22px; padding: clamp(24px, 5vw, 52px) 20px; border: 1px solid #ffffffc2; border-radius: 12px; background: linear-gradient(125deg,#ffffffc9,#f2eafbdb 58%,#e9f4f0d9); box-shadow: 0 16px 38px #40315b12; text-align: center; }
+.join-today h2 { margin: 0; color: #302743; font: 700 clamp(26px,4vw,40px)/1.15 "Space Grotesk",sans-serif; }
+.join-today p { max-width: 580px; margin: 0; color: #716a80; font-size: 16px; line-height: 1.55; }
+.join-today-button { display: inline-flex; min-height: 76px; align-items: center; justify-content: center; gap: 13px; margin-top: 9px; padding: 0 clamp(28px,6vw,64px); border: 0; border-radius: 999px; color: #fff; background: linear-gradient(110deg,#382852,#7947c7 70%,#9a54c3); box-shadow: 0 12px 26px #49326b38; font: 800 clamp(25px,4vw,36px)/1 "Space Grotesk",sans-serif; letter-spacing: .04em; transition: transform .18s,box-shadow .18s; }
+.join-today-button:hover { transform: translateY(-2px); box-shadow: 0 16px 32px #49326b48; }
+.join-today-button:focus-visible { outline: 3px solid #30234d; outline-offset: 4px; }
+.join-today-button span { font-size: .9em; }
+.education-stats { width: 100%; margin: 0 auto 25px; padding: 22px 0 14px; overflow: hidden; border-top: 1px solid #dcd3e8; border-bottom: 1px solid #dcd3e8; background: #ffffff70; }
+.education-stats-heading { width: min(1240px,calc(100% - 64px)); margin: 0 auto 12px; }
+.education-stats-heading h2 { margin: 5px 0 0; color: #302743; font: 700 clamp(19px,2.4vw,26px)/1.2 "Space Grotesk",sans-serif; }
+.education-ticker { overflow: hidden; }
+.education-ticker-track { display: flex; width: max-content; animation: education-ticker-left 58s linear infinite; }
+.education-stat-group { display: flex; flex: 0 0 auto; gap: 12px; padding-right: 12px; }
+.education-stat { display: grid; width: clamp(250px,25vw,330px); min-height: 116px; align-content: center; gap: 4px; padding: 14px 17px; border: 1px solid #e8e0f1; border-radius: 9px; color: inherit; background: #fff; text-decoration: none; }
+.education-stat:hover { border-color: #bca8d8; background: #fbf8ff; }
+.education-stat strong { color: #654192; font: 700 clamp(19px,2.1vw,25px)/1.15 "Space Grotesk",sans-serif; }
+.education-stat span { color: #50475f; font-size: 13px; line-height: 1.35; }
+.education-stat small { color: #817990; font-size: 10px; line-height: 1.35; }
+.education-stats-note { width: min(1240px,calc(100% - 64px)); margin: 11px auto 0; color: #817990; font-size: 11px; line-height: 1.5; }
+.education-ticker:hover .education-ticker-track,.education-ticker:focus-within .education-ticker-track { animation-play-state: paused; }
+@keyframes education-ticker-left { to { transform: translateX(-50%); } }
+@media (max-width: 650px) {
+  .dashboard-kicker { font-size: 10px; }
+  .dashboard-topline p { font-size: 14px; }
+  .dashboard-main .button { font-size: 12px; }
+  .template-heading h2,.ai-partners-heading h2 { font-size: 23px; }
+  .template-heading p,.ai-partners-heading p { font-size: 12px; }
+  .template-card h3 { font-size: 14px; }
+  .template-card { min-height: 250px; }
+  .template-card-copy p,.network-links p,.ai-partner-card p { font-size: 11px; }
+  .template-ai-note span,.template-card-foot>span { font-size: 9px; }
+  .template-ai-note a,.template-start,.network-action,.ai-partner-card a,.ai-coming-label { font-size: 10px; }
+  .join-today { width: calc(100% - 18px); padding: 26px 14px; }
+  .join-today p { font-size: 14px; }
+  .join-today-button { min-height: 66px; font-size: 27px; }
+  .education-stats-heading,.education-stats-note { width: calc(100% - 28px); }
+  .education-stat { width: min(78vw,300px); }
+  .education-stat span { font-size: 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .join-today-button { transition: none; }
+  .education-ticker { overflow-x: auto; }
+  .education-ticker-track { animation: none; }
+}
+@media (max-width: 370px) {
+  .template-card { min-height: 270px; }
+}
+
 .auth-dialog {
   width: min(475px, calc(100vw - 28px));
   max-height: min(90dvh, 780px);

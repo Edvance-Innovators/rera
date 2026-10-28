@@ -15,7 +15,7 @@ ReRa is custom-built to support the unique, diverse educational systems of **Eas
 
 The welcome page cycles through learning environments tagged with their country and curriculum. Signed-in users can open **Closer to home** to view approximate locations of verified, available educators within a selected radius; the search defaults to 10 km and requires browser location access.
 
-The welcome page also suggests an AI study partner for each regional learning template and links to examples including RemNote AI, Khanmigo, NotebookLM, ChatGPT Study Mode and Quizlet. These are independent third-party tools, not built-in ReRa integrations; learners should use them as extra practice alongside a human educator and review age, privacy and cost requirements with a parent or educator. ReRa's own guided AI tutor is marked as coming soon.
+The welcome page also suggests an AI study partner for each regional learning template and links to examples including RemNote AI, Khanmigo, NotebookLM, ChatGPT Study Mode and Quizlet. These are independent third-party tools, not built-in ReRa integrations; learners should use them as extra practice alongside a human educator and review age, privacy and cost requirements with a parent or educator. ReRa's own guided AI tutor is marked as coming soon. The **JOIN TODAY!** call to action opens signup (or the dashboard for signed-in users), followed by an animated, source-linked ribbon of global education and workforce statistics. The ribbon pauses on hover/focus and respects reduced-motion preferences.
 
 ---
 
