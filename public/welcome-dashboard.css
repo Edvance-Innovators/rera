@@ -407,6 +407,21 @@
 .education-stats-note { width: min(1240px,calc(100% - 64px)); margin: 11px auto 0; color: #817990; font-size: 11px; line-height: 1.5; }
 .education-ticker:hover .education-ticker-track,.education-ticker:focus-within .education-ticker-track { animation-play-state: paused; }
 @keyframes education-ticker-left { to { transform: translateX(-50%); } }
+.education-partners { display: flex; width: min(1240px,calc(100% - 64px)); flex-wrap: wrap; align-items: center; justify-content: center; gap: 12px 26px; margin: 0 auto 28px; padding: 18px 12px; }
+.education-partner-logo { display: inline-flex; min-height: 40px; align-items: center; justify-content: center; color: #6f6a7c; font: 700 14px/1 "Space Grotesk",sans-serif; letter-spacing: -.3px; text-decoration: none; filter: saturate(.72); transition: color .15s,filter .15s,transform .15s; }
+.education-partner-logo:hover { color: #30234d; filter: saturate(1); transform: translateY(-1px); }
+.education-partner-logo:focus-visible { outline: 2px solid #7947c7; outline-offset: 4px; border-radius: 3px; }
+.reb-logo { color: #356b52; letter-spacing: 1px; }
+.unesco-logo { color: #37648c; letter-spacing: 1px; }
+.kicd-logo,.ncdc-logo,.uneb-logo,.tie-logo,.necta-logo { color: #79642c; }
+.cambridge-logo { color: #a53d52; font-family: Georgia,serif; font-weight: 600; }
+.remnote-logo { color: #6450a4; }
+.khan-logo { color: #26827d; }
+.google-logo { color: #5272ab; }
+.openai-logo { color: #415f5a; }
+.quizlet-logo { color: #4262ae; }
+dialog.auth-dialog:not([open]) { display: none; }
+dialog.auth-dialog[open] { display: grid; }
 @media (max-width: 650px) {
   .dashboard-kicker { font-size: 10px; }
   .dashboard-topline p { font-size: 14px; }
@@ -424,6 +439,8 @@
   .education-stats-heading,.education-stats-note { width: calc(100% - 28px); }
   .education-stat { width: min(78vw,300px); }
   .education-stat span { font-size: 12px; }
+  .education-partners { width: calc(100% - 24px); gap: 9px 18px; padding: 14px 6px; }
+  .education-partner-logo { min-height: 34px; font-size: 12px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .join-today-button { transition: none; }
