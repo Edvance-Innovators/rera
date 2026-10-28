@@ -211,7 +211,7 @@ class ReRaHandler(BaseHTTPRequestHandler):
         self.send_header("Referrer-Policy", "strict-origin-when-cross-origin")
         self.send_header("X-Frame-Options", "DENY")
         self.send_header("Permissions-Policy", "geolocation=(self), camera=(), microphone=()")
-        self.send_header("Content-Security-Policy", "default-src 'self'; script-src 'self' https://unpkg.com; style-src 'self' https://unpkg.com https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.tile.openstreetmap.org https://unpkg.com https://images.unsplash.com; connect-src 'self' https://unpkg.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'")
+        self.send_header("Content-Security-Policy", "default-src 'self'; script-src 'self' https://unpkg.com; style-src 'self' https://unpkg.com https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.tile.openstreetmap.org https://unpkg.com https://images.unsplash.com https://upload.wikimedia.org https://thumb.wikimedia.org; connect-src 'self' https://unpkg.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'")
         super().end_headers()
 
     def respond(self, status: int, data, headers: dict[str, str] | None = None) -> None:
@@ -312,6 +312,7 @@ class ReRaHandler(BaseHTTPRequestHandler):
               "/welcome": ("index.html", "text/html; charset=utf-8"),
                   "/app": ("app.html", "text/html; charset=utf-8"), "/app.html": ("app.html", "text/html; charset=utf-8"),
                   "/app.js": ("app.js", "text/javascript; charset=utf-8"), "/welcome.js": ("welcome.js", "text/javascript; charset=utf-8"),
+                  "/regional-images.js": ("regional-images.js", "text/javascript; charset=utf-8"),
                   "/welcome-dashboard.css": ("welcome-dashboard.css", "text/css; charset=utf-8"),
                   "/styles.css": ("styles.css", "text/css; charset=utf-8"),
               "/app-overrides.css": ("app-overrides.css", "text/css; charset=utf-8"), "/favicon.ico": (None, "image/x-icon")}

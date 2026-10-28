@@ -66,6 +66,31 @@ function showHeroSlide(index) {
   });
 }
 
+function renderHeroSlides() {
+  const environments = window.reraLearningEnvironments;
+  if (!Array.isArray(environments) || !environments.length) {
+    throw new Error("Regional learning photos could not be loaded.");
+  }
+  document.getElementById("heroSlides").innerHTML = environments.map((environment, index) => `
+    <article class="hero-slide ${index === 0 ? "active" : ""}" aria-label="${index + 1} of ${environments.length}" aria-roledescription="slide" ${index === 0 ? "" : 'aria-hidden="true"'}>
+      <img src="${escapeHtml(environment.image)}" alt="${escapeHtml(environment.alt)}" ${index === 0 ? 'fetchpriority="high"' : 'loading="lazy"'}>
+      <span class="art-curriculum-tag"><strong>${escapeHtml(environment.curriculum)}</strong><small>${escapeHtml(environment.country)}</small></span>
+      <span class="art-photo-credit">Photo: <a href="${escapeHtml(environment.sourceUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(environment.attribution)}</a> · <a href="${escapeHtml(environment.licenseUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(environment.license)}</a></span>
+    </article>`).join("");
+  document.getElementById("heroCarouselDots").innerHTML = environments.map((environment, index) =>
+    `<button class="${index === 0 ? "selected" : ""}" type="button" data-carousel-slide="${index}" aria-label="Show ${escapeHtml(environment.curriculum)} in ${escapeHtml(environment.country)}" aria-pressed="${index === 0}"></button>`
+  ).join("");
+}
+
+function setEducatorPreview(wrapper, open) {
+  const trigger = wrapper.querySelector("[aria-controls]");
+  const panel = wrapper.querySelector(".educator-preview-card");
+  if (!trigger || !panel) return;
+  wrapper.dataset.previewOpen = String(open);
+  trigger.setAttribute("aria-expanded", String(open));
+  panel.hidden = !open;
+}
+
 function startHeroSlideTimer() {
   clearInterval(heroSlideTimer);
   if (!heroSlidePaused && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
@@ -324,6 +349,29 @@ document.addEventListener("click", event => {
   if (closeButton) closeButton.closest("dialog")?.close();
 });
 
+document.addEventListener("pointerover", event => {
+  if (event.pointerType === "touch") return;
+  const wrapper = event.target.closest("[data-educator-preview]");
+  if (wrapper && !wrapper.contains(event.relatedTarget)) setEducatorPreview(wrapper, true);
+});
+document.addEventListener("pointerout", event => {
+  const wrapper = event.target.closest("[data-educator-preview]");
+  if (wrapper && !wrapper.contains(event.relatedTarget)) setEducatorPreview(wrapper, false);
+});
+document.addEventListener("focusin", event => {
+  const wrapper = event.target.closest("[data-educator-preview]");
+  if (wrapper) setEducatorPreview(wrapper, true);
+});
+document.addEventListener("focusout", event => {
+  const wrapper = event.target.closest("[data-educator-preview]");
+  if (wrapper && !wrapper.contains(event.relatedTarget)) setEducatorPreview(wrapper, false);
+});
+document.addEventListener("keydown", event => {
+  if (event.key !== "Escape") return;
+  const wrapper = document.querySelector('[data-educator-preview][data-preview-open="true"]');
+  if (wrapper) setEducatorPreview(wrapper, false);
+});
+
 document.querySelectorAll("input[name=role]").forEach(input => input.addEventListener("change", () => {
   const isTeacher = input.value === "teacher";
   document.getElementById("subjectField").hidden = !isTeacher;
@@ -368,6 +416,7 @@ syncCurricula();
 renderLearningTemplates("Rwanda");
 setAuthMode("signup");
 decorateWelcomeButtons(document);
+renderHeroSlides();
 showHeroSlide(0);
 startHeroSlideTimer();
 

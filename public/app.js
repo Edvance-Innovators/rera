@@ -35,13 +35,7 @@ let dashboardSlideIndex = 0;
 let dashboardSlideTimer;
 let dashboardSlidePaused = false;
 
-const learningEnvironments = [
-  { country: "Kenya", curriculum: "CBC", image: "photo-1509062522246-3755977927d7", alt: "Learners working together in a classroom" },
-  { country: "Rwanda", curriculum: "REB", image: "photo-1503676260728-1c00da094a0b", alt: "Students learning in a bright school classroom" },
-  { country: "Rwanda", curriculum: "Cambridge / IB", image: "photo-1427504494785-3a9ca7044f45", alt: "A teacher guiding a group discussion" },
-  { country: "Uganda", curriculum: "UNEB", image: "photo-1503454537195-1dcabb73ffb9", alt: "A learner studying outdoors with a book" },
-  { country: "Tanzania", curriculum: "NECTA", image: "photo-1544717305-2782549b5136", alt: "A student reading in a library" }
-];
+const learningEnvironments = window.reraLearningEnvironments;
 
 function escapeHtml(value) {
   return String(value ?? "").replace(/[&<>"']/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" })[character]);
@@ -192,6 +186,9 @@ function renderShell() {
 }
 
 function renderRegionalCarousel() {
+  if (!Array.isArray(learningEnvironments) || !learningEnvironments.length) {
+    throw new Error("Regional learning photos could not be loaded.");
+  }
   dashboardSlideIndex = 0;
   const preferredIndex = learningEnvironments.findIndex(environment =>
     environment.country === currentUser.country && environment.curriculum === currentUser.curriculum
@@ -207,9 +204,9 @@ function renderRegionalCarousel() {
         ? "Connecting families and educators across the region."
         : "Learning plans shaped around your family's curriculum.";
   return `<section class="portal-hero" aria-label="Learning environments across East Africa">
-    <div class="portal-hero-copy"><span class="portal-hero-kicker">Closer to home · ${escapeHtml(currentUser.country)}</span><h1>Learning, closer to home.</h1><p>${copy}</p><button class="button portal-nearby-button" data-action="nearby-map">Find educators nearby ${iconSvg("arrow").outerHTML}</button></div>
+    <div class="portal-hero-copy"><span class="portal-hero-kicker">Closer to home · ${escapeHtml(currentUser.country)}</span><h1>Learning, closer to home.</h1><p>${copy}</p><div class="educator-preview" data-educator-preview><button class="button portal-nearby-button" data-action="nearby-map" aria-expanded="false" aria-controls="portalEducatorPreview" aria-describedby="portalEducatorPreview">Find educators nearby ${iconSvg("arrow").outerHTML}</button><div class="educator-preview-card portal-educator-preview-card" id="portalEducatorPreview" role="tooltip" hidden><span class="educator-preview-kicker">HOW IT WORKS · SAMPLE MATCHES</span><strong class="educator-preview-title">Find a nearby educator</strong><div class="educator-preview-map" aria-hidden="true"><span class="preview-radius">10 km radius</span><span class="preview-map-pin pin-one">AM</span><span class="preview-map-pin pin-two">WN</span><span class="preview-map-pin pin-three">JM</span></div><div class="educator-preview-list"><div class="educator-preview-person selected"><span class="preview-avatar avatar-one">AM</span><span class="preview-person-copy"><strong>Amina Mukamana</strong><small>Kigali · Mathematics · 2.4 km</small></span><span class="preview-view">View</span></div><div class="educator-preview-person"><span class="preview-avatar avatar-two">WN</span><span class="preview-person-copy"><strong>Wanjiku Njeri</strong><small>Nairobi · English · 4.1 km</small></span><span class="preview-view">View</span></div><span class="preview-cursor"><svg viewBox="0 0 24 28" aria-hidden="true"><path d="M3 2v19l5-5 4 9 4-2-4-8h8L3 2z" fill="#30234d" stroke="#fff" stroke-width="1.5"/></svg></span></div><span class="educator-preview-caption">Choose a search radius (10 km by default), then select an educator to view their profile.</span></div></div></div>
     <div class="portal-carousel" role="region" aria-label="Regional learning environments" aria-roledescription="carousel">
-      ${environments.map((environment, index) => `<article class="portal-slide ${index === 0 ? "active" : ""}" data-dashboard-slide aria-label="${index + 1} of ${environments.length}" aria-roledescription="slide" ${index === 0 ? "" : "aria-hidden=\"true\""}><img src="https://images.unsplash.com/${environment.image}?auto=format&fit=crop&w=1000&q=80" alt="${escapeHtml(environment.alt)}" ${index === 0 ? 'fetchpriority="high"' : 'loading="lazy"'}><span class="portal-curriculum-tag"><strong>${escapeHtml(environment.curriculum)}</strong><small>${escapeHtml(environment.country)}</small></span></article>`).join("")}
+      ${environments.map((environment, index) => `<article class="portal-slide ${index === 0 ? "active" : ""}" data-dashboard-slide aria-label="${index + 1} of ${environments.length}" aria-roledescription="slide" ${index === 0 ? "" : "aria-hidden=\"true\""}><img src="${escapeHtml(environment.image)}" alt="${escapeHtml(environment.alt)}" ${index === 0 ? 'fetchpriority="high"' : 'loading="lazy"'}><span class="portal-curriculum-tag"><strong>${escapeHtml(environment.curriculum)}</strong><small>${escapeHtml(environment.country)}</small></span><span class="portal-photo-credit">Photo: <a href="${escapeHtml(environment.sourceUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(environment.attribution)}</a> · <a href="${escapeHtml(environment.licenseUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(environment.license)}</a></span></article>`).join("")}
       <button class="portal-carousel-arrow previous" type="button" data-dashboard-step="-1" aria-label="Previous learning environment">‹</button>
       <button class="portal-carousel-arrow next" type="button" data-dashboard-step="1" aria-label="Next learning environment">›</button>
       <button class="portal-carousel-toggle" type="button" data-dashboard-toggle aria-label="${dashboardSlidePaused ? "Resume" : "Pause"} slideshow" aria-pressed="${dashboardSlidePaused}">${dashboardSlidePaused ? "▶" : "Ⅱ"}</button>
@@ -239,6 +236,15 @@ function startDashboardCarousel() {
   if (!dashboardSlidePaused && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
     dashboardSlideTimer = setInterval(() => showDashboardSlide(dashboardSlideIndex + 1), 5500);
   }
+}
+
+function setEducatorPreview(wrapper, open) {
+  const trigger = wrapper.querySelector("[aria-controls]");
+  const panel = wrapper.querySelector(".educator-preview-card");
+  if (!trigger || !panel) return;
+  wrapper.dataset.previewOpen = String(open);
+  trigger.setAttribute("aria-expanded", String(open));
+  panel.hidden = !open;
 }
 
 function navIcon(index) {
@@ -688,6 +694,28 @@ function fileToBase64(file) {
 }
 
 function bindGlobalEvents() {
+  document.addEventListener("pointerover", event => {
+    if (event.pointerType === "touch") return;
+    const wrapper = event.target.closest("[data-educator-preview]");
+    if (wrapper && !wrapper.contains(event.relatedTarget)) setEducatorPreview(wrapper, true);
+  });
+  document.addEventListener("pointerout", event => {
+    const wrapper = event.target.closest("[data-educator-preview]");
+    if (wrapper && !wrapper.contains(event.relatedTarget)) setEducatorPreview(wrapper, false);
+  });
+  document.addEventListener("focusin", event => {
+    const wrapper = event.target.closest("[data-educator-preview]");
+    if (wrapper) setEducatorPreview(wrapper, true);
+  });
+  document.addEventListener("focusout", event => {
+    const wrapper = event.target.closest("[data-educator-preview]");
+    if (wrapper && !wrapper.contains(event.relatedTarget)) setEducatorPreview(wrapper, false);
+  });
+  document.addEventListener("keydown", event => {
+    if (event.key !== "Escape") return;
+    const wrapper = document.querySelector('[data-educator-preview][data-preview-open="true"]');
+    if (wrapper) setEducatorPreview(wrapper, false);
+  });
   document.addEventListener("click", event => {
     const dashboardToggle = event.target.closest("[data-dashboard-toggle]");
     if (dashboardToggle) {
