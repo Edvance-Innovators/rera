@@ -31,6 +31,17 @@ let selectedRequestId = null;
 let mapInstance = null;
 let toastTimeout;
 let learnerView = false;
+let dashboardSlideIndex = 0;
+let dashboardSlideTimer;
+let dashboardSlidePaused = false;
+
+const learningEnvironments = [
+  { country: "Kenya", curriculum: "CBC", image: "photo-1509062522246-3755977927d7", alt: "Learners working together in a classroom" },
+  { country: "Rwanda", curriculum: "REB", image: "photo-1503676260728-1c00da094a0b", alt: "Students learning in a bright school classroom" },
+  { country: "Rwanda", curriculum: "Cambridge / IB", image: "photo-1427504494785-3a9ca7044f45", alt: "A teacher guiding a group discussion" },
+  { country: "Uganda", curriculum: "UNEB", image: "photo-1503454537195-1dcabb73ffb9", alt: "A learner studying outdoors with a book" },
+  { country: "Tanzania", curriculum: "NECTA", image: "photo-1544717305-2782549b5136", alt: "A student reading in a library" }
+];
 
 function escapeHtml(value) {
   return String(value ?? "").replace(/[&<>"']/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" })[character]);
@@ -92,7 +103,7 @@ function buttonIconName(button) {
 }
 
 function decorateButtons(root) {
-  root.querySelectorAll("button:not(.close-icon):not(.icon-btn):not([data-icon-decorated])").forEach(button => {
+  root.querySelectorAll("button:not(.close-icon):not(.icon-btn):not([data-icon-decorated]):not([data-dashboard-step]):not([data-dashboard-select]):not([data-dashboard-toggle])").forEach(button => {
     if (button.querySelector("svg")) {
       button.dataset.iconDecorated = "true";
       return;
@@ -172,11 +183,62 @@ function renderShell() {
   if (!activeSection || !sectionsForUser().includes(activeSection)) activeSection = sectionsForUser()[0];
   const initials = currentUser.name.split(/\s+/).map(part => part[0]).join("").slice(0, 2).toUpperCase();
   app.innerHTML = `<aside class="sidebar"><a class="logo" href="/"><span class="logo-symbol">R</span><span>ReRa<span class="logo-dot">.</span></span></a><p class="side-label">${escapeHtml(currentUser.role)} space</p><nav class="side-nav" aria-label="Main navigation">${sectionsForUser().map((section, index) => `<button class="${section === activeSection ? "active" : ""}" data-section="${escapeHtml(section)}" aria-current="${section === activeSection ? "page" : "false"}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">${navIcon(index)}</svg>${escapeHtml(section)}</button>`).join("")}</nav><div class="sidebar-foot"><div class="region-card"><span>REGIONAL NETWORK</span><strong>${escapeHtml(currentUser.country)} · ${escapeHtml(currentUser.curriculum)}</strong><div class="region-flags"><span>RW</span><span>KE</span><span>UG</span><span>TZ</span></div></div><div class="profile"><div class="avatar">${escapeHtml(initials)}</div><div><strong>${escapeHtml(currentUser.name)}</strong><span>${escapeHtml(currentUser.role)} account</span></div></div></div></aside>
-    <main class="app-main"><header class="topbar"><div class="crumb">ReRa <span aria-hidden="true">/</span> <strong>${escapeHtml(activeSection)}</strong></div><div class="top-actions">${currentUser.role === "parent" ? `<nav class="portal-switch" aria-label="Family or learner view"><button class="${learnerView ? "" : "active"}" data-action="parent-view">Family</button><button class="${learnerView ? "active" : ""}" data-action="learner-view">Learner</button></nav>` : `<span class="tag">${escapeHtml(currentUser.role)} portal</span>`}<button class="icon-btn" data-action="logout" aria-label="Sign out" title="Sign out"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 17l5-5-5-5m5 5H3"/><path d="M12 3h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6"/></svg></button></div></header><div class="app-content" id="pageContent">${renderSection()}</div></main>`;
+    <main class="app-main"><header class="topbar"><div class="crumb">ReRa <span aria-hidden="true">/</span> <strong>${escapeHtml(activeSection)}</strong></div><div class="top-actions">${currentUser.role === "parent" ? `<nav class="portal-switch" aria-label="Family or learner view"><button class="${learnerView ? "" : "active"}" data-action="parent-view">Family</button><button class="${learnerView ? "active" : ""}" data-action="learner-view">Learner</button></nav>` : `<span class="tag">${escapeHtml(currentUser.role)} portal</span>`}<button class="icon-btn" data-action="logout" aria-label="Sign out" title="Sign out"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 17l5-5-5-5m5 5H3"/><path d="M12 3h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6"/></svg></button></div></header><div class="app-content" id="pageContent">${renderRegionalCarousel()}${renderSection()}</div></main>`;
   decorateButtons(app);
   bindDynamicForms();
   bindResourceFilters();
+  startDashboardCarousel();
   if (currentUser.role === "manager" && ["Overview", "Learning requests"].includes(activeSection)) setTimeout(initManagerMap, 40);
+}
+
+function renderRegionalCarousel() {
+  dashboardSlideIndex = 0;
+  const preferredIndex = learningEnvironments.findIndex(environment =>
+    environment.country === currentUser.country && environment.curriculum === currentUser.curriculum
+  );
+  const environments = preferredIndex > 0
+    ? [...learningEnvironments.slice(preferredIndex), ...learningEnvironments.slice(0, preferredIndex)]
+    : learningEnvironments;
+  const copy = learnerView
+    ? "Learning plans shaped around your curriculum."
+    : currentUser.role === "teacher"
+      ? "Teaching opportunities rooted in local classrooms."
+      : currentUser.role === "manager"
+        ? "Connecting families and educators across the region."
+        : "Learning plans shaped around your family's curriculum.";
+  return `<section class="portal-hero" aria-label="Learning environments across East Africa">
+    <div class="portal-hero-copy"><span class="portal-hero-kicker">Closer to home · ${escapeHtml(currentUser.country)}</span><h1>Learning, closer to home.</h1><p>${copy}</p><button class="button portal-nearby-button" data-action="nearby-map">Find educators nearby ${iconSvg("arrow").outerHTML}</button></div>
+    <div class="portal-carousel" role="region" aria-label="Regional learning environments" aria-roledescription="carousel">
+      ${environments.map((environment, index) => `<article class="portal-slide ${index === 0 ? "active" : ""}" data-dashboard-slide aria-label="${index + 1} of ${environments.length}" aria-roledescription="slide" ${index === 0 ? "" : "aria-hidden=\"true\""}><img src="https://images.unsplash.com/${environment.image}?auto=format&fit=crop&w=1000&q=80" alt="${escapeHtml(environment.alt)}" ${index === 0 ? 'fetchpriority="high"' : 'loading="lazy"'}><span class="portal-curriculum-tag"><strong>${escapeHtml(environment.curriculum)}</strong><small>${escapeHtml(environment.country)}</small></span></article>`).join("")}
+      <button class="portal-carousel-arrow previous" type="button" data-dashboard-step="-1" aria-label="Previous learning environment">‹</button>
+      <button class="portal-carousel-arrow next" type="button" data-dashboard-step="1" aria-label="Next learning environment">›</button>
+      <button class="portal-carousel-toggle" type="button" data-dashboard-toggle aria-label="${dashboardSlidePaused ? "Resume" : "Pause"} slideshow" aria-pressed="${dashboardSlidePaused}">${dashboardSlidePaused ? "▶" : "Ⅱ"}</button>
+      <div class="portal-carousel-dots" role="group" aria-label="Choose a learning environment">${environments.map((environment, index) => `<button class="${index === 0 ? "selected" : ""}" type="button" data-dashboard-select="${index}" aria-label="Show ${escapeHtml(environment.curriculum)} in ${escapeHtml(environment.country)}" aria-pressed="${index === 0}"></button>`).join("")}</div>
+    </div>
+  </section>`;
+}
+
+function showDashboardSlide(index) {
+  const slides = [...document.querySelectorAll("[data-dashboard-slide]")];
+  if (!slides.length) return;
+  dashboardSlideIndex = (index + slides.length) % slides.length;
+  slides.forEach((slide, slideIndex) => {
+    const active = slideIndex === dashboardSlideIndex;
+    slide.classList.toggle("active", active);
+    slide.setAttribute("aria-hidden", String(!active));
+  });
+  document.querySelectorAll("[data-dashboard-select]").forEach((button, slideIndex) => {
+    const active = slideIndex === dashboardSlideIndex;
+    button.classList.toggle("selected", active);
+    button.setAttribute("aria-pressed", String(active));
+  });
+}
+
+function startDashboardCarousel() {
+  clearInterval(dashboardSlideTimer);
+  if (!dashboardSlidePaused && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    dashboardSlideTimer = setInterval(() => showDashboardSlide(dashboardSlideIndex + 1), 5500);
+  }
 }
 
 function navIcon(index) {
@@ -530,6 +592,8 @@ async function handleAction(action) {
       await refreshData();
       render();
       showToast("Thank you for sharing feedback.");
+    } else if (name === "nearby-map") {
+      window.location.assign("/?nearby=1");
     }
   } catch (error) { showToast(error.message); }
 }
@@ -625,6 +689,24 @@ function fileToBase64(file) {
 
 function bindGlobalEvents() {
   document.addEventListener("click", event => {
+    const dashboardToggle = event.target.closest("[data-dashboard-toggle]");
+    if (dashboardToggle) {
+      dashboardSlidePaused = !dashboardSlidePaused;
+      dashboardToggle.textContent = dashboardSlidePaused ? "▶" : "Ⅱ";
+      dashboardToggle.setAttribute("aria-label", dashboardSlidePaused ? "Resume slideshow" : "Pause slideshow");
+      dashboardToggle.setAttribute("aria-pressed", String(dashboardSlidePaused));
+      startDashboardCarousel();
+    }
+    const dashboardStep = event.target.closest("[data-dashboard-step]");
+    if (dashboardStep) {
+      showDashboardSlide(dashboardSlideIndex + Number(dashboardStep.dataset.dashboardStep));
+      startDashboardCarousel();
+    }
+    const dashboardSelect = event.target.closest("[data-dashboard-select]");
+    if (dashboardSelect) {
+      showDashboardSlide(Number(dashboardSelect.dataset.dashboardSelect));
+      startDashboardCarousel();
+    }
     const close = event.target.closest("[data-close]");
     if (close) $(close.dataset.close).close();
     const nav = event.target.closest(".side-nav [data-section]");
