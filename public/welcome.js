@@ -30,6 +30,12 @@ const learningTemplates = {
     { title: "University coursework map", curriculum: "NECTA", level: "University", focus: "Term study plan", detail: "Bring lectures, research, coursework and assessment dates into one plan." }
   ]
 };
+const learningTemplateIcons = [
+  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18m-13 4h3m-3 3h7"/></svg>`,
+  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 7v14m0-14C10.5 5.7 8.5 5 6 5H3v14h4c2.1 0 3.8.6 5 2m0-14c1.5-1.3 3.5-2 6-2h3v14h-4c-2.1 0-3.8.6-5 2"/></svg>`,
+  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/><path d="m16.2 7.8 4-4"/></svg>`,
+  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m2 10 10-5 10 5-10 5z"/><path d="M6 12v5c3.5 3 8.5 3 12 0v-5m4-2v6"/></svg>`
+];
 const authDialog = document.getElementById("authDialog");
 const authForm = document.getElementById("authForm");
 let authMode = "signup";
@@ -37,7 +43,7 @@ let toastTimer;
 
 function renderLearningTemplates(country) {
   const grid = document.getElementById("templateGrid");
-  grid.innerHTML = learningTemplates[country].map((template, index) => `<article class="template-card template-tone-${index + 1}"><div class="template-card-top"><span class="template-index">0${index + 1}</span><span class="template-level">${template.level}</span></div><div class="template-mark" aria-hidden="true"><span>${["◌", "⌁", "✳", "↗"][index]}</span></div><div class="template-card-copy"><span class="template-focus">${template.focus}</span><h3>${template.title}</h3><p>${template.detail}</p></div><div class="template-card-foot"><span>${country} · ${template.curriculum}</span><button type="button" class="template-start" data-auth="signup" data-template-country="${country}" data-template-curriculum="${template.curriculum}">Start this plan <span aria-hidden="true">↗</span></button></div></article>`).join("");
+  grid.innerHTML = learningTemplates[country].map((template, index) => `<article class="template-card template-tone-${index + 1}"><div class="template-card-top"><span class="template-index">0${index + 1}</span><span class="template-level">${template.level}</span></div><div class="template-mark" aria-hidden="true">${learningTemplateIcons[index]}</div><div class="template-card-copy"><span class="template-focus">${template.focus}</span><h3>${template.title}</h3><p>${template.detail}</p></div><div class="template-card-foot"><span>${country} · ${template.curriculum}</span><button type="button" class="template-start" data-auth="signup" data-template-country="${country}" data-template-curriculum="${template.curriculum}">Start this plan <span aria-hidden="true">↗</span></button></div></article>`).join("");
   document.querySelectorAll(".region-tab").forEach(button => {
     const selected = button.dataset.region === country;
     button.classList.toggle("selected", selected);

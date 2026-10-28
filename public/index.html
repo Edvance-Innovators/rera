@@ -11,7 +11,7 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/styles.css">
   <link rel="stylesheet" href="/app-overrides.css?v=20261026-curriculum-cards">
-  <link rel="stylesheet" href="/welcome-dashboard.css?v=20261028-auth-mobile">
+  <link rel="stylesheet" href="/welcome-dashboard.css?v=20261028-overlay-colors-icons">
 </head>
 <body class="welcome-page">
   <header class="welcome-nav">
@@ -23,14 +23,14 @@
     <section class="dashboard-frame" aria-label="ReRa learning dashboard">
       <aside class="dashboard-rail" aria-label="Page sections">
         <a class="rail-mark" href="/" aria-label="ReRa home">R</a>
-        <a class="rail-link active" href="#home" aria-label="Home" title="Home"><span>⌂</span></a>
-        <a class="rail-link" href="#templates" aria-label="Regional templates" title="Regional templates"><span>▤</span></a>
-        <button class="rail-link" data-auth="signup" aria-label="Create account" title="Create account"><span>＋</span></button>
-        <a class="rail-link rail-help" href="#community" aria-label="Learning community" title="Learning community"><span>?</span></a>
+        <a class="rail-link active" href="#home" aria-label="Home" title="Home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg></a>
+        <a class="rail-link" href="#templates" aria-label="Regional templates" title="Regional templates"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v17H6.5A2.5 2.5 0 0 1 4 17.5z"/><path d="M4 16a2.5 2.5 0 0 1 2.5-2.5H20M8 7h7"/></svg></a>
+        <button class="rail-link" data-auth="signup" aria-label="Create account" title="Create account"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M3 20a6 6 0 0 1 12 0m4-8v6m-3-3h6"/></svg></button>
+        <a class="rail-link rail-help" href="#community" aria-label="Learning community" title="Learning community"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9a2.5 2.5 0 1 1 4.3 1.7c-1.1 1-1.9 1.2-1.9 2.8m0 3h.01"/></svg></a>
       </aside>
       <div class="dashboard-main" id="home">
         <div class="dashboard-topline"><div><span class="dashboard-kicker">A learning space made for here</span><h1>Make room<br>to <em>move forward.</em></h1><p>Local learning plans, shaped around the curriculum, classroom and goals that matter to your family.</p><div class="hero-actions"><button class="button" data-auth="signup">Build a learning plan <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button><button class="button button-outline" data-auth="teacher">I teach</button></div><div class="dashboard-social"><div class="social-initials"><span>AM</span><span>PO</span><span>GN</span><span>DU</span></div><span>Families and educators, learning together</span></div></div>
-          <div class="hero-art"><img src="https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=1200&q=85" alt="Students learning together in a classroom" fetchpriority="high"><div class="art-label"><span class="art-pulse"></span><span><strong>Closer to home</strong><small>One community. Many paths.</small></span></div><span class="art-note note-one">REB <b>↗</b></span><span class="art-note note-two">CBC <b>✳</b></span><span class="art-spark" aria-hidden="true">✳</span></div>
+          <div class="hero-art"><img src="https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=1200&q=85" alt="Students learning together in a classroom" fetchpriority="high"><div class="art-label"><span class="art-pulse"></span><span><strong>Closer to home</strong><small>One community. Many paths.</small></span></div><span class="art-note note-one">REB <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10"/></svg></span><span class="art-note note-two">CBC <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 1.9 5.8L20 11l-6.1 2.2L12 19l-1.9-5.8L4 11l6.1-2.2z"/></svg></span><span class="art-spark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 1.9 5.8L20 11l-6.1 2.2L12 19l-1.9-5.8L4 11l6.1-2.2z"/></svg></span></div>
         </div>
         <section class="template-section" id="templates" aria-labelledby="templateTitle">
           <div class="template-heading"><div><span class="dashboard-kicker">Start with your region</span><h2 id="templateTitle">Learning templates</h2><p>Pick a country to explore plans that fit its curriculum.</p></div><span class="template-total"><b>16</b> regional starting points</span></div>

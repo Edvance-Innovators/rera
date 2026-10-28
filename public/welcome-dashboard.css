@@ -11,11 +11,28 @@
 }
 
 .welcome-page {
+  position: relative;
+  isolation: isolate;
   min-height: 100vh;
   color: var(--dash-ink);
-  background-color: #f0ebf7;
-  background-image: linear-gradient(135deg, #f8f5fc 0%, #ece5f7 48%, #f7f0f3 100%);
+  background-color: #e6ddf1;
   font-family: "DM Sans", sans-serif;
+}
+
+.welcome-page::before {
+  position: fixed;
+  z-index: -1;
+  inset: -2px;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 5% 63%, #e91e89 0 11%, transparent 11.15%),
+    radial-gradient(circle at 80% 4%, #872ddd 0 9%, transparent 9.15%),
+    radial-gradient(circle at 96% 37%, #10c8a4 0 7.5%, transparent 7.65%),
+    radial-gradient(circle at 79% 76%, #ff8a24 0 12.5%, transparent 12.65%),
+    radial-gradient(circle at 80% 87%, #f2df24 0 9.5%, transparent 9.65%),
+    radial-gradient(ellipse at 54% 46%, #c8b7e7 0 34%, transparent 34.15%),
+    linear-gradient(135deg, #e7def2, #eee8f5 54%, #e2d9ef);
+  content: "";
 }
 
 .welcome-nav {
@@ -24,8 +41,8 @@
   height: 72px;
   padding: 0 clamp(18px, 5vw, 72px);
   border: 0;
-  background: #f8f5fce8;
-  backdrop-filter: blur(16px);
+  background: #f8f5fc70;
+  backdrop-filter: blur(14px) saturate(125%);
 }
 
 .welcome-nav .logo { font-family: "Space Grotesk", sans-serif; }
@@ -46,13 +63,13 @@
   grid-template-columns: 58px minmax(0, 1fr);
   width: min(1240px, calc(100% - 64px));
   min-height: 720px;
-  margin: 34px auto 28px;
+  margin: 24px auto 28px;
   overflow: hidden;
-  border: 1px solid #fff9;
+  border: 1px solid #ffffffb8;
   border-radius: 14px;
-  background: #ffffffa8;
-  box-shadow: 0 28px 75px #40315b24, 0 3px 12px #40315b0c, inset 0 1px #fff;
-  backdrop-filter: blur(22px);
+  background: linear-gradient(125deg, #ffffff74 0%, #ffffff48 52%, #efe7fb61 100%);
+  box-shadow: 0 28px 75px #40315b30, 0 3px 12px #40315b14, inset 0 1px #ffffffed;
+  backdrop-filter: blur(25px) saturate(135%);
   animation: dashboard-arrive .65s ease both;
 }
 
@@ -63,7 +80,8 @@
   gap: 12px;
   padding: 18px 8px;
   border-right: 1px solid #e8e2f28c;
-  background: #fff9;
+  background: #ffffff45;
+  backdrop-filter: blur(14px);
 }
 
 .rail-mark, .rail-link {
@@ -80,7 +98,7 @@
 }
 
 .rail-mark { margin-bottom: 12px; color: white; background: #30234d; font: 700 16px "Space Grotesk", sans-serif; }
-.rail-link span { font-size: 20px; line-height: 1; }
+.rail-link svg { width: 18px; height: 18px; }
 .rail-link:hover, .rail-link.active { color: #fff; background: var(--dash-purple); }
 .rail-help { margin-top: auto; }
 
@@ -112,10 +130,10 @@
 .art-label small { margin-top: 3px; color: #817a8e; font-size: 8px; }
 .art-pulse { width: 9px; height: 9px; border-radius: 50%; background: #45bba2; box-shadow: 0 0 0 5px #45bba21c; }
 .art-note { position: absolute; z-index: 2; display: flex; align-items: center; gap: 9px; padding: 9px 12px; border: 1px solid #fff9; border-radius: 7px; color: #403652; background: #fffC; box-shadow: 0 7px 20px #49326b16; font-size: 9px; font-weight: 700; }
-.art-note b { color: #dc559c; font-size: 13px; }
+.art-note svg { width: 15px; height: 15px; color: #dc559c; }
 .note-one { top: 12px; right: -4px; }
 .note-two { bottom: 79px; left: -20px; }
-.art-spark { position: absolute; z-index: 2; top: 95px; right: 18%; color: #f0aa3c; font-size: 28px; }
+.art-spark { position: absolute; z-index: 2; top: 95px; right: 18%; width: 28px; height: 28px; color: #f0aa3c; }
 
 .template-section { margin-top: 25px; padding-top: 22px; border-top: 1px solid #e6deef; }
 .template-heading { display: flex; align-items: end; justify-content: space-between; gap: 16px; }
@@ -141,7 +159,8 @@
 .template-card-top { display: flex; align-items: center; justify-content: space-between; gap: 4px; }
 .template-index { color: #aca4b6; font: 600 9px "Space Grotesk", sans-serif; }
 .template-level { max-width: 70%; overflow: hidden; padding: 4px 6px; border-radius: 4px; color: #6d5589; background: #f2edf8; font-size: 7px; text-overflow: ellipsis; white-space: nowrap; }
-.template-mark { display: grid; width: 32px; height: 32px; place-items: center; margin: 8px 0 6px; border-radius: 9px; color: #7947c7; background: #efe7fb; font-size: 20px; }
+.template-mark { display: grid; width: 34px; height: 34px; place-items: center; margin: 8px 0 6px; border-radius: 9px; color: #7947c7; background: #efe7fb; }
+.template-mark svg { width: 19px; height: 19px; }
 .template-tone-2 .template-mark { color: #d7468c; background: #fce9f1; }
 .template-tone-3 .template-mark { color: #c17a21; background: #fff0d6; }
 .template-tone-4 .template-mark { color: #188c78; background: #dff4ef; }
@@ -160,7 +179,7 @@
 .community-countries { display: grid; grid-template-columns: repeat(4, auto); gap: 20px; }
 .community-countries span { color: #55496a; font-size: 9px; font-weight: 700; }
 .community-countries small { display: block; margin-top: 4px; color: #898196; font-size: 7px; font-weight: 400; }
-.welcome-footer { padding: 12px 5vw; border-top-color: #ded7e8; color: #878094; background: #f8f5fce8; }
+.welcome-footer { padding: 12px 5vw; border-top-color: #ffffff70; color: #756d84; background: #f8f5fc69; backdrop-filter: blur(12px); }
 .welcome-footer .logo { font-family: "Space Grotesk", sans-serif; }
 .welcome-footer .logo-symbol { color: #fff; background: var(--dash-purple); }
 
@@ -187,7 +206,7 @@
   .dashboard-rail { position: absolute; z-index: 3; top: 12px; right: 12px; flex-direction: row; gap: 5px; padding: 0; border: 0; background: transparent; }
   .rail-mark { display: none; }
   .rail-link { width: 30px; height: 30px; flex-basis: 30px; border: 1px solid #fff9; background: #ffffff8c; }
-  .rail-link span { font-size: 16px; }
+  .rail-link svg { width: 16px; height: 16px; }
   .rail-help { display: none; }
   .dashboard-main { padding: 24px 14px 18px; }
   .dashboard-topline { grid-template-columns: 1fr; gap: 13px; }
@@ -214,6 +233,7 @@
   .template-grid { grid-template-columns: 1fr 1fr; gap: 7px; }
   .template-card { min-height: 205px; padding: 9px; }
   .template-mark { width: 29px; height: 29px; margin: 7px 0 5px; }
+  .template-mark svg { width: 17px; height: 17px; }
   .template-card h3 { font-size: 11px; }
   .template-card-copy p { font-size: 8px; }
   .template-card-foot { align-items: flex-start; flex-direction: column; gap: 5px; }
