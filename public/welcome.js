@@ -4,10 +4,46 @@ const curriculaByCountry = {
   Uganda: ["UNEB"],
   Tanzania: ["NECTA"]
 };
+const learningTemplates = {
+  Rwanda: [
+    { title: "A steady study rhythm", curriculum: "REB", level: "Primary", focus: "Weekly learning plan", detail: "Short practice sessions, reading time and a simple family check-in." },
+    { title: "Exam-ready sprint", curriculum: "REB", level: "Secondary", focus: "Revision planner", detail: "Break subjects into focused review blocks, practice and recap." },
+    { title: "Cambridge subject planner", curriculum: "Cambridge / IB", level: "Secondary", focus: "Coursework planner", detail: "Track syllabus goals, assignments and exam preparation by subject." },
+    { title: "University study map", curriculum: "REB", level: "University", focus: "Term study plan", detail: "Organize lectures, independent study, deadlines and review sessions." }
+  ],
+  Kenya: [
+    { title: "CBC competency week", curriculum: "CBC", level: "Primary", focus: "Weekly learning plan", detail: "Balance classroom themes, practical activities and foundational skills." },
+    { title: "Junior school project brief", curriculum: "CBC", level: "Secondary", focus: "Project planner", detail: "Turn a competency into manageable research, practice and reflection." },
+    { title: "KCSE revision runway", curriculum: "8-4-4", level: "Secondary", focus: "Exam revision", detail: "Set subject targets, past-paper practice and weekly progress checks." },
+    { title: "Campus term planner", curriculum: "8-4-4", level: "University", focus: "Term study plan", detail: "Keep coursework, independent reading and assessment dates together." }
+  ],
+  Uganda: [
+    { title: "PLE confidence builder", curriculum: "UNEB", level: "Primary", focus: "Primary revision", detail: "Build a balanced routine for core subjects, practice and rest." },
+    { title: "UCE subject tracker", curriculum: "UNEB", level: "Secondary", focus: "Lower secondary", detail: "Track topic coverage, class exercises and focused revision by subject." },
+    { title: "UACE exam pathway", curriculum: "UNEB", level: "Secondary", focus: "Advanced level plan", detail: "Plan subject combinations, deeper study and timed exam practice." },
+    { title: "University semester map", curriculum: "UNEB", level: "University", focus: "Semester study plan", detail: "Map lectures, reading, coursework and exam preparation across a term." }
+  ],
+  Tanzania: [
+    { title: "Standard 7 foundations", curriculum: "NECTA", level: "Primary", focus: "Primary revision", detail: "Create a gentle weekly routine for core skills and exam practice." },
+    { title: "Form II progress plan", curriculum: "NECTA", level: "Secondary", focus: "Topic tracker", detail: "Set topic goals, practice checkpoints and a clear weekly review." },
+    { title: "CSEE revision schedule", curriculum: "NECTA", level: "Secondary", focus: "Exam revision", detail: "Share revision time across subjects, past papers and rest days." },
+    { title: "University coursework map", curriculum: "NECTA", level: "University", focus: "Term study plan", detail: "Bring lectures, research, coursework and assessment dates into one plan." }
+  ]
+};
 const authDialog = document.getElementById("authDialog");
 const authForm = document.getElementById("authForm");
 let authMode = "signup";
 let toastTimer;
+
+function renderLearningTemplates(country) {
+  const grid = document.getElementById("templateGrid");
+  grid.innerHTML = learningTemplates[country].map((template, index) => `<article class="template-card template-tone-${index + 1}"><div class="template-card-top"><span class="template-index">0${index + 1}</span><span class="template-level">${template.level}</span></div><div class="template-mark" aria-hidden="true"><span>${["◌", "⌁", "✳", "↗"][index]}</span></div><div class="template-card-copy"><span class="template-focus">${template.focus}</span><h3>${template.title}</h3><p>${template.detail}</p></div><div class="template-card-foot"><span>${country} · ${template.curriculum}</span><button type="button" class="template-start" data-auth="signup" data-template-country="${country}" data-template-curriculum="${template.curriculum}">Start this plan <span aria-hidden="true">↗</span></button></div></article>`).join("");
+  document.querySelectorAll(".region-tab").forEach(button => {
+    const selected = button.dataset.region === country;
+    button.classList.toggle("selected", selected);
+    button.setAttribute("aria-pressed", String(selected));
+  });
+}
 
 function welcomeIcon(name) {
   const paths = {
@@ -31,7 +67,7 @@ function welcomeIcon(name) {
 }
 
 function decorateWelcomeButtons(root = document) {
-  root.querySelectorAll("button:not(.close-icon):not([data-icon-decorated]):not(.space-list button)").forEach(button => {
+  root.querySelectorAll("button:not(.close-icon):not([data-icon-decorated]):not(.space-list button):not(.rail-link):not(.template-start)").forEach(button => {
     if (button.querySelector("svg")) {
       button.dataset.iconDecorated = "true";
       return;
@@ -118,7 +154,16 @@ function openAuth(mode) {
 
 document.addEventListener("click", event => {
   const authButton = event.target.closest("[data-auth]");
-  if (authButton) openAuth(authButton.dataset.auth);
+  if (authButton) {
+    openAuth(authButton.dataset.auth);
+    if (authButton.dataset.templateCountry) {
+      document.getElementById("country").value = authButton.dataset.templateCountry;
+      syncCurricula();
+      document.getElementById("curriculum").value = authButton.dataset.templateCurriculum;
+    }
+  }
+  const regionButton = event.target.closest("[data-region]");
+  if (regionButton) renderLearningTemplates(regionButton.dataset.region);
   const modeButton = event.target.closest("[data-auth-mode]");
   if (modeButton) setAuthMode(modeButton.dataset.authMode);
   if (event.target.closest("[data-close]")) authDialog.close();
@@ -156,6 +201,7 @@ document.getElementById("showPasswords").addEventListener("change", event => {
 });
 
 syncCurricula();
+renderLearningTemplates("Rwanda");
 setAuthMode("signup");
 decorateWelcomeButtons(document);
 

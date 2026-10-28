@@ -11,26 +11,40 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/styles.css">
   <link rel="stylesheet" href="/app-overrides.css?v=20261026-curriculum-cards">
+  <link rel="stylesheet" href="/welcome-dashboard.css?v=20261028-regional-templates">
 </head>
 <body class="welcome-page">
   <header class="welcome-nav">
     <a class="logo" href="/" aria-label="ReRa home"><span class="logo-symbol">R</span><span>ReRa<span class="logo-dot">.</span></span></a>
-    <div class="welcome-nav-actions"><span class="regional-note">Rwanda · Kenya · Uganda · Tanzania</span><button class="text-action" data-auth="login">Sign in</button><button class="button button-small" data-auth="signup">Join ReRa</button></div>
+    <div class="welcome-nav-center"><span class="nav-status"><i></i> EAST AFRICA LEARNING NETWORK</span><span class="regional-note">Rwanda · Kenya · Uganda · Tanzania</span></div>
+    <div class="welcome-nav-actions"><button class="text-action" data-auth="login">Sign in</button><button class="button button-small" data-auth="signup">Join ReRa</button></div>
   </header>
   <main>
-    <section class="welcome-hero">
-      <div class="hero-copy">
-        <div class="eyebrow"><span></span> A closer connection to learning</div>
-        <h1>Good teaching.<br><em>Closer to home.</em></h1>
-        <p>ReRa connects learners and families with trusted local educators, matched to the right subject, level and curriculum.</p>
-        <div class="hero-actions"><button class="button" data-auth="signup">Find your learning match <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button><button class="button button-outline" data-auth="teacher">I teach</button></div>
-        <div class="hero-trust"><div class="trust-avatars"><span>AM</span><span>PO</span><span>GN</span><span>DU</span></div><span>Local educators, thoughtfully matched</span></div>
+    <section class="dashboard-frame" aria-label="ReRa learning dashboard">
+      <aside class="dashboard-rail" aria-label="Page sections">
+        <a class="rail-mark" href="/" aria-label="ReRa home">R</a>
+        <a class="rail-link active" href="#home" aria-label="Home" title="Home"><span>⌂</span></a>
+        <a class="rail-link" href="#templates" aria-label="Regional templates" title="Regional templates"><span>▤</span></a>
+        <button class="rail-link" data-auth="signup" aria-label="Create account" title="Create account"><span>＋</span></button>
+        <a class="rail-link rail-help" href="#community" aria-label="Learning community" title="Learning community"><span>?</span></a>
+      </aside>
+      <div class="dashboard-main" id="home">
+        <div class="dashboard-topline"><div><span class="dashboard-kicker">A learning space made for here</span><h1>Make room<br>to <em>move forward.</em></h1><p>Local learning plans, shaped around the curriculum, classroom and goals that matter to your family.</p><div class="hero-actions"><button class="button" data-auth="signup">Build a learning plan <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button><button class="button button-outline" data-auth="teacher">I teach</button></div><div class="dashboard-social"><div class="social-initials"><span>AM</span><span>PO</span><span>GN</span><span>DU</span></div><span>Families and educators, learning together</span></div></div>
+          <div class="hero-art"><img src="https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=1200&q=85" alt="Students learning together in a classroom" fetchpriority="high"><div class="art-label"><span class="art-pulse"></span><span><strong>Closer to home</strong><small>One community. Many paths.</small></span></div><span class="art-note note-one">REB <b>↗</b></span><span class="art-note note-two">CBC <b>✳</b></span><span class="art-spark" aria-hidden="true">✳</span></div>
+        </div>
+        <section class="template-section" id="templates" aria-labelledby="templateTitle">
+          <div class="template-heading"><div><span class="dashboard-kicker">Start with your region</span><h2 id="templateTitle">Learning templates</h2><p>Pick a country to explore plans that fit its curriculum.</p></div><span class="template-total"><b>16</b> regional starting points</span></div>
+          <div class="region-tabs" role="group" aria-label="Choose a country">
+            <button class="region-tab selected" type="button" data-region="Rwanda" aria-pressed="true"><span class="region-code">RW</span><span>Rwanda</span></button>
+            <button class="region-tab" type="button" data-region="Kenya" aria-pressed="false"><span class="region-code">KE</span><span>Kenya</span></button>
+            <button class="region-tab" type="button" data-region="Uganda" aria-pressed="false"><span class="region-code">UG</span><span>Uganda</span></button>
+            <button class="region-tab" type="button" data-region="Tanzania" aria-pressed="false"><span class="region-code">TZ</span><span>Tanzania</span></button>
+          </div>
+          <div class="template-grid" id="templateGrid" aria-live="polite"></div>
+        </section>
       </div>
-      <div class="hero-image-wrap"><img class="hero-image" src="https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=1400&q=85" alt="Students learning together in a classroom" fetchpriority="high"><div class="hero-caption"><span class="caption-dot"></span><span><strong>Across East Africa</strong><small>Learning shaped around each student</small></span><span class="caption-arrow" aria-hidden="true">↗</span></div></div>
-      <div class="hero-stamp" aria-hidden="true"><span>LOCAL</span><b>×</b><span>LEARNING</span></div>
     </section>
-    <section class="welcome-proof" aria-label="Regional curriculum coverage"><div><span class="proof-kicker">Built for the way we learn here</span><strong>Four countries.<br>Many ways to thrive.</strong></div><div class="country-list"><span><b>RW</b> Rwanda <small>REB · Cambridge / IB</small></span><span><b>KE</b> Kenya <small>CBC · 8-4-4</small></span><span><b>UG</b> Uganda <small>UNEB</small></span><span><b>TZ</b> Tanzania <small>NECTA</small></span></div><div class="proof-note">From primary foundations to university study, matching starts with the learner's real context.</div></section>
-    <section class="welcome-spaces"><div><div class="eyebrow">One learning community</div><h2>Support for every side<br>of the learning journey.</h2></div><div class="space-list"><button data-auth="signup"><span class="space-number">01</span><span><strong>For families</strong><small>Find support that fits your learner, school and schedule.</small></span><span class="space-arrow">↗</span></button><button data-auth="teacher"><span class="space-number">02</span><span><strong>For educators</strong><small>Share your expertise with learners in your community.</small></span><span class="space-arrow">↗</span></button><div><span class="space-number">03</span><span><strong>For learners</strong><small>Build confidence, one lesson at a time.</small></span></div><div><span class="space-number">04</span><span><strong>For coordinators</strong><small>Match locally. Keep family details protected.</small></span></div></div></section>
+    <section class="community-strip" id="community"><div><span class="dashboard-kicker">Four countries, many ways to thrive</span><strong>From primary foundations to university study, start with the learner's real context.</strong></div><div class="community-countries"><span>Rwanda <small>REB · Cambridge / IB</small></span><span>Kenya <small>CBC · 8-4-4</small></span><span>Uganda <small>UNEB</small></span><span>Tanzania <small>NECTA</small></span></div></section>
   </main>
   <footer class="welcome-footer"><a class="logo" href="/"><span class="logo-symbol">R</span><span>ReRa<span class="logo-dot">.</span></span></a><span>Learning, closer to home.</span><span>East Africa</span></footer>
 
