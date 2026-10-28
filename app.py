@@ -313,8 +313,11 @@ class ReRaHandler(BaseHTTPRequestHandler):
                   "/app": ("app.html", "text/html; charset=utf-8"), "/app.html": ("app.html", "text/html; charset=utf-8"),
                   "/app.js": ("app.js", "text/javascript; charset=utf-8"), "/welcome.js": ("welcome.js", "text/javascript; charset=utf-8"),
                   "/regional-images.js": ("regional-images.js", "text/javascript; charset=utf-8"),
-                  "/home-tutoring.svg": ("home-tutoring.svg", "image/svg+xml; charset=utf-8"),
-                  "/online-learning.svg": ("online-learning.svg", "image/svg+xml; charset=utf-8"),
+                  "/home-tutor-women.webp": ("home-tutor-women.webp", "image/webp"),
+                  "/home-online-tutoring.jpg": ("home-online-tutoring.jpg", "image/jpeg"),
+                  "/home-family-study.jpg": ("home-family-study.jpg", "image/jpeg"),
+                  "/home-mentor-support.jpeg": ("home-mentor-support.jpeg", "image/jpeg"),
+                  "/home-learning-partners.webp": ("home-learning-partners.webp", "image/webp"),
                   "/welcome-dashboard.css": ("welcome-dashboard.css", "text/css; charset=utf-8"),
                   "/styles.css": ("styles.css", "text/css; charset=utf-8"),
               "/app-overrides.css": ("app-overrides.css", "text/css; charset=utf-8"), "/favicon.ico": (None, "image/x-icon")}

@@ -75,11 +75,54 @@ function renderHeroSlides() {
     <article class="hero-slide ${index === 0 ? "active" : ""}" aria-label="${index + 1} of ${environments.length}" aria-roledescription="slide" ${index === 0 ? "" : 'aria-hidden="true"'}>
       <img src="${escapeHtml(environment.image)}" alt="${escapeHtml(environment.alt)}" ${index === 0 ? 'fetchpriority="high"' : 'loading="lazy"'}>
       <span class="art-curriculum-tag"><strong>${escapeHtml(environment.curriculum)}</strong><small>${escapeHtml(environment.country)} · ${escapeHtml(environment.setting)}</small></span>
-      <span class="art-photo-credit">Photo: <a href="${escapeHtml(environment.sourceUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(environment.attribution)}</a> · <a href="${escapeHtml(environment.licenseUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(environment.license)}</a></span>
+      <span class="art-setting-label">${escapeHtml(environment.setting)}</span>
+      <span class="art-photo-credit">Photo: ${environment.sourceUrl ? `<a href="${escapeHtml(environment.sourceUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(environment.attribution)}</a>` : escapeHtml(environment.attribution)} · ${environment.licenseUrl ? `<a href="${escapeHtml(environment.licenseUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(environment.license)}</a>` : escapeHtml(environment.license)}</span>
     </article>`).join("");
   document.getElementById("heroCarouselDots").innerHTML = environments.map((environment, index) =>
-    `<button class="${index === 0 ? "selected" : ""}" type="button" data-carousel-slide="${index}" aria-label="Show ${escapeHtml(environment.curriculum)} in ${escapeHtml(environment.country)}" aria-pressed="${index === 0}"></button>`
+    `<button class="${index === 0 ? "selected" : ""}" type="button" data-carousel-slide="${index}" aria-label="Show ${escapeHtml(environment.setting)}: ${escapeHtml(environment.curriculum)} in ${escapeHtml(environment.country)}" title="${escapeHtml(environment.setting)}" aria-pressed="${index === 0}"></button>`
   ).join("");
+}
+
+function setWelcomeAccount(user) {
+  const actions = document.getElementById("welcomeAuthActions");
+  if (!actions) return;
+  if (!user) {
+    actions.innerHTML = `<button class="text-action" data-auth="login">Sign in</button><button class="button button-small" data-auth="signup">Join ReRa</button>`;
+    decorateWelcomeButtons(actions);
+    return;
+  }
+  const role = user.role === "teacher" ? "Educator" : user.role === "manager" ? "Manager" : user.role === "learner" ? "Learner" : "Parent";
+  actions.innerHTML = `<span class="welcome-user-greeting"><span>Signed in as</span><strong>${escapeHtml(user.name)}</strong><small>${role}</small></span><a class="button button-small welcome-dashboard-link" href="/app.html" aria-label="Open my dashboard" title="Open my dashboard">My dashboard ${welcomeIcon("arrow").outerHTML}</a><button class="text-action welcome-signout" type="button" data-action="logout">Log out</button>`;
+}
+
+async function refreshWelcomeAccount() {
+  const response = await fetch("/api/me", { credentials: "same-origin" });
+  if (response.status === 401) {
+    setWelcomeAccount(null);
+    return;
+  }
+  const result = await response.json();
+  if (!response.ok) throw new Error(result.error || "Could not check your sign-in status.");
+  setWelcomeAccount(result.user);
+}
+
+async function logoutWelcomeAccount(button) {
+  button.disabled = true;
+  try {
+    const response = await fetch("/api/logout", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: "{}"
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || "Could not sign out.");
+    setWelcomeAccount(null);
+    showToast("You have signed out.");
+  } catch (error) {
+    button.disabled = false;
+    showToast(error.message);
+  }
 }
 
 function setEducatorPreview(wrapper, open) {
@@ -94,7 +137,7 @@ function setEducatorPreview(wrapper, open) {
 function startHeroSlideTimer() {
   clearInterval(heroSlideTimer);
   if (!heroSlidePaused && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-    heroSlideTimer = setInterval(() => showHeroSlide(heroSlideIndex + 1), 5500);
+    heroSlideTimer = setInterval(() => showHeroSlide(heroSlideIndex + 1), 4200);
   }
 }
 
@@ -254,6 +297,7 @@ async function handleCloserToHome() {
     }
     const result = await response.json();
     if (!response.ok) throw new Error(result.error || "Could not check your sign-in status.");
+    setWelcomeAccount(result.user);
     showNearbyDialog(result.user);
   } catch (error) {
     showToast(error.message);
@@ -313,6 +357,11 @@ function openAuth(mode) {
 }
 
 document.addEventListener("click", event => {
+  const logoutButton = event.target.closest('[data-action="logout"]');
+  if (logoutButton) {
+    logoutWelcomeAccount(logoutButton);
+    return;
+  }
   const carouselToggle = event.target.closest("[data-carousel-toggle]");
   if (carouselToggle) {
     heroSlidePaused = !heroSlidePaused;
@@ -419,6 +468,7 @@ decorateWelcomeButtons(document);
 renderHeroSlides();
 showHeroSlide(0);
 startHeroSlideTimer();
+refreshWelcomeAccount().catch(error => showToast(error.message));
 
 if (new URLSearchParams(window.location.search).get("nearby") === "1") {
   window.history.replaceState(null, "", window.location.pathname);
