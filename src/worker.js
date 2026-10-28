@@ -484,6 +484,18 @@ async function hashPassword(password, saltHex) {
   return { salt: bytesToHex(salt), hash: bytesToHex(bits) };
 }
 
+function constantTimeEqual(left, right) {
+  const encoder = new TextEncoder();
+  const leftBytes = encoder.encode(left);
+  const rightBytes = encoder.encode(right);
+  let difference = leftBytes.length ^ rightBytes.length;
+  const length = Math.max(leftBytes.length, rightBytes.length);
+  for (let index = 0; index < length; index += 1) {
+    difference |= (leftBytes[index] || 0) ^ (rightBytes[index] || 0);
+  }
+  return difference === 0;
+}
+
 async function json(request) {
   return request.json();
 }
@@ -532,6 +544,53 @@ async function sendVerificationEmail(env, email, verificationUrl) {
 async function handleStoreRequest(request, state, env) {
   const url = new URL(request.url);
   if (!["POST", "GET"].includes(request.method)) return response({ error: "Method not allowed" }, 405);
+
+  if (url.pathname === "/api/manager/bootstrap" && request.method === "POST") {
+    if (!env.MANAGER_SETUP_TOKEN || env.MANAGER_SETUP_TOKEN.length < 64) {
+      return response({ error: "Manager bootstrap is not configured" }, 404);
+    }
+    const authorization = request.headers.get("Authorization") || "";
+    const providedToken = authorization.startsWith("Bearer ") ? authorization.slice(7) : "";
+    if (!constantTimeEqual(providedToken, env.MANAGER_SETUP_TOKEN)) {
+      return response({ error: "Manager bootstrap is not available" }, 404);
+    }
+    if (rows(state, "SELECT 1 FROM users WHERE role = 'manager' LIMIT 1").length) {
+      return response({ error: "A manager account has already been created" }, 409);
+    }
+
+    const body = await json(request);
+    const name = String(body.name || "").trim();
+    const email = String(body.email || "").trim().toLowerCase();
+    const password = String(body.password || "");
+    const country = String(body.country || "");
+    const curriculum = String(body.curriculum || "");
+    if (!name || name.length > 80 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) {
+      return response({ error: "Enter a valid manager name and email address" }, 400);
+    }
+    if (password.length < 12 || password.length > 256) {
+      return response({ error: "Use a password between 12 and 256 characters" }, 400);
+    }
+    if (!COUNTRIES.has(country) || !CURRICULA[country].has(curriculum)) {
+      return response({ error: "Choose a curriculum offered in your country" }, 400);
+    }
+    if (rows(state, "SELECT 1 FROM users WHERE email = ? LIMIT 1", email).length) {
+      return response({ error: "An account already exists for this email" }, 409);
+    }
+
+    const derived = await hashPassword(password);
+    if (rows(state, "SELECT 1 FROM users WHERE role = 'manager' LIMIT 1").length) {
+      return response({ error: "A manager account has already been created" }, 409);
+    }
+    if (rows(state, "SELECT 1 FROM users WHERE email = ? LIMIT 1", email).length) {
+      return response({ error: "An account already exists for this email" }, 409);
+    }
+    state.storage.sql.exec(
+      `INSERT INTO users (name, email, password_salt, password_hash, role, country, curriculum, email_verified, created_at)
+       VALUES (?, ?, ?, ?, 'manager', ?, ?, 1, ?)`,
+      name, email, derived.salt, derived.hash, country, curriculum, new Date().toISOString(),
+    );
+    return response({ ok: true, message: "Manager account created. Sign in through the ReRa homepage." }, 201);
+  }
 
   if (url.pathname === "/api/signup" && request.method === "POST") {
     const body = await json(request);

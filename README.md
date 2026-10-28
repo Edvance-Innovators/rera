@@ -66,3 +66,38 @@ npx wrangler deploy
 ```
 
 Enter the Resend API key at the prompt, then deploy the Worker. Verify that the sender domain is approved in Resend. If a setting is missing, signup identifies its name. If Resend rejects an email, signup reports the HTTP status and the Worker logs record it. The user can retry with **Resend confirmation email** after correcting the configuration.
+
+## Creating the first deployed manager
+
+Public signup intentionally supports only parent and teacher accounts. To create the first manager in the deployed Worker's Durable Object account store:
+
+1. Deploy the version containing the manager bootstrap endpoint:
+
+   ```sh
+   npx wrangler deploy
+   ```
+
+2. Generate a one-time setup token, then save that same value as a Worker secret. Keep it private:
+
+   ```sh
+   openssl rand -hex 32
+   npx wrangler secret put MANAGER_SETUP_TOKEN
+   ```
+
+   Paste the generated 64-character token when Wrangler prompts for the secret. `wrangler secret put` publishes the secret to the production Worker.
+
+3. Run the interactive creator. It prompts for the token and manager password without echoing them or placing either in shell history:
+
+   ```sh
+   python3 scripts/create_deployed_manager.py https://rera.innovatorsedvance.workers.dev
+   ```
+
+   The endpoint creates only the first manager, validates the selected country and curriculum, and marks the account email as verified. It cannot be used for public manager signup. Sign in through the site normally; the manager role opens the control dashboard.
+
+4. Remove the bootstrap secret once account creation succeeds:
+
+   ```sh
+   npx wrangler secret delete MANAGER_SETUP_TOKEN
+   ```
+
+The endpoint is locked after a manager exists, even if the setup secret is left configured. To retry before a manager has been created, keep the setup secret available and resolve any reported input or deployment error. This creates a manager in the deployed Worker store, not the separate local SQLite database.
