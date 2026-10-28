@@ -77,6 +77,14 @@ python3 app.py create-manager --name "ReRa Manager" --email you@example.com
 
 The command prompts for a manager password and country. If the email already belongs to a parent account, the command promotes it, changes its password and profile name/curriculum, and signs out its existing sessions. This affects only the local database, not the deployed Worker.
 
+To set a new password for an existing local manager account:
+
+```sh
+python3 app.py reset-manager-password --email you@example.com
+```
+
+The command prompts for the new password and signs out existing sessions. Sign in to the same local app/database afterward.
+
 ## Creating the first deployed manager
 
 Public signup intentionally supports only parent and teacher accounts. To create the first manager in the deployed Worker's Durable Object account store:

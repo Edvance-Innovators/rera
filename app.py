@@ -919,7 +919,7 @@ def create_manager(name: str, email: str) -> None:
     with connect_db() as db:
         existing_user = db.execute("SELECT role FROM users WHERE email = ?", (email,)).fetchone()
     if existing_user and existing_user["role"] == "manager":
-        print(f"A manager account already exists for {email}.")
+        print(f"A manager account already exists for {email}. Use reset-manager-password to change its password.")
         return
     if existing_user and existing_user["role"] != "parent":
         print(f"The email {email} belongs to a {existing_user['role']} account and cannot be promoted.", file=sys.stderr)
@@ -956,11 +956,31 @@ def create_manager(name: str, email: str) -> None:
         print(f"Manager account created for {email}.")
 
 
+def reset_manager_password(email: str) -> None:
+    initialize_database()
+    email = email.strip().lower()
+    with connect_db() as db:
+        user = db.execute("SELECT id, role FROM users WHERE email = ?", (email,)).fetchone()
+    if not user or user["role"] != "manager":
+        print(f"No manager account exists for {email}.", file=sys.stderr)
+        raise SystemExit(2)
+
+    password = getpass("New manager password (12+ characters): ")
+    if len(password) < 12:
+        print("Password must be at least 12 characters.", file=sys.stderr)
+        raise SystemExit(2)
+
+    with connect_db() as db:
+        db.execute("UPDATE users SET password_hash = ? WHERE id = ?", (password_hash(password), user["id"]))
+        db.execute("DELETE FROM sessions WHERE user_id = ?", (user["id"],))
+    print(f"Manager password reset for {email}. Sign in again with the new password.")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="ReRa local development server")
     parser.add_argument("--host", default=os.environ.get("RERA_HOST", "127.0.0.1"))
     parser.add_argument("--port", type=int, default=int(os.environ.get("RERA_PORT", "8000")))
-    parser.add_argument("command", nargs="?", choices={"create-manager"}, help=argparse.SUPPRESS)
+    parser.add_argument("command", nargs="?", choices={"create-manager", "reset-manager-password"}, help=argparse.SUPPRESS)
     parser.add_argument("--name", default="ReRa Manager")
     parser.add_argument("--email", default="")
     arguments = parser.parse_args()
@@ -969,6 +989,11 @@ def main() -> None:
         if not arguments.email:
             parser.error("create-manager requires --email")
         create_manager(arguments.name, arguments.email)
+        return
+    if arguments.command == "reset-manager-password":
+        if not arguments.email:
+            parser.error("reset-manager-password requires --email")
+        reset_manager_password(arguments.email)
         return
     server = ThreadingHTTPServer((arguments.host, arguments.port), ReRaHandler)
     print(f"ReRa is running at http://{arguments.host}:{arguments.port}/")
