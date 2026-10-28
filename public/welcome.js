@@ -38,8 +38,40 @@ const learningTemplateIcons = [
 ];
 const authDialog = document.getElementById("authDialog");
 const authForm = document.getElementById("authForm");
+const nearbyDialog = document.getElementById("nearbyDialog");
 let authMode = "signup";
 let toastTimer;
+let heroSlideIndex = 0;
+let heroSlideTimer;
+let heroSlidePaused = false;
+let nearbyMap;
+let nearbyLayers;
+let nearbyLocation;
+let nearbySearchId = 0;
+let nearbySelectedRadius;
+
+function showHeroSlide(index) {
+  const slides = [...document.querySelectorAll(".hero-slide")];
+  if (!slides.length) return;
+  heroSlideIndex = (index + slides.length) % slides.length;
+  slides.forEach((slide, slideIndex) => {
+    const active = slideIndex === heroSlideIndex;
+    slide.classList.toggle("active", active);
+    slide.setAttribute("aria-hidden", String(!active));
+  });
+  document.querySelectorAll("[data-carousel-slide]").forEach((button, slideIndex) => {
+    const active = slideIndex === heroSlideIndex;
+    button.classList.toggle("selected", active);
+    button.setAttribute("aria-pressed", String(active));
+  });
+}
+
+function startHeroSlideTimer() {
+  clearInterval(heroSlideTimer);
+  if (!heroSlidePaused && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    heroSlideTimer = setInterval(() => showHeroSlide(heroSlideIndex + 1), 5500);
+  }
+}
 
 function renderLearningTemplates(country) {
   const grid = document.getElementById("templateGrid");
@@ -73,7 +105,7 @@ function welcomeIcon(name) {
 }
 
 function decorateWelcomeButtons(root = document) {
-  root.querySelectorAll("button:not(.close-icon):not([data-icon-decorated]):not(.space-list button):not(.rail-link):not(.template-start)").forEach(button => {
+  root.querySelectorAll('button:not(.close-icon):not([data-icon-decorated]):not(.space-list button):not(.rail-link):not(.template-start):not([data-action="closer-to-home"])').forEach(button => {
     if (button.querySelector("svg")) {
       button.dataset.iconDecorated = "true";
       return;
@@ -104,6 +136,103 @@ function showToast(message) {
   toast.classList.add("show");
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => toast.classList.remove("show"), 2400);
+}
+
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>"']/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" })[character]);
+}
+
+async function loadNearbyEducators(latitude, longitude, radius) {
+  const searchId = ++nearbySearchId;
+  const status = document.getElementById("nearbyStatus");
+  status.textContent = "Finding verified educators nearby…";
+  try {
+    const response = await fetch("/api/nearby-teachers", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ latitude, longitude, radius_km: radius })
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || "Could not load nearby educators.");
+    if (searchId !== nearbySearchId) return;
+    if (!window.L) throw new Error("The map could not be loaded. Check your connection and try again.");
+    if (!nearbyMap) {
+      nearbyMap = L.map("nearbyMap").setView([latitude, longitude], 11);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+      }).addTo(nearbyMap);
+      nearbyLayers = L.layerGroup().addTo(nearbyMap);
+    } else {
+      nearbyMap.invalidateSize();
+      nearbyLayers.clearLayers();
+    }
+    L.circle([latitude, longitude], {
+      radius: radius * 1000,
+      color: "#7947c7",
+      weight: 1,
+      fillColor: "#7947c7",
+      fillOpacity: .07
+    }).addTo(nearbyLayers);
+    result.points.forEach(point => {
+      const marker = L.circleMarker([point.latitude, point.longitude], {
+        radius: 7,
+        color: "#176b52",
+        fillColor: "#43b89d",
+        fillOpacity: .9,
+        weight: 2
+      });
+      marker.bindPopup(`Approximate educator area<br>${escapeHtml(point.curriculum)} · ${escapeHtml(point.country)}`);
+      marker.addTo(nearbyLayers);
+    });
+    const bounds = nearbyLayers.getBounds();
+    if (bounds.isValid()) nearbyMap.fitBounds(bounds.pad(.15), { maxZoom: 13 });
+    status.textContent = result.points.length
+      ? `${result.points.length} verified educator${result.points.length === 1 ? "" : "s"} within ${radius} km.`
+      : `No verified, available educators with a mapped location were found within ${radius} km.`;
+  } catch (error) {
+    if (searchId === nearbySearchId) status.textContent = error.message;
+  }
+}
+
+function showNearbyDialog(user) {
+  const radiusSelect = document.getElementById("nearbyRadius");
+  const savedRadius = Number(nearbySelectedRadius ?? user.radius_km);
+  radiusSelect.value = [5, 10, 20, 50].includes(savedRadius) ? String(savedRadius) : "10";
+  nearbyLocation = null;
+  nearbySearchId += 1;
+  nearbyLayers?.clearLayers();
+  nearbyDialog.showModal();
+  document.getElementById("nearbyStatus").textContent = "Requesting your location…";
+  if (!navigator.geolocation) {
+    document.getElementById("nearbyStatus").textContent = "Location access is unavailable in this browser.";
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(position => {
+    nearbyLocation = { latitude: position.coords.latitude, longitude: position.coords.longitude };
+    loadNearbyEducators(nearbyLocation.latitude, nearbyLocation.longitude, Number(radiusSelect.value));
+  }, error => {
+    const message = error.code === error.PERMISSION_DENIED
+      ? "Location access was declined. Allow location access in your browser settings to view nearby educators."
+      : "Your location could not be determined. Check your connection and try again.";
+    document.getElementById("nearbyStatus").textContent = message;
+  }, { enableHighAccuracy: false, timeout: 12000, maximumAge: 300000 });
+}
+
+async function handleCloserToHome() {
+  try {
+    const response = await fetch("/api/me", { credentials: "same-origin" });
+    if (response.status === 401) {
+      sessionStorage.setItem("reraOpenNearbyMap", "1");
+      openAuth("login");
+      return;
+    }
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || "Could not check your sign-in status.");
+    showNearbyDialog(result.user);
+  } catch (error) {
+    showToast(error.message);
+  }
 }
 
 function syncCurricula() {
@@ -159,6 +288,25 @@ function openAuth(mode) {
 }
 
 document.addEventListener("click", event => {
+  const carouselToggle = event.target.closest("[data-carousel-toggle]");
+  if (carouselToggle) {
+    heroSlidePaused = !heroSlidePaused;
+    carouselToggle.textContent = heroSlidePaused ? "▶" : "Ⅱ";
+    carouselToggle.setAttribute("aria-label", heroSlidePaused ? "Resume slideshow" : "Pause slideshow");
+    carouselToggle.setAttribute("aria-pressed", String(heroSlidePaused));
+    startHeroSlideTimer();
+  }
+  const carouselStep = event.target.closest("[data-carousel-step]");
+  if (carouselStep) {
+    showHeroSlide(heroSlideIndex + Number(carouselStep.dataset.carouselStep));
+    startHeroSlideTimer();
+  }
+  const carouselSlide = event.target.closest("[data-carousel-slide]");
+  if (carouselSlide) {
+    showHeroSlide(Number(carouselSlide.dataset.carouselSlide));
+    startHeroSlideTimer();
+  }
+  if (event.target.closest('[data-action="closer-to-home"]')) handleCloserToHome();
   const authButton = event.target.closest("[data-auth]");
   if (authButton) {
     openAuth(authButton.dataset.auth);
@@ -172,7 +320,8 @@ document.addEventListener("click", event => {
   if (regionButton) renderLearningTemplates(regionButton.dataset.region);
   const modeButton = event.target.closest("[data-auth-mode]");
   if (modeButton) setAuthMode(modeButton.dataset.authMode);
-  if (event.target.closest("[data-close]")) authDialog.close();
+  const closeButton = event.target.closest("[data-close]");
+  if (closeButton) closeButton.closest("dialog")?.close();
 });
 
 document.querySelectorAll("input[name=role]").forEach(input => input.addEventListener("change", () => {
@@ -182,6 +331,15 @@ document.querySelectorAll("input[name=role]").forEach(input => input.addEventLis
   ["subjects", "levels"].forEach(id => document.getElementById(id).disabled = !isTeacher);
 }));
 document.getElementById("country").addEventListener("change", syncCurricula);
+document.getElementById("nearbyRadius").addEventListener("change", event => {
+  nearbySelectedRadius = Number(event.target.value);
+  if (nearbyLocation) loadNearbyEducators(nearbyLocation.latitude, nearbyLocation.longitude, nearbySelectedRadius);
+});
+nearbyDialog.addEventListener("close", () => {
+  nearbyLocation = null;
+  nearbySearchId += 1;
+  nearbyLayers?.clearLayers();
+});
 
 const passwordInput = document.getElementById("password");
 const passwordConfirmInput = document.getElementById("passwordConfirm");
@@ -210,6 +368,19 @@ syncCurricula();
 renderLearningTemplates("Rwanda");
 setAuthMode("signup");
 decorateWelcomeButtons(document);
+showHeroSlide(0);
+startHeroSlideTimer();
+
+if (new URLSearchParams(window.location.search).get("nearby") === "1") {
+  window.history.replaceState(null, "", window.location.pathname);
+  fetch("/api/me", { credentials: "same-origin" })
+    .then(async response => {
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Could not check your sign-in status.");
+      showNearbyDialog(result.user);
+    })
+    .catch(error => showToast(error.message));
+}
 
 document.getElementById("resendVerification").addEventListener("click", async event => {
   const button = event.currentTarget;
@@ -292,7 +463,9 @@ authForm.addEventListener("submit", async event => {
       panel.dataset.email = payload.email;
       return;
     }
-    window.location.assign("/app.html");
+    const openNearby = sessionStorage.getItem("reraOpenNearbyMap") === "1";
+    sessionStorage.removeItem("reraOpenNearbyMap");
+    window.location.assign(openNearby ? "/?nearby=1" : "/app.html");
   } catch (reason) {
     error.textContent = reason.message;
     error.hidden = false;

@@ -13,6 +13,8 @@ ReRa is custom-built to support the unique, diverse educational systems of **Eas
 *   🇺🇬 **Uganda** (UNEB)
 *   🇹🇿 **Tanzania** (NECTA)
 
+The welcome page cycles through learning environments tagged with their country and curriculum. Signed-in users can open **Closer to home** to view approximate locations of verified, available educators within a selected radius; the search defaults to 10 km and requires browser location access.
+
 ---
 
 ## 👥 The Four Dedicated Portals (Spaces)

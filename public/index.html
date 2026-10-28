@@ -11,7 +11,9 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/styles.css">
   <link rel="stylesheet" href="/app-overrides.css?v=20261026-curriculum-cards">
-  <link rel="stylesheet" href="/welcome-dashboard.css?v=20261028-auth-rail-links">
+  <link rel="stylesheet" href="/welcome-dashboard.css?v=20261028-regional-carousel">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer crossorigin=""></script>
 </head>
 <body class="welcome-page">
   <header class="welcome-nav">
@@ -30,7 +32,44 @@
       </aside>
       <div class="dashboard-main" id="home">
         <div class="dashboard-topline"><div><span class="dashboard-kicker">A learning space made for here</span><h1>Make room<br>to <em>move forward.</em></h1><p>Local learning plans, shaped around the curriculum, classroom and goals that matter to your family.</p><div class="hero-actions"><button class="button" data-auth="signup">Build a learning plan <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button><button class="button button-outline" data-auth="teacher">I teach</button></div><nav class="dashboard-social" aria-label="Explore the ReRa community"><a class="social-link" href="#network-educators" aria-label="Educators"><span class="social-initial">AM</span><span>Educators</span></a><a class="social-link" href="#network-spaces" aria-label="Teaching spaces"><span class="social-initial">PO</span><span>Teaching spaces</span></a><a class="social-link" href="#network-competitions" aria-label="Competition preparation"><span class="social-initial">GN</span><span>Competitions</span></a><a class="social-link" href="#network-opportunities" aria-label="Educator opportunities"><span class="social-initial">DU</span><span>Opportunities</span></a></nav></div>
-          <div class="hero-art"><img src="https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=1200&q=85" alt="Students learning together in a classroom" fetchpriority="high"><div class="art-label"><span class="art-pulse"></span><span><strong>Closer to home</strong><small>One community. Many paths.</small></span></div><span class="art-note note-one">REB <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10"/></svg></span><span class="art-note note-two">CBC <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 1.9 5.8L20 11l-6.1 2.2L12 19l-1.9-5.8L4 11l6.1-2.2z"/></svg></span><span class="art-spark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 1.9 5.8L20 11l-6.1 2.2L12 19l-1.9-5.8L4 11l6.1-2.2z"/></svg></span></div>
+          <div class="hero-art">
+            <div class="hero-carousel" role="region" aria-label="Learning environments across East Africa" aria-roledescription="carousel">
+              <article class="hero-slide active" aria-label="1 of 5" aria-roledescription="slide">
+                <img src="https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=1200&q=85" alt="Learners working together in a classroom" fetchpriority="high">
+                <span class="art-curriculum-tag"><strong>CBC</strong><small>Kenya</small></span>
+              </article>
+              <article class="hero-slide" aria-label="2 of 5" aria-roledescription="slide" aria-hidden="true">
+                <img src="https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=1200&q=85" alt="Students learning in a bright school classroom" loading="lazy">
+                <span class="art-curriculum-tag"><strong>REB</strong><small>Rwanda</small></span>
+              </article>
+              <article class="hero-slide" aria-label="3 of 5" aria-roledescription="slide" aria-hidden="true">
+                <img src="https://images.unsplash.com/photo-1427504494785-3a9ca7044f45?auto=format&fit=crop&w=1200&q=85" alt="A teacher guiding a group discussion" loading="lazy">
+                <span class="art-curriculum-tag"><strong>Cambridge / IB</strong><small>Rwanda</small></span>
+              </article>
+              <article class="hero-slide" aria-label="4 of 5" aria-roledescription="slide" aria-hidden="true">
+                <img src="https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?auto=format&fit=crop&w=1200&q=85" alt="A learner studying outdoors with a book" loading="lazy">
+                <span class="art-curriculum-tag"><strong>UNEB</strong><small>Uganda</small></span>
+              </article>
+              <article class="hero-slide" aria-label="5 of 5" aria-roledescription="slide" aria-hidden="true">
+                <img src="https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=1200&q=85" alt="A student reading in a library" loading="lazy">
+                <span class="art-curriculum-tag"><strong>NECTA</strong><small>Tanzania</small></span>
+              </article>
+              <button class="hero-carousel-arrow previous" type="button" data-carousel-step="-1" aria-label="Previous learning environment">‹</button>
+              <button class="hero-carousel-arrow next" type="button" data-carousel-step="1" aria-label="Next learning environment">›</button>
+              <button class="hero-carousel-toggle" type="button" data-carousel-toggle aria-label="Pause slideshow" aria-pressed="false">Ⅱ</button>
+              <div class="hero-carousel-dots" role="group" aria-label="Choose a learning environment">
+                <button class="selected" type="button" data-carousel-slide="0" aria-label="Show CBC in Kenya" aria-pressed="true"></button>
+                <button type="button" data-carousel-slide="1" aria-label="Show REB in Rwanda" aria-pressed="false"></button>
+                <button type="button" data-carousel-slide="2" aria-label="Show Cambridge / IB in Rwanda" aria-pressed="false"></button>
+                <button type="button" data-carousel-slide="3" aria-label="Show UNEB in Uganda" aria-pressed="false"></button>
+                <button type="button" data-carousel-slide="4" aria-label="Show NECTA in Tanzania" aria-pressed="false"></button>
+              </div>
+            </div>
+            <button class="art-label" type="button" data-action="closer-to-home" aria-label="Find nearby educators">
+              <span class="art-pulse"></span><span><strong>Closer to home</strong><small>Find educators near you</small></span>
+            </button>
+            <span class="art-spark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 1.9 5.8L20 11l-6.1 2.2L12 19l-1.9-5.8L4 11l6.1-2.2z"/></svg></span>
+          </div>
         </div>
         <section class="template-section" id="templates" aria-labelledby="templateTitle">
           <div class="template-heading"><div><span class="dashboard-kicker">Start with your region</span><h2 id="templateTitle">Learning templates</h2><p>Pick a country to explore plans that fit its curriculum.</p></div><span class="template-total"><b>16</b> regional starting points</span></div>
@@ -53,6 +92,19 @@
     <section class="community-strip" id="community"><div><span class="dashboard-kicker">Four countries, many ways to thrive</span><strong>From primary foundations to university study, start with the learner's real context.</strong></div><div class="community-countries"><span>Rwanda <small>REB · Cambridge / IB</small></span><span>Kenya <small>CBC · 8-4-4</small></span><span>Uganda <small>UNEB</small></span><span>Tanzania <small>NECTA</small></span></div></section>
   </main>
   <footer class="welcome-footer"><a class="logo" href="/"><span class="logo-symbol">R</span><span>ReRa<span class="logo-dot">.</span></span></a><span>Learning, closer to home.</span><span>East Africa</span></footer>
+
+  <dialog id="nearbyDialog" class="nearby-dialog">
+    <div class="dialog-heading"><div><span class="eyebrow">Educator network</span><h2>Find educators nearby</h2></div><button class="close-icon" data-close aria-label="Close map">×</button></div>
+    <div class="nearby-controls">
+      <label for="nearbyRadius">Search radius</label>
+      <select id="nearbyRadius" aria-label="Educator search radius">
+        <option value="5">5 km</option><option value="10" selected>10 km</option><option value="20">20 km</option><option value="50">50 km</option>
+      </select>
+      <span id="nearbyStatus" role="status" aria-live="polite">Allow location access to find verified educators near you.</span>
+    </div>
+    <div id="nearbyMap" class="nearby-map" aria-label="Map of approximate educator locations"></div>
+    <p class="nearby-privacy">Only verified, available educators are shown. Pins are approximate; your precise location is used only to search nearby and is not saved.</p>
+  </dialog>
 
   <dialog id="authDialog" class="auth-dialog">
     <aside class="auth-rail" aria-label="Sign-in navigation">
@@ -91,6 +143,6 @@
     </div>
   </dialog>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <script src="/welcome.js?v=20261026-button-icons" defer></script>
+  <script src="/welcome.js?v=20261028-regional-carousel" defer></script>
 </body>
 </html>

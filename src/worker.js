@@ -328,6 +328,32 @@ async function postStoreData(request, state, url) {
     if (id == null) throw new Error("Could not retrieve the new learner ID");
     return response({ id, name }, 201);
   }
+  if (url.pathname === "/api/nearby-teachers") {
+    const latitude = body.latitude;
+    const longitude = body.longitude;
+    const radius = Number(body.radius_km ?? 10);
+    if (typeof latitude !== "number" || typeof longitude !== "number" || !validCoordinates(latitude, longitude)) {
+      return response({ error: "Location coordinates are invalid" }, 400);
+    }
+    if (!Number.isInteger(radius) || ![5, 10, 20, 50].includes(radius)) {
+      return response({ error: "Choose a 5, 10, 20 or 50 km search radius" }, 400);
+    }
+    const candidates = rows(state, `SELECT country, curriculum, latitude, longitude, radius_km
+      FROM users WHERE role = 'teacher' AND verified = 1 AND available = 1
+      AND latitude IS NOT NULL AND longitude IS NOT NULL`);
+    const points = candidates
+      .filter(teacher => {
+        const distance = distanceKm(latitude, longitude, teacher.latitude, teacher.longitude);
+        return distance <= radius && distance <= teacher.radius_km;
+      })
+      .map(teacher => ({
+        latitude: Number(teacher.latitude.toFixed(2)),
+        longitude: Number(teacher.longitude.toFixed(2)),
+        country: teacher.country,
+        curriculum: teacher.curriculum,
+      }));
+    return response({ radius_km: radius, points }, 200);
+  }
   if (url.pathname === "/api/requests") {
     const studentId = Number(body.student_id);
     const radius = Number(body.radius_km || 10);
@@ -606,7 +632,8 @@ async function handleStoreRequest(request, state, env) {
 
   if (url.pathname === "/api/families" || url.pathname === "/api/students" || url.pathname === "/api/requests"
     || url.pathname === "/api/resources" || url.pathname === "/api/pitches" || url.pathname === "/api/feedback"
-    || url.pathname === "/api/teachers" || url.pathname === "/api/coordinates" || url.pathname === "/api/teacher/profile") {
+    || url.pathname === "/api/teachers" || url.pathname === "/api/coordinates" || url.pathname === "/api/teacher/profile"
+    || url.pathname === "/api/nearby-teachers") {
     if (request.method === "GET") return getStoreData(request, state, url);
     if (request.method === "POST") return postStoreData(request, state, url);
   }

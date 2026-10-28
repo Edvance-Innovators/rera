@@ -312,6 +312,7 @@ class ReRaHandler(BaseHTTPRequestHandler):
               "/welcome": ("index.html", "text/html; charset=utf-8"),
                   "/app": ("app.html", "text/html; charset=utf-8"), "/app.html": ("app.html", "text/html; charset=utf-8"),
                   "/app.js": ("app.js", "text/javascript; charset=utf-8"), "/welcome.js": ("welcome.js", "text/javascript; charset=utf-8"),
+                  "/welcome-dashboard.css": ("welcome-dashboard.css", "text/css; charset=utf-8"),
                   "/styles.css": ("styles.css", "text/css; charset=utf-8"),
               "/app-overrides.css": ("app-overrides.css", "text/css; charset=utf-8"), "/favicon.ico": (None, "image/x-icon")}
         entry = static.get(parsed.path)
@@ -353,6 +354,8 @@ class ReRaHandler(BaseHTTPRequestHandler):
                 return self.create_request(payload)
             if parsed.path == "/api/teacher/profile":
                 return self.update_teacher_profile(payload)
+            if parsed.path == "/api/nearby-teachers":
+                return self.list_nearby_teachers(payload)
             if parsed.path == "/api/resources":
                 return self.create_resource(payload)
             verify_match = re.fullmatch(r"/api/teachers/(\d+)/verify", parsed.path)
@@ -652,6 +655,35 @@ class ReRaHandler(BaseHTTPRequestHandler):
                 points.append({"type": "teacher", "id": teacher["id"], "latitude": teacher["latitude"],
                                "longitude": teacher["longitude"], "label": teacher["name"]})
         return self.respond(200, {"points": points, "request": {"id": request["id"], "country": request["country"], "location_label": request["location_label"], "radius_km": request["radius_km"]}})
+
+    def list_nearby_teachers(self, payload: dict) -> None:
+        if not self.require_user():
+            return
+        latitude, longitude = payload.get("latitude"), payload.get("longitude")
+        if not valid_coordinates(latitude, longitude):
+            raise ValueError("Location coordinates are invalid")
+        try:
+            radius_value = float(payload.get("radius_km", 10))
+        except (ValueError, TypeError):
+            raise ValueError("Choose a valid search radius")
+        if not radius_value.is_integer() or int(radius_value) not in {5, 10, 20, 50}:
+            raise ValueError("Choose a 5, 10, 20 or 50 km search radius")
+        radius = int(radius_value)
+        with connect_db() as db:
+            candidates = db.execute("""SELECT country, curriculum, latitude, longitude, radius_km
+                FROM users WHERE role = 'teacher' AND verified = 1 AND available = 1
+                AND latitude IS NOT NULL AND longitude IS NOT NULL""").fetchall()
+        points = []
+        for teacher in candidates:
+            distance = distance_km(latitude, longitude, teacher["latitude"], teacher["longitude"])
+            if distance <= radius and distance <= teacher["radius_km"]:
+                points.append({
+                    "latitude": round(float(teacher["latitude"]), 2),
+                    "longitude": round(float(teacher["longitude"]), 2),
+                    "country": teacher["country"],
+                    "curriculum": teacher["curriculum"],
+                })
+        return self.respond(200, {"radius_km": radius, "points": points})
 
     def verify_teacher(self, teacher_id: int) -> None:
         manager = self.require_user({"manager"})
