@@ -74,7 +74,7 @@ function renderHeroSlides() {
   document.getElementById("heroSlides").innerHTML = environments.map((environment, index) => `
     <article class="hero-slide ${index === 0 ? "active" : ""}" aria-label="${index + 1} of ${environments.length}" aria-roledescription="slide" ${index === 0 ? "" : 'aria-hidden="true"'}>
       <img src="${escapeHtml(environment.image)}" alt="${escapeHtml(environment.alt)}" ${index === 0 ? 'fetchpriority="high"' : 'loading="lazy"'}>
-      <span class="art-curriculum-tag"><strong>${escapeHtml(environment.curriculum)}</strong><small>${escapeHtml(environment.country)}</small></span>
+      <span class="art-curriculum-tag"><strong>${escapeHtml(environment.curriculum)}</strong><small>${escapeHtml(environment.country)} · ${escapeHtml(environment.setting)}</small></span>
       <span class="art-photo-credit">Photo: <a href="${escapeHtml(environment.sourceUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(environment.attribution)}</a> · <a href="${escapeHtml(environment.licenseUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(environment.license)}</a></span>
     </article>`).join("");
   document.getElementById("heroCarouselDots").innerHTML = environments.map((environment, index) =>

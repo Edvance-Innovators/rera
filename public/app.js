@@ -173,16 +173,46 @@ function sectionsForUser() {
     : ["Family overview", "Learners", "Learning requests", "Materials", "Curriculum repository", "Payments"];
 }
 
+function personaName() {
+  if (currentUser.role === "manager") return "Manager";
+  if (currentUser.role === "teacher") return "Educator";
+  return learnerView ? "Learner" : "Parent";
+}
+
 function renderShell() {
   if (!activeSection || !sectionsForUser().includes(activeSection)) activeSection = sectionsForUser()[0];
   const initials = currentUser.name.split(/\s+/).map(part => part[0]).join("").slice(0, 2).toUpperCase();
-  app.innerHTML = `<aside class="sidebar"><a class="logo" href="/"><span class="logo-symbol">R</span><span>ReRa<span class="logo-dot">.</span></span></a><p class="side-label">${escapeHtml(currentUser.role)} space</p><nav class="side-nav" aria-label="Main navigation">${sectionsForUser().map((section, index) => `<button class="${section === activeSection ? "active" : ""}" data-section="${escapeHtml(section)}" aria-current="${section === activeSection ? "page" : "false"}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">${navIcon(index)}</svg>${escapeHtml(section)}</button>`).join("")}</nav><div class="sidebar-foot"><div class="region-card"><span>REGIONAL NETWORK</span><strong>${escapeHtml(currentUser.country)} · ${escapeHtml(currentUser.curriculum)}</strong><div class="region-flags"><span>RW</span><span>KE</span><span>UG</span><span>TZ</span></div></div><div class="profile"><div class="avatar">${escapeHtml(initials)}</div><div><strong>${escapeHtml(currentUser.name)}</strong><span>${escapeHtml(currentUser.role)} account</span></div></div></div></aside>
-    <main class="app-main"><header class="topbar"><div class="crumb">ReRa <span aria-hidden="true">/</span> <strong>${escapeHtml(activeSection)}</strong></div><div class="top-actions">${currentUser.role === "parent" ? `<nav class="portal-switch" aria-label="Family or learner view"><button class="${learnerView ? "" : "active"}" data-action="parent-view">Family</button><button class="${learnerView ? "active" : ""}" data-action="learner-view">Learner</button></nav>` : `<span class="tag">${escapeHtml(currentUser.role)} portal</span>`}<button class="icon-btn" data-action="logout" aria-label="Sign out" title="Sign out"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 17l5-5-5-5m5 5H3"/><path d="M12 3h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6"/></svg></button></div></header><div class="app-content" id="pageContent">${renderRegionalCarousel()}${renderSection()}</div></main>`;
+  const persona = personaName();
+  const sectionList = sectionsForUser();
+  app.innerHTML = `<aside class="sidebar"><a class="logo" href="/"><span class="logo-symbol">R</span><span>ReRa<span class="logo-dot">.</span></span></a><div class="sidebar-identity"><div class="avatar">${escapeHtml(initials)}</div><div><strong>${escapeHtml(currentUser.name)}</strong><span>${escapeHtml(persona)}</span></div></div><p class="side-label">${escapeHtml(persona)} menu</p><nav class="side-nav" aria-label="${escapeHtml(persona)} menu">${sectionList.map(section => `<button class="${section === activeSection ? "active" : ""}" data-section="${escapeHtml(section)}" aria-label="${escapeHtml(section)}" title="${escapeHtml(section)}" aria-current="${section === activeSection ? "page" : "false"}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">${navIcon(section)}</svg>${escapeHtml(section)}</button>`).join("")}</nav><div class="sidebar-foot"><div class="region-card"><span>REGIONAL NETWORK</span><strong>${escapeHtml(currentUser.country)} · ${escapeHtml(currentUser.curriculum)}</strong><div class="region-flags"><span>RW</span><span>KE</span><span>UG</span><span>TZ</span></div></div></div></aside>
+    <main class="app-main"><header class="topbar"><div class="account-identity"><div class="avatar">${escapeHtml(initials)}</div><div class="account-copy"><strong>${escapeHtml(currentUser.name)}</strong><span>${escapeHtml(persona)} · ${escapeHtml(activeSection)}</span></div></div><div class="top-actions">${currentUser.role === "parent" ? `<nav class="portal-switch" aria-label="Family or learner view"><button class="${learnerView ? "" : "active"}" data-action="parent-view">Family</button><button class="${learnerView ? "active" : ""}" data-action="learner-view">Learner</button></nav>` : `<span class="tag">${escapeHtml(persona)} portal</span>`}<button class="icon-btn" data-action="logout" aria-label="Sign out" title="Sign out"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 17l5-5-5-5m5 5H3"/><path d="M12 3h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6"/></svg></button></div></header><div class="app-content" id="pageContent">${renderRegionalCarousel()}${renderSection()}</div></main>`;
+  decorateDashboardCards(app);
   decorateButtons(app);
   bindDynamicForms();
   bindResourceFilters();
   startDashboardCarousel();
   if (currentUser.role === "manager" && ["Overview", "Learning requests"].includes(activeSection)) setTimeout(initManagerMap, 40);
+}
+
+function decorateDashboardCards(root) {
+  const iconForHeading = text => {
+    const heading = text.toLowerCase();
+    if (/map|location|area/.test(heading)) return `<path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/>`;
+    if (/request|proposal|offer|job|match/.test(heading)) return `<path d="M8 4H5a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-3"/><rect x="8" y="2" width="8" height="4" rx="1.5"/><path d="M8 12h8m-8 4h5"/>`;
+    if (/educator|teacher|family|learner|profile|parent/.test(heading)) return `<circle cx="12" cy="8" r="4"/><path d="M5 21v-2a7 7 0 0 1 14 0v2"/>`;
+    if (/lesson|schedule|calendar/.test(heading)) return `<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 17h.01M12 17h.01"/>`;
+    if (/payment|secure|method/.test(heading)) return `<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20m-15 5h4"/>`;
+    if (/material|curriculum|study|resource|library/.test(heading)) return `<path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v17H6.5A2.5 2.5 0 0 1 4 17.5z"/><path d="M4 16a2.5 2.5 0 0 1 2.5-2.5H20M8 7h7"/>`;
+    return `<path d="m12 3 2.5 5.5L20 11l-5.5 2.5L12 19l-2.5-5.5L4 11l5.5-2.5z"/>`;
+  };
+  root.querySelectorAll(".panel-head h2, .info-card h3").forEach(title => {
+    if (title.querySelector(".box-heading-icon")) return;
+    const icon = document.createElement("span");
+    icon.className = "box-heading-icon";
+    icon.setAttribute("aria-hidden", "true");
+    icon.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">${iconForHeading(title.textContent || "")}</svg>`;
+    title.prepend(icon);
+  });
 }
 
 function renderRegionalCarousel() {
@@ -206,7 +236,7 @@ function renderRegionalCarousel() {
   return `<section class="portal-hero" aria-label="Learning environments across East Africa">
     <div class="portal-hero-copy"><span class="portal-hero-kicker">Closer to home · ${escapeHtml(currentUser.country)}</span><h1>Learning, closer to home.</h1><p>${copy}</p><div class="educator-preview" data-educator-preview><button class="button portal-nearby-button" data-action="nearby-map" aria-expanded="false" aria-controls="portalEducatorPreview" aria-describedby="portalEducatorPreview">Find educators nearby ${iconSvg("arrow").outerHTML}</button><div class="educator-preview-card portal-educator-preview-card" id="portalEducatorPreview" role="tooltip" hidden><span class="educator-preview-kicker">HOW IT WORKS · SAMPLE MATCHES</span><strong class="educator-preview-title">Find a nearby educator</strong><div class="educator-preview-map" aria-hidden="true"><span class="preview-radius">10 km radius</span><span class="preview-map-pin pin-one">AM</span><span class="preview-map-pin pin-two">WN</span><span class="preview-map-pin pin-three">JM</span></div><div class="educator-preview-list"><div class="educator-preview-person selected"><span class="preview-avatar avatar-one">AM</span><span class="preview-person-copy"><strong>Amina Mukamana</strong><small>Kigali · Mathematics · 2.4 km</small></span><span class="preview-view">View</span></div><div class="educator-preview-person"><span class="preview-avatar avatar-two">WN</span><span class="preview-person-copy"><strong>Wanjiku Njeri</strong><small>Nairobi · English · 4.1 km</small></span><span class="preview-view">View</span></div><span class="preview-cursor"><svg viewBox="0 0 24 28" aria-hidden="true"><path d="M3 2v19l5-5 4 9 4-2-4-8h8L3 2z" fill="#30234d" stroke="#fff" stroke-width="1.5"/></svg></span></div><span class="educator-preview-caption">Choose a search radius (10 km by default), then select an educator to view their profile.</span></div></div></div>
     <div class="portal-carousel" role="region" aria-label="Regional learning environments" aria-roledescription="carousel">
-      ${environments.map((environment, index) => `<article class="portal-slide ${index === 0 ? "active" : ""}" data-dashboard-slide aria-label="${index + 1} of ${environments.length}" aria-roledescription="slide" ${index === 0 ? "" : "aria-hidden=\"true\""}><img src="${escapeHtml(environment.image)}" alt="${escapeHtml(environment.alt)}" ${index === 0 ? 'fetchpriority="high"' : 'loading="lazy"'}><span class="portal-curriculum-tag"><strong>${escapeHtml(environment.curriculum)}</strong><small>${escapeHtml(environment.country)}</small></span><span class="portal-photo-credit">Photo: <a href="${escapeHtml(environment.sourceUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(environment.attribution)}</a> · <a href="${escapeHtml(environment.licenseUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(environment.license)}</a></span></article>`).join("")}
+      ${environments.map((environment, index) => `<article class="portal-slide ${index === 0 ? "active" : ""}" data-dashboard-slide aria-label="${index + 1} of ${environments.length}" aria-roledescription="slide" ${index === 0 ? "" : "aria-hidden=\"true\""}><img src="${escapeHtml(environment.image)}" alt="${escapeHtml(environment.alt)}" ${index === 0 ? 'fetchpriority="high"' : 'loading="lazy"'}><span class="portal-curriculum-tag"><strong>${escapeHtml(environment.curriculum)}</strong><small>${escapeHtml(environment.country)} · ${escapeHtml(environment.setting)}</small></span><span class="portal-photo-credit">Photo: <a href="${escapeHtml(environment.sourceUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(environment.attribution)}</a> · <a href="${escapeHtml(environment.licenseUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(environment.license)}</a></span></article>`).join("")}
       <button class="portal-carousel-arrow previous" type="button" data-dashboard-step="-1" aria-label="Previous learning environment">‹</button>
       <button class="portal-carousel-arrow next" type="button" data-dashboard-step="1" aria-label="Next learning environment">›</button>
       <button class="portal-carousel-toggle" type="button" data-dashboard-toggle aria-label="${dashboardSlidePaused ? "Resume" : "Pause"} slideshow" aria-pressed="${dashboardSlidePaused}">${dashboardSlidePaused ? "▶" : "Ⅱ"}</button>
@@ -247,15 +277,32 @@ function setEducatorPreview(wrapper, open) {
   panel.hidden = !open;
 }
 
-function navIcon(index) {
-  const icons = [
-    `<rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="5" rx="1.5"/><rect x="13" y="10" width="8" height="11" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/>`,
-    `<path d="M8 4H5a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-3"/><rect x="8" y="2" width="8" height="4" rx="1.5"/><path d="M8 12h8"/>`,
-    `<circle cx="12" cy="8" r="4"/><path d="M5 21v-2a7 7 0 0 1 14 0v2"/>`,
-    `<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/>`,
-    `<path d="M3 3v18h18"/><path d="m7 14 4-4 4 3 6-7"/>`
-  ];
-  return icons[index % icons.length];
+function navIcon(section) {
+  if (["Overview", "Teaching home", "Family overview", "My learning"].includes(section)) {
+    return `<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/>`;
+  }
+  if (["Families & learners", "Educator network", "Learners"].includes(section)) {
+    return `<circle cx="9" cy="8" r="3.5"/><circle cx="17" cy="9" r="2.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0m1-5a5 5 0 0 1 5 5"/>`;
+  }
+  if (["Learning requests", "Job offers"].includes(section)) {
+    return `<path d="M8 4H5a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-3"/><rect x="8" y="2" width="8" height="4" rx="1.5"/><path d="M8 12h8m-8 4h5"/>`;
+  }
+  if (["Material repository", "My materials", "Materials", "Study materials", "Curriculum repository"].includes(section)) {
+    return `<path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v17H6.5A2.5 2.5 0 0 1 4 17.5z"/><path d="M4 16a2.5 2.5 0 0 1 2.5-2.5H20M8 7h7"/>`;
+  }
+  if (["Teaching profile"].includes(section)) {
+    return `<circle cx="12" cy="8" r="4"/><path d="M5 21v-2a7 7 0 0 1 14 0v2"/>`;
+  }
+  if (["My schedule"].includes(section)) {
+    return `<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 17h.01M12 17h.01"/>`;
+  }
+  if (["Feedback"].includes(section)) {
+    return `<path d="m12 3 2.5 5.5L20 11l-5.5 2.5L12 19l-2.5-5.5L4 11l5.5-2.5z"/>`;
+  }
+  if (["Payments"].includes(section)) {
+    return `<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20m-15 5h4"/>`;
+  }
+  return `<rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="5" rx="1.5"/><rect x="13" y="10" width="8" height="11" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/>`;
 }
 
 function heading(title, subtitle, action = "") {

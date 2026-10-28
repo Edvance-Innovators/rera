@@ -127,9 +127,9 @@
 .hero-slide { position: absolute; inset: 0; visibility: hidden; opacity: 0; transition: opacity .65s ease, visibility .65s; }
 .hero-slide.active { visibility: visible; opacity: 1; }
 .hero-slide img { width: 100%; height: 100%; object-fit: cover; }
-.art-curriculum-tag { position: absolute; top: 14px; left: 14px; display: grid; gap: 2px; padding: 7px 10px; border: 1px solid #fff9; border-radius: 7px; color: #403652; background: #fffD; box-shadow: 0 7px 20px #49326b16; backdrop-filter: blur(12px); }
+.art-curriculum-tag { position: absolute; top: 14px; left: 14px; display: grid; max-width: min(220px, calc(100% - 28px)); gap: 2px; padding: 7px 10px; border: 1px solid #fff9; border-radius: 7px; color: #403652; background: #fffD; box-shadow: 0 7px 20px #49326b16; backdrop-filter: blur(12px); }
 .art-curriculum-tag strong { font-size: 9px; }
-.art-curriculum-tag small { color: #817a8e; font-size: 7px; }
+.art-curriculum-tag small { max-width: 180px; color: #817a8e; font-size: 7px; line-height: 1.2; }
 .art-photo-credit { position: absolute; z-index: 2; bottom: 1px; left: 10px; max-width: 62%; overflow: hidden; color: #fff; font-size: 6px; line-height: 1.35; text-decoration: none; text-overflow: ellipsis; text-shadow: 0 1px 4px #201832c9; white-space: nowrap; }
 .art-photo-credit a { color: inherit; text-decoration: none; }
 .art-photo-credit a:hover { text-decoration: underline; }
