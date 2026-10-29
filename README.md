@@ -27,11 +27,13 @@ The central command center of the platform. Managers act as the absolute coordin
 *   **Family Directory:** A manager-only view that maps registered parent accounts to their learner profiles and open tutoring requests, with teacher recommendations available from each request.
 *   **Curriculum & Level Filtering:** Advanced search matrices allowing managers to filter educators by country-specific curricula (e.g., CBC vs. REB), academic levels (Primary, Secondary, University), and targeted subject expertise.
 *   **Manager-led matching:** Managers review each request, shortlist verified educators by curriculum, level, subject and location, then privately pitch an educator. After the educator accepts, ReRa coordinates the family introduction; learner details stay private until then.
+* **Manager team:** A signed-in manager can create additional manager accounts from the dashboard, up to three managers total. New managers can sign in immediately.
 *   **Escrow & Billing Management:** Oversees local payment integrations (Mobile Money like MTN MoMo, Airtel Money, and card payments) and processes payouts to teachers upon successful lesson delivery.
 
 ### 2. 🎒 The Learner Space (The Student Portal)
 Designed strictly for learning engagement, academic progression, and safety.
 *   **Academic Level Selection:** Students can self-identify or update their exact level—from primary foundational numbers to complex university course codes.
+* **Regional subjects:** Tutor signup and family requests use subject options specific to the selected country, curriculum and academic level; educator subjects are matched to the same level.
 *   **Interactive Schedule:** A calendar detailing upcoming in-person home visits or digital sessions.
 *   **Assignment & Resource Locker:** A direct repository to download worksheets, syllabus guides, or past papers provided by their matched teacher.
 *   **Direct Feedback Loop:** A simple, emoji-supported rating system for younger learners or comprehensive text reviews for university students to log session quality.
@@ -49,6 +51,8 @@ A mobile-first interface optimized for local gig-economy educators and professio
 *   **Private Job Pipeline:** Receives incoming notification pings from Managers offering nearby tutoring gigs. Tutors can view the curriculum, level, and subjects required, then click to accept or decline.
 *   **Navigation Assistance:** In-app mapping (via Google Maps/OpenStreetMap) to easily navigate to the learner’s home or designated study center.
 *   **Curriculum-Specific Toolkit:** A portal to view specific national syllabi guidelines, ensuring lessons align perfectly with what the student faces in school.
+
+Subject choices are curated for the supported Rwanda, Kenya, Uganda and Tanzania curriculum options. Teachers select subjects separately under each academic level, and the server validates selections and matching against the same regional catalog.
 
 ---
 
@@ -104,7 +108,7 @@ Public signup intentionally supports only parent and teacher accounts. To create
 
    Paste the generated 64-character token when Wrangler prompts for the secret. `wrangler secret put` publishes the secret to the production Worker.
 
-3. Run the interactive creator. It prompts for the token and manager password without echoing them or placing either in shell history:
+3. Run the interactive creator. Setup-token characters appear as `*` while typing or pasting; the manager password remains hidden. Neither value is placed in shell history:
 
    ```sh
    python3 scripts/create_deployed_manager.py https://rera.innovatorsedvance.workers.dev

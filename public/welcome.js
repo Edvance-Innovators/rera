@@ -56,6 +56,7 @@ let nearbyLayers;
 let nearbyLocation;
 let nearbySearchId = 0;
 let nearbySelectedRadius;
+let subjectOptionsRequestId = 0;
 
 function showHeroSlide(index) {
   const slides = [...document.querySelectorAll(".hero-slide")];
@@ -329,6 +330,39 @@ function syncCurricula() {
   const country = document.getElementById("country").value;
   document.getElementById("curriculum").innerHTML = curriculaByCountry[country]
     .map(curriculum => `<option>${curriculum}</option>`).join("");
+  updateTeacherSubjectOptions();
+}
+
+async function updateTeacherSubjectOptions() {
+  const country = document.getElementById("country").value;
+  const curriculum = document.getElementById("curriculum").value;
+  const selectedLevels = [...document.getElementById("levels").selectedOptions].map(option => option.value);
+  const select = document.getElementById("subjects");
+  const requestId = ++subjectOptionsRequestId;
+  document.getElementById("subjectField").querySelector("small").textContent = "Choose subjects under each selected level. Options follow the selected country and curriculum.";
+  select.replaceChildren();
+  if (!selectedLevels.length || !curriculum) return;
+  try {
+    const response = await fetch(`/api/subjects?country=${encodeURIComponent(country)}&curriculum=${encodeURIComponent(curriculum)}`);
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || "Could not load subjects for this curriculum.");
+    if (requestId !== subjectOptionsRequestId) return;
+    selectedLevels.forEach(level => {
+      const group = document.createElement("optgroup");
+      group.label = level;
+      (result[level] || []).forEach(subject => {
+        const option = document.createElement("option");
+        option.value = `${level}::${subject}`;
+        option.textContent = subject;
+        group.append(option);
+      });
+      select.append(group);
+    });
+  } catch (error) {
+    if (requestId !== subjectOptionsRequestId) return;
+    document.getElementById("subjectField").querySelector("small").textContent = error.message;
+    console.error("Could not load regional subject options:", error);
+  }
 }
 
 function setAuthMode(mode) {
@@ -453,6 +487,8 @@ document.querySelectorAll("input[name=role]").forEach(input => input.addEventLis
   ["subjects", "levels"].forEach(id => document.getElementById(id).disabled = !isTeacher);
 }));
 document.getElementById("country").addEventListener("change", syncCurricula);
+document.getElementById("curriculum").addEventListener("change", updateTeacherSubjectOptions);
+document.getElementById("levels").addEventListener("change", updateTeacherSubjectOptions);
 document.getElementById("nearbyRadius").addEventListener("change", event => {
   nearbySelectedRadius = Number(event.target.value);
   if (nearbyLocation) loadNearbyEducators(nearbyLocation.latitude, nearbyLocation.longitude, nearbySelectedRadius);

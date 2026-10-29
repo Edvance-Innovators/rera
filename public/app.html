@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer crossorigin=""></script>
   <script src="/regional-images.js?v=20261028-local-photos" defer></script>
-  <script src="/app.js?v=20261028-manager-match-flow" defer></script>
+  <script src="/app.js?v=20261029-manager-team-regional-subjects" defer></script>
 </head>
 <body class="dashboard-page">
   <div id="app" class="app-shell" aria-live="polite"><main class="app-main"><div class="app-content">Loading your ReRa space…</div></main></div>
@@ -31,7 +31,7 @@
     <div class="dialog-heading"><div><span class="eyebrow">Tutor matching</span><h2>Request learning support</h2></div><button class="close-icon" data-close="requestDialog" aria-label="Close">×</button></div>
     <form id="requestForm" class="dialog-body"><div class="form-grid">
       <label class="field"><span>Learner</span><select name="student_id" id="requestStudent" required></select></label>
-      <label class="field"><span>Subject</span><select name="subject" required><option>Mathematics</option><option>English</option><option>Physics</option><option>Chemistry</option><option>Biology</option><option>Kiswahili</option><option>Computer science</option><option>Economics</option><option>French</option><option>Other</option></select></label>
+      <label class="field"><span>Subject</span><select name="subject" id="requestSubject" required><option value="">Choose a learner first</option></select></label>
       <label class="field"><span>Neighborhood / town</span><input name="location" maxlength="120" placeholder="e.g. Gasabo, Kigali" required></label>
       <label class="field"><span>Search radius</span><select name="radius_km"><option value="5">5 km</option><option value="10" selected>10 km</option><option value="20">20 km</option><option value="50">50 km</option></select></label>
       <label class="field"><span>Lesson format</span><select name="mode"><option>In person</option><option>Online</option><option>Either</option></select></label>
@@ -40,6 +40,16 @@
       <label class="field full"><span>Learning goal</span><textarea name="goal" maxlength="1000" placeholder="What would help the learner most?"></textarea></label>
     </div><div class="dialog-actions"><button type="button" class="button-light" data-close="requestDialog">Cancel</button><button class="button button-compact">Submit request</button></div></form>
   </dialog>
+  <dialog id="managerDialog" class="app-dialog">
+    <div class="dialog-heading"><div><span class="eyebrow">Manager team</span><h2>Add a manager</h2></div><button class="close-icon" data-close="managerDialog" aria-label="Close">×</button></div>
+    <form id="managerForm" class="dialog-body"><div class="form-grid">
+      <label class="field full"><span>Manager name</span><input name="name" minlength="2" maxlength="80" required></label>
+      <label class="field full"><span>Email address</span><input name="email" type="email" maxlength="254" required></label>
+      <label class="field"><span>Password</span><input name="password" type="password" minlength="12" maxlength="256" autocomplete="new-password" required></label>
+      <label class="field"><span>Confirm password</span><input name="password_confirm" type="password" minlength="12" maxlength="256" autocomplete="new-password" required></label>
+      <p class="field full">The new manager can sign in immediately. Use a unique email address and share the password securely.</p>
+    </div><div class="dialog-actions"><button type="button" class="button-light" data-close="managerDialog">Cancel</button><button class="button button-compact">Create manager</button></div></form>
+  </dialog>
   <dialog id="materialDialog" class="app-dialog">
     <div class="dialog-heading"><div><span class="eyebrow">Resource repository</span><h2>Share a learning material</h2></div><button class="close-icon" data-close="materialDialog" aria-label="Close">×</button></div>
     <form id="materialForm" class="dialog-body"><div class="form-grid">
@@ -47,7 +57,7 @@
       <label class="field"><span>Country</span><select name="country" class="country-select"><option>Rwanda</option><option>Kenya</option><option>Uganda</option><option>Tanzania</option></select></label>
       <label class="field"><span>Curriculum</span><select name="curriculum" class="curriculum-select"></select></label>
       <label class="field"><span>Academic level</span><select name="level"><option>Primary</option><option>Secondary</option><option>University</option><option>All levels</option></select></label>
-      <label class="field"><span>Subject</span><select name="subject"><option>All subjects</option><option>Mathematics</option><option>English</option><option>Physics</option><option>Chemistry</option><option>Biology</option><option>Kiswahili</option><option>Computer science</option><option>Economics</option><option>French</option></select></label>
+      <label class="field"><span>Subject</span><select name="subject"><option>All subjects</option></select></label>
       <label class="field full"><span>Description</span><textarea name="description" maxlength="1000" placeholder="A short note about this material"></textarea></label>
       <label class="field full"><span>PDF file · up to 5 MB</span><input type="file" name="file" accept="application/pdf,.pdf" required><small class="material-upload-note">Only PDF files are stored. Do not upload materials you do not have permission to share.</small></label>
     </div><div class="dialog-actions"><button type="button" class="button-light" data-close="materialDialog">Cancel</button><button class="button button-compact">Publish material</button></div></form>

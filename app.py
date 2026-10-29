@@ -37,6 +37,33 @@ CURRICULA = {
 }
 LEVELS = {"Primary", "Secondary", "University"}
 ROLES = {"parent", "teacher"}
+SUBJECT_CATALOG = {
+    "Rwanda": {
+        "Primary": ["Mathematics", "English", "Kinyarwanda", "French", "Social and Religious Studies", "Science and Elementary Technology", "Creative Arts and Physical Education"],
+        "Secondary": ["Mathematics", "English", "Kinyarwanda", "French", "Physics", "Chemistry", "Biology", "Geography", "History", "Computer Science", "Economics", "Literature", "Entrepreneurship", "General Studies"],
+        "University": ["Engineering", "Medicine and Health Sciences", "Computer Science and IT", "Law", "Business and Economics", "Education", "Agriculture", "Social Sciences", "Environmental Sciences", "Languages and Literature", "Statistics and Data Science"],
+    },
+    "Kenya": {
+        "Primary": ["Mathematics", "English", "Kiswahili", "Indigenous Languages", "Environmental Activities", "Integrated Science", "Social Studies", "Religious Education", "Creative Arts", "Agriculture and Nutrition"],
+        "Secondary": ["Mathematics", "English", "Kiswahili", "Physics", "Chemistry", "Biology", "Geography", "History", "Computer Studies", "Business Studies", "Agriculture", "Integrated Science", "Social Studies", "Pre-Technical Studies", "Religious Education"],
+        "University": ["Engineering", "Medicine and Health Sciences", "Computer Science and IT", "Law", "Business and Economics", "Education", "Agriculture", "Social Sciences", "Environmental Sciences", "Languages and Literature", "Statistics and Data Science"],
+    },
+    "Uganda": {
+        "Primary": ["Mathematics", "English", "Local Languages", "Integrated Science", "Social Studies", "Religious Education", "Creative Arts", "Physical Education", "Agriculture"],
+        "Secondary": ["Mathematics", "English", "Physics", "Chemistry", "Biology", "Geography", "History", "Computer Studies", "Economics", "Entrepreneurship", "Agriculture", "Literature", "Fine Art", "Religious Education"],
+        "University": ["Engineering", "Medicine and Health Sciences", "Computer Science and IT", "Law", "Business and Economics", "Education", "Agriculture", "Social Sciences", "Environmental Sciences", "Languages and Literature", "Statistics and Data Science"],
+    },
+    "Tanzania": {
+        "Primary": ["Mathematics", "Kiswahili", "English", "Science and Technology", "Social Studies", "Civic and Moral Education", "Vocational Skills", "Creative Arts", "Physical Education"],
+        "Secondary": ["Mathematics", "Kiswahili", "English", "Physics", "Chemistry", "Biology", "Geography", "History", "Civics", "Computer Studies", "Commerce", "Bookkeeping", "Agriculture", "Literature"],
+        "University": ["Engineering", "Medicine and Health Sciences", "Computer Science and IT", "Law", "Business and Economics", "Education", "Agriculture", "Social Sciences", "Environmental Sciences", "Languages and Literature", "Statistics and Data Science"],
+    },
+}
+CURRICULUM_SUBJECTS = {
+    "Cambridge / IB": {"Secondary": ["Global Perspectives", "Business Studies", "Art and Design", "Design and Technology"], "University": ["International Relations", "Architecture"]},
+    "CBC": {"Secondary": ["Sports and Physical Education", "Performing Arts", "Home Science"]},
+    "8-4-4": {"Secondary": ["Homescience", "Art and Design"]},
+}
 OFFICIAL_RESOURCES = [
     ("REB curriculum and learning resources", "curriculum", "Rwanda", "REB", "All levels", "All subjects", "Rwanda Education Board official website", "https://www.reb.gov.rw/"),
     ("Cambridge International programmes", "curriculum", "Rwanda", "Cambridge / IB", "All levels", "All subjects", "Official Cambridge International programme information", "https://www.cambridgeinternational.org/programmes-and-qualifications/"),
@@ -46,6 +73,23 @@ OFFICIAL_RESOURCES = [
     ("Tanzania NECTA", "curriculum", "Tanzania", "NECTA", "All levels", "All subjects", "Official National Examinations Council of Tanzania", "https://www.necta.go.tz/"),
 ]
 FAILED_LOGINS: dict[str, list[float]] = {}
+
+
+def subjects_for(country: str, curriculum: str) -> dict[str, list[str]] | None:
+    if country not in SUBJECT_CATALOG or curriculum not in CURRICULA.get(country, set()):
+        return None
+    return {
+        level: list(dict.fromkeys(SUBJECT_CATALOG[country][level] + CURRICULUM_SUBJECTS.get(curriculum, {}).get(level, [])))
+        for level in ("Primary", "Secondary", "University")
+    }
+
+
+def format_teacher_subjects(subjects: list[str]) -> list[str]:
+    result = []
+    for value in subjects:
+        match = re.fullmatch(r"(Primary|Secondary|University)::(.+)", str(value))
+        result.append(f"{match.group(2)} ({match.group(1)})" if match else value)
+    return result
 
 
 def connect_db() -> sqlite3.Connection:
@@ -177,9 +221,11 @@ def verify_password(password: str, stored: str) -> bool:
 
 
 def safe_user(row: sqlite3.Row) -> dict:
+    subjects = json.loads(row["subjects"])
     return {"id": row["id"], "name": row["name"], "email": row["email"], "role": row["role"],
             "country": row["country"], "curriculum": row["curriculum"],
-            "subjects": json.loads(row["subjects"]), "levels": json.loads(row["levels"]), "radius_km": row["radius_km"],
+            "subject_keys": subjects, "subjects": format_teacher_subjects(subjects),
+            "levels": json.loads(row["levels"]), "radius_km": row["radius_km"],
             "available": bool(row["available"]), "verified": bool(row["verified"])}
 
 
@@ -354,6 +400,8 @@ class ReRaHandler(BaseHTTPRequestHandler):
                 return self.login(payload)
             if parsed.path == "/api/logout":
                 return self.logout()
+            if parsed.path == "/api/managers":
+                return self.create_manager_account(payload)
             if parsed.path == "/api/students":
                 return self.create_student(payload)
             if parsed.path == "/api/requests":
@@ -383,6 +431,28 @@ class ReRaHandler(BaseHTTPRequestHandler):
         except Exception:
             self.log_error("Unhandled application error")
             self.error(500, "The request could not be completed")
+
+    def create_manager_account(self, payload: dict) -> None:
+        user = self.require_user({"manager"})
+        if not user:
+            return
+        name = str(payload.get("name", "")).strip()
+        email = str(payload.get("email", "")).strip().lower()
+        password = str(payload.get("password", ""))
+        if len(name) < 2 or len(name) > 80 or not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", email) or len(email) > 254:
+            raise ValueError("Enter a valid manager name and email address")
+        if len(password) < 12 or len(password) > 256:
+            raise ValueError("Use a password between 12 and 256 characters")
+        with connect_db() as db:
+            if db.execute("SELECT 1 FROM users WHERE email = ?", (email,)).fetchone():
+                return self.error(409, "An account already exists for this email")
+            manager_count = db.execute("SELECT COUNT(*) FROM users WHERE role = 'manager'").fetchone()[0]
+            if manager_count >= 3:
+                return self.error(409, "ReRa supports a maximum of three manager accounts")
+            db.execute("""INSERT INTO users(name, email, password_hash, role, country, curriculum, created_at)
+                VALUES (?, ?, ?, 'manager', ?, ?, ?)""",
+                (name, email, password_hash(password), user["country"], user["curriculum"], now_iso()))
+        return self.respond(201, {"ok": True})
 
     def do_DELETE(self):
         if not self.require_same_origin():
@@ -430,14 +500,25 @@ class ReRaHandler(BaseHTTPRequestHandler):
             raise ValueError("Choose a parent or teacher account")
         if country not in COUNTRIES or curriculum not in CURRICULA[country]:
             raise ValueError("Choose a curriculum offered in your country")
-        if not isinstance(subjects, list) or len(subjects) > 20 or any(not isinstance(item, str) or len(item) > 60 for item in subjects):
+        if not isinstance(subjects, list) or len(subjects) > 60 or any(not isinstance(item, str) or len(item) > 100 for item in subjects):
             raise ValueError("Choose valid teaching subjects")
-        if not isinstance(levels, list) or any(item not in LEVELS for item in levels):
+        if not isinstance(levels, list) or any(not isinstance(item, str) or item not in LEVELS for item in levels) or len(set(levels)) != len(levels):
             raise ValueError("Choose valid academic levels")
         if role == "teacher" and not subjects:
             raise ValueError("Select at least one subject you teach")
         if role == "teacher" and not levels:
             raise ValueError("Select at least one academic level you teach")
+        if role == "teacher":
+            catalog = subjects_for(country, curriculum)
+            valid = all(
+                isinstance(selection, str)
+                and len(parts := selection.split("::", 1)) == 2
+                and parts[0] in levels
+                and parts[1] in catalog[parts[0]]
+                for selection in subjects
+            )
+            if not valid or any(not any(selection.startswith(f"{level}::") for selection in subjects) for level in levels):
+                raise ValueError("Select at least one valid subject for each academic level you teach")
         if role == "parent":
             subjects = []
             levels = []
@@ -479,6 +560,13 @@ class ReRaHandler(BaseHTTPRequestHandler):
         self.respond(200, {"ok": True}, {"Set-Cookie": "rera_session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0"})
 
     def api_get(self, path: str, query: dict) -> None:
+        if path == "/api/subjects":
+            country = query.get("country", [""])[0]
+            curriculum = query.get("curriculum", [""])[0]
+            subjects = subjects_for(country, curriculum)
+            if subjects is None:
+                return self.error(400, "Choose a curriculum offered in your country")
+            return self.respond(200, subjects)
         if path == "/api/me":
             user = self.current_user()
             if not user:
@@ -498,6 +586,12 @@ class ReRaHandler(BaseHTTPRequestHandler):
             if user["role"] != "manager":
                 return self.error(403, "Manager access required")
             return self.list_families()
+        if path == "/api/managers":
+            if user["role"] != "manager":
+                return self.error(403, "Manager access required")
+            with connect_db() as db:
+                managers = db.execute("SELECT id, name, email, created_at FROM users WHERE role = 'manager' ORDER BY id").fetchall()
+            return self.respond(200, [dict(manager) for manager in managers])
         if path == "/api/requests":
             return self.list_requests(user)
         if path == "/api/teachers":
@@ -587,6 +681,9 @@ class ReRaHandler(BaseHTTPRequestHandler):
             subject = str(payload.get("subject", "")).strip()
             location = str(payload.get("location", "")).strip()
             mode = str(payload.get("mode", "In person"))
+            catalog = subjects_for(country, curriculum)
+            if not catalog or subject not in catalog[level]:
+                raise ValueError("Choose a subject offered for this learner's country, curriculum, and level")
             if not subject or len(subject) > 80 or not location or len(location) > 120:
                 raise ValueError("Add a subject and neighborhood or town")
             if mode not in {"In person", "Online", "Either"} or radius not in {5, 10, 20, 50}:
@@ -636,7 +733,8 @@ class ReRaHandler(BaseHTTPRequestHandler):
         result = []
         for row in rows:
             teacher = dict(row)
-            teacher["subjects"] = json.loads(teacher["subjects"])
+            teacher["subject_keys"] = json.loads(teacher["subjects"])
+            teacher["subjects"] = format_teacher_subjects(teacher["subject_keys"])
             teacher["levels"] = json.loads(teacher["levels"])
             teacher["available"] = bool(teacher["available"])
             teacher["verified"] = bool(teacher["verified"])
@@ -730,7 +828,8 @@ class ReRaHandler(BaseHTTPRequestHandler):
         for teacher in teachers:
             subjects = json.loads(teacher["subjects"])
             levels = json.loads(teacher["levels"])
-            if request["subject"] not in subjects or request["level"] not in levels:
+            if (request["level"] not in levels
+                    or f"{request['level']}::{request['subject']}" not in subjects and request["subject"] not in subjects):
                 continue
             if request["latitude"] is not None and teacher["latitude"] is not None:
                 distance = distance_km(request["latitude"], request["longitude"], teacher["latitude"], teacher["longitude"])
@@ -777,7 +876,7 @@ class ReRaHandler(BaseHTTPRequestHandler):
                     WHERE r.parent_id = ? ORDER BY p.created_at DESC""", (user["id"],)).fetchall()
             result = [dict(row) for row in rows]
             for item in result:
-                item["subjects"] = json.loads(item["subjects"])
+                item["subjects"] = format_teacher_subjects(json.loads(item["subjects"]))
                 item["verified"] = bool(item["verified"])
             return self.respond(200, result)
         return self.respond(200, [])

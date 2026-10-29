@@ -131,6 +131,62 @@ const CURRICULA = {
   Tanzania: new Set(["NECTA"]),
 };
 const LEVELS = new Set(["Primary", "Secondary", "University"]);
+const SUBJECT_CATALOG = {
+  Rwanda: {
+    Primary: ["Mathematics", "English", "Kinyarwanda", "French", "Social and Religious Studies", "Science and Elementary Technology", "Creative Arts and Physical Education"],
+    Secondary: ["Mathematics", "English", "Kinyarwanda", "French", "Physics", "Chemistry", "Biology", "Geography", "History", "Computer Science", "Economics", "Literature", "Entrepreneurship", "General Studies"],
+    University: ["Engineering", "Medicine and Health Sciences", "Computer Science and IT", "Law", "Business and Economics", "Education", "Agriculture", "Social Sciences", "Environmental Sciences", "Languages and Literature", "Statistics and Data Science"],
+  },
+  Kenya: {
+    Primary: ["Mathematics", "English", "Kiswahili", "Indigenous Languages", "Environmental Activities", "Integrated Science", "Social Studies", "Religious Education", "Creative Arts", "Agriculture and Nutrition"],
+    Secondary: ["Mathematics", "English", "Kiswahili", "Physics", "Chemistry", "Biology", "Geography", "History", "Computer Studies", "Business Studies", "Agriculture", "Integrated Science", "Social Studies", "Pre-Technical Studies", "Religious Education"],
+    University: ["Engineering", "Medicine and Health Sciences", "Computer Science and IT", "Law", "Business and Economics", "Education", "Agriculture", "Social Sciences", "Environmental Sciences", "Languages and Literature", "Statistics and Data Science"],
+  },
+  Uganda: {
+    Primary: ["Mathematics", "English", "Local Languages", "Integrated Science", "Social Studies", "Religious Education", "Creative Arts", "Physical Education", "Agriculture"],
+    Secondary: ["Mathematics", "English", "Physics", "Chemistry", "Biology", "Geography", "History", "Computer Studies", "Economics", "Entrepreneurship", "Agriculture", "Literature", "Fine Art", "Religious Education"],
+    University: ["Engineering", "Medicine and Health Sciences", "Computer Science and IT", "Law", "Business and Economics", "Education", "Agriculture", "Social Sciences", "Environmental Sciences", "Languages and Literature", "Statistics and Data Science"],
+  },
+  Tanzania: {
+    Primary: ["Mathematics", "Kiswahili", "English", "Science and Technology", "Social Studies", "Civic and Moral Education", "Vocational Skills", "Creative Arts", "Physical Education"],
+    Secondary: ["Mathematics", "Kiswahili", "English", "Physics", "Chemistry", "Biology", "Geography", "History", "Civics", "Computer Studies", "Commerce", "Bookkeeping", "Agriculture", "Literature"],
+    University: ["Engineering", "Medicine and Health Sciences", "Computer Science and IT", "Law", "Business and Economics", "Education", "Agriculture", "Social Sciences", "Environmental Sciences", "Languages and Literature", "Statistics and Data Science"],
+  },
+};
+const CURRICULUM_SUBJECTS = {
+  "Cambridge / IB": {
+    Secondary: ["Global Perspectives", "Business Studies", "Art and Design", "Design and Technology"],
+    University: ["International Relations", "Architecture"],
+  },
+  CBC: {
+    Secondary: ["Sports and Physical Education", "Performing Arts", "Home Science"],
+  },
+  "8-4-4": {
+    Secondary: ["Homescience", "Art and Design"],
+  },
+};
+
+function subjectsFor(country, curriculum) {
+  const countrySubjects = SUBJECT_CATALOG[country];
+  if (!countrySubjects || !CURRICULA[country]?.has(curriculum)) return null;
+  return Object.fromEntries([...LEVELS].map(level => [
+    level,
+    [...new Set([...countrySubjects[level], ...(CURRICULUM_SUBJECTS[curriculum]?.[level] || [])])],
+  ]));
+}
+
+function teacherSubjectKey(level, subject) {
+  return `${level}::${subject}`;
+}
+
+function teacherSubjectLabel(value) {
+  const match = String(value).match(/^(Primary|Secondary|University)::(.+)$/);
+  return match ? `${match[2]} (${match[1]})` : value;
+}
+
+function formatTeacherSubjects(value) {
+  return parseArray(value).map(teacherSubjectLabel);
+}
 
 class ApiError extends Error {
   constructor(message, status = 400) {
@@ -213,7 +269,9 @@ function matchingTeachers(state, request) {
     radius_km, available, verified FROM users WHERE role = 'teacher' AND verified = 1 AND available = 1
     AND country = ? AND curriculum = ?`, request.country, request.curriculum);
   return candidates.filter(teacher => {
-    if (!parseArray(teacher.levels).includes(request.level) || !parseArray(teacher.subjects).includes(request.subject)) return false;
+    const subjects = parseArray(teacher.subjects);
+    if (!parseArray(teacher.levels).includes(request.level)
+      || (!subjects.includes(teacherSubjectKey(request.level, request.subject)) && !subjects.includes(request.subject))) return false;
     if (request.latitude != null && teacher.latitude != null) {
       const distance = distanceKm(request.latitude, request.longitude, teacher.latitude, teacher.longitude);
       return distance <= request.radius_km && distance <= teacher.radius_km;
@@ -223,12 +281,23 @@ function matchingTeachers(state, request) {
 }
 
 function getStoreData(request, state, url) {
+  if (url.pathname === "/api/subjects") {
+    const country = url.searchParams.get("country");
+    const curriculum = url.searchParams.get("curriculum");
+    const subjects = subjectsFor(country, curriculum);
+    if (!subjects) return response({ error: "Choose a curriculum offered in your country" }, 400);
+    return response(subjects);
+  }
   const access = requireUser(request, state);
   if (access.error) return access.error;
   const user = access.user;
   if (url.pathname === "/api/families") {
     if (user.role !== "manager") return response({ error: "Manager access required" }, 403);
     return response(listFamilies(state));
+  }
+  if (url.pathname === "/api/managers") {
+    if (user.role !== "manager") return response({ error: "Manager access required" }, 403);
+    return response(rows(state, "SELECT id, name, email, created_at FROM users WHERE role = 'manager' ORDER BY id"));
   }
   if (url.pathname === "/api/students") {
     if (user.role !== "parent") return response([]);
@@ -238,7 +307,7 @@ function getStoreData(request, state, url) {
     if (user.role !== "manager") return response({ error: "Manager access required" }, 403);
     return response(rows(state, `SELECT id, name, country, curriculum, subjects, levels, latitude, longitude, radius_km,
       available, verified FROM users WHERE role = 'teacher' ORDER BY verified DESC, name`).map(teacher => ({
-      ...teacher, subjects: parseArray(teacher.subjects), levels: parseArray(teacher.levels),
+      ...teacher, subject_keys: parseArray(teacher.subjects), subjects: formatTeacherSubjects(teacher.subjects), levels: parseArray(teacher.levels),
       available: Boolean(teacher.available), verified: Boolean(teacher.verified),
     })));
   }
@@ -269,7 +338,7 @@ function getStoreData(request, state, url) {
         u.country, u.curriculum, u.subjects, u.verified FROM pitches p
         JOIN learning_requests r ON r.id = p.request_id JOIN users u ON u.id = p.teacher_id
         WHERE r.parent_id = ? ORDER BY p.created_at DESC`, user.id).map(pitch => ({
-        ...pitch, subjects: parseArray(pitch.subjects), verified: Boolean(pitch.verified),
+        ...pitch, subjects: formatTeacherSubjects(pitch.subjects), verified: Boolean(pitch.verified),
       })));
     }
     return response([]);
@@ -310,6 +379,33 @@ async function postStoreData(request, state, url) {
   if (access.error) return access.error;
   const user = access.user;
   const body = await readJson(request);
+  if (url.pathname === "/api/managers") {
+    if (user.role !== "manager") return response({ error: "Manager access required" }, 403);
+    const name = String(body.name || "").trim();
+    const email = String(body.email || "").trim().toLowerCase();
+    const password = String(body.password || "");
+    if (name.length < 2 || name.length > 80 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) {
+      return response({ error: "Enter a valid manager name and email address" }, 400);
+    }
+    if (password.length < 12 || password.length > 256) {
+      return response({ error: "Use a password between 12 and 256 characters" }, 400);
+    }
+    if (rows(state, "SELECT 1 FROM users WHERE email = ? LIMIT 1", email).length) {
+      return response({ error: "An account already exists for this email" }, 409);
+    }
+    const derived = await hashPassword(password);
+    const managerCount = rows(state, "SELECT COUNT(*) AS count FROM users WHERE role = 'manager'")[0]?.count || 0;
+    if (managerCount >= 3) return response({ error: "ReRa supports a maximum of three manager accounts" }, 409);
+    if (rows(state, "SELECT 1 FROM users WHERE email = ? LIMIT 1", email).length) {
+      return response({ error: "An account already exists for this email" }, 409);
+    }
+    state.storage.sql.exec(
+      `INSERT INTO users (name, email, password_salt, password_hash, role, country, curriculum, email_verified, created_at)
+       VALUES (?, ?, ?, ?, 'manager', ?, ?, 1, ?)`,
+      name, email, derived.salt, derived.hash, user.country, user.curriculum, new Date().toISOString(),
+    );
+    return response({ ok: true }, 201);
+  }
   if (url.pathname === "/api/students") {
     const name = String(body.name || "").trim();
     const country = String(body.country || user.country);
@@ -363,6 +459,10 @@ async function postStoreData(request, state, url) {
     const subject = String(body.subject || "").trim();
     const location = String(body.location || "").trim();
     const mode = String(body.mode || "In person");
+    const subjects = subjectsFor(student.country, student.curriculum);
+    if (!subjects?.[student.level]?.includes(subject)) {
+      return response({ error: "Choose a subject offered for this learner's country, curriculum, and level" }, 400);
+    }
     if (!subject || subject.length > 80 || !location || location.length > 120) return response({ error: "Add a subject and neighborhood or town" }, 400);
     if (!["In person", "Online", "Either"].includes(mode)) return response({ error: "Choose a valid lesson format and radius" }, 400);
     let latitude = body.latitude;
@@ -606,8 +706,21 @@ async function handleStoreRequest(request, state, env) {
     if (password.length < 12 || password !== String(body.password_confirm || "")) return response({ error: "Use a matching password with at least 12 characters" }, 400);
     if (!["parent", "teacher"].includes(role)) return response({ error: "Choose a parent or teacher account" }, 400);
     if (!COUNTRIES.has(country) || !CURRICULA[country].has(curriculum)) return response({ error: "Choose a curriculum offered in your country" }, 400);
-    if (!Array.isArray(subjects) || !Array.isArray(levels) || levels.some(level => !LEVELS.has(level))) return response({ error: "Choose valid teaching subjects and academic levels" }, 400);
+    if (!Array.isArray(subjects) || !Array.isArray(levels) || levels.some(level => !LEVELS.has(level)) || new Set(levels).size !== levels.length) return response({ error: "Choose valid teaching subjects and academic levels" }, 400);
     if (role === "teacher" && (!subjects.length || !levels.length)) return response({ error: "Select at least one subject and academic level you teach" }, 400);
+    if (role === "teacher") {
+      const catalog = subjectsFor(country, curriculum);
+      const validSelections = subjects.every(selection => {
+        if (typeof selection !== "string") return false;
+        const [level, ...parts] = selection.split("::");
+        const subject = parts.join("::");
+        return levels.includes(level) && catalog[level]?.includes(subject);
+      });
+      if (!validSelections || levels.some(level => !subjects.some(selection =>
+        typeof selection === "string" && selection.startsWith(`${level}::`)))) {
+        return response({ error: "Select at least one valid subject for each academic level you teach" }, 400);
+      }
+    }
 
     await deleteExpiredUnverifiedAccounts(state);
     if (state.storage.sql.exec("SELECT 1 FROM users WHERE email = ?", email).toArray().length) return response({ error: "An account already exists for this email" }, 409);
@@ -689,7 +802,8 @@ async function handleStoreRequest(request, state, env) {
     return response({ ok: true }, 200, { "Set-Cookie": "rera_session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0" });
   }
 
-  if (url.pathname === "/api/families" || url.pathname === "/api/students" || url.pathname === "/api/requests"
+  if (url.pathname === "/api/families" || url.pathname === "/api/managers" || url.pathname === "/api/subjects"
+    || url.pathname === "/api/students" || url.pathname === "/api/requests"
     || url.pathname === "/api/resources" || url.pathname === "/api/pitches" || url.pathname === "/api/feedback"
     || url.pathname === "/api/teachers" || url.pathname === "/api/coordinates" || url.pathname === "/api/teacher/profile"
     || url.pathname === "/api/nearby-teachers") {
@@ -719,7 +833,7 @@ function currentUser(request, state) {
   const row = result[0];
   return {
     id: row.id, name: row.name, email: row.email, role: row.role, country: row.country, curriculum: row.curriculum,
-    subjects: parseArray(row.subjects), levels: parseArray(row.levels), radius_km: row.radius_km,
+    subject_keys: parseArray(row.subjects), subjects: formatTeacherSubjects(row.subjects), levels: parseArray(row.levels), radius_km: row.radius_km,
     available: Boolean(row.available), verified: Boolean(row.verified),
   };
 }

@@ -24,10 +24,12 @@ let students = [];
 let families = [];
 let requests = [];
 let teachers = [];
+let managers = [];
 let pitches = [];
 let resources = [];
 let feedback = [];
 let selectedRequestId = null;
+let requestSubjectsSequence = 0;
 let mapInstance = null;
 let toastTimeout;
 let learnerView = false;
@@ -146,7 +148,7 @@ async function refreshData() {
   const tasks = ["/api/requests", "/api/resources"];
   if (currentUser.role === "parent") tasks.push("/api/students", "/api/pitches", "/api/feedback");
   if (currentUser.role === "teacher") tasks.push("/api/pitches", "/api/feedback");
-  if (currentUser.role === "manager") tasks.push("/api/teachers", "/api/feedback", "/api/families");
+  if (currentUser.role === "manager") tasks.push("/api/teachers", "/api/feedback", "/api/families", "/api/managers");
   const results = await Promise.all(tasks.map(path => api(path)));
   requests = results[0];
   resources = results[1];
@@ -162,6 +164,7 @@ async function refreshData() {
     teachers = results[cursor++];
     feedback = results[cursor];
     families = results[cursor + 1];
+    managers = results[cursor + 2];
   }
 }
 
@@ -319,6 +322,18 @@ function metric(label, value, note, icon) {
   return `<article class="metric"><div class="metric-label"><span>${label}</span><span class="metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">${icon}</svg></span></div><div class="metric-value">${value}</div><div class="metric-sub">${note}</div></article>`;
 }
 
+function formatTeacherSubjects(subjects) {
+  return subjects.map(value => {
+    const [level, ...parts] = String(value).split("::");
+    return parts.length ? `${parts.join("::")} (${level})` : value;
+  }).join(", ");
+}
+
+function managerTeamPanel() {
+  const canAddManager = managers.length < 3;
+  return `<section class="panel"><div class="panel-head"><div><h2>Manager team</h2><p>${managers.length} of 3 manager accounts. Managers can add another manager until the limit is reached.</p></div>${canAddManager ? `<button class="button button-compact" data-action="manager-new">Add manager</button>` : `<span class="tag">Maximum reached</span>`}</div><div class="tutor-list">${managers.map(manager => `<div class="tutor-row"><span class="tutor-avatar">${initials(manager.name)}</span><div class="tutor-info"><strong>${escapeHtml(manager.name)}</strong><span>${escapeHtml(manager.email)}</span></div><span class="status verified">Manager</span></div>`).join("")}</div></section>`;
+}
+
 function managerView() {
   const matching = requests.filter(request => request.status === "Matching").length;
   const unverified = teachers.filter(teacher => !teacher.verified).length;
@@ -328,7 +343,7 @@ function managerView() {
   const requestOptions = requests.map(request => `<option value="${request.id}" ${String(request.id) === String(selectedRequestId || requests[0]?.id) ? "selected" : ""}>${escapeHtml(request.id)} · ${escapeHtml(request.location_label)} · ${escapeHtml(request.subject)}</option>`).join("");
   const requestRows = requests.map(request => `<tr><td class="tag">LR-${request.id}</td><td><strong>${escapeHtml(request.learner_name)}</strong><br><span>${escapeHtml(request.location_label)} · ${escapeHtml(request.country)}</span></td><td>${escapeHtml(request.curriculum)}</td><td>${escapeHtml(request.level)} · ${escapeHtml(request.grade)}</td><td><span class="tag">${escapeHtml(request.subject)}</span></td><td>${request.radius_km} km</td><td><span class="status ${escapeHtml(request.status.toLowerCase())}">${escapeHtml(request.status)}</span></td><td><button class="match-button" data-action="view-request" data-request="${request.id}">Qualified tutors</button></td></tr>`).join("");
   const matchingSteps = `<section class="manager-match-flow" aria-label="Manager-led matching workflow"><div><span>01</span><strong>Review the request</strong><small>Check subject, curriculum, level and lesson area.</small></div><div><span>02</span><strong>Shortlist &amp; pitch</strong><small>Choose a verified educator and send a private offer.</small></div><div><span>03</span><strong>Confirm the match</strong><small>After acceptance, ReRa coordinates the family introduction.</small></div></section>`;
-  return `${heading("Coordinate the right match.", "ReRa managers are the trusted middle link: they verify educators, shortlist by learner needs and coordinate introductions.", `<button class="button button-compact" data-action="resource-new">Share material</button>`)}${matchingSteps}${metrics}<section class="app-grid"><article class="panel"><div class="panel-head"><div><h2>Real educator locations</h2><p>Only verified, available educators who meet selected request criteria are shown.</p></div><span class="tag">OpenStreetMap</span></div><div class="map-actions"><select id="mapRequestSelect" class="form-control" aria-label="Choose map request">${requestOptions || "<option>No learning requests</option>"}</select><button class="button-light" data-action="refresh-map">Refresh pins</button></div><div class="map-container"><div id="managerMap" class="map" aria-label="Map of lesson request area and matching educators"></div></div><div class="map-key"><span><i class="map-dot request"></i>Lesson area, exact pin</span><span><i class="map-dot"></i>Verified tutor</span></div><div class="map-notice">Exact learner pins are visible only to authorized managers. Parents must grant location permission for in-person matching.</div></article><article class="panel"><div class="panel-head"><div><h2>Educator review</h2><p>New tutor accounts require manager verification.</p></div><span class="tag">${unverified} to review</span></div>${teachers.length ? teachers.map(teacher => `<div class="tutor-row"><span class="tutor-avatar">${initials(teacher.name)}</span><div class="tutor-info"><strong>${escapeHtml(teacher.name)}</strong><span>${escapeHtml(teacher.country)} · ${escapeHtml(teacher.curriculum)} · ${escapeHtml(teacher.subjects.join(", "))} · ${escapeHtml(teacher.levels.join(", "))}</span></div>${teacher.verified ? `<span class="status verified">Verified</span>` : `<button class="match-button" data-action="verify" data-teacher="${teacher.id}">Review & verify</button>`}</div>`).join("") : `<div class="empty">Tutor applications will appear here.</div>`}</article></section><section class="panel"><div class="panel-head"><div><h2>Learning requests</h2><p>Private learner records. Only managers can see precise lesson coordinates.</p></div><span class="tag">${requests.length} requests</span></div><div class="filter-row"><input class="form-control" id="managerSearch" type="search" placeholder="Search learner, neighborhood, subject"><select class="form-control" id="managerCountry"><option value="">All countries</option>${Object.keys(curriculaByCountry).map(country => `<option>${country}</option>`).join("")}</select><select class="form-control" id="managerLevel"><option value="">All levels</option>${levels.map(level => `<option>${level}</option>`).join("")}</select></div><div class="table-wrap"><table class="table"><thead><tr><th>Ref</th><th>Learner / neighborhood</th><th>Curriculum</th><th>Academic level</th><th>Subject</th><th>Radius</th><th>Status</th><th>Matching</th></tr></thead><tbody id="managerRows">${requestRows}</tbody></table>${requests.length ? "" : `<div class="empty">Family requests appear here after a parent creates an account and adds a learner.</div>`}</div></section>`;
+  return `${heading("Coordinate the right match.", "ReRa managers are the trusted middle link: they verify educators, shortlist by learner needs and coordinate introductions.", `<button class="button button-compact" data-action="resource-new">Share material</button>`)}${managerTeamPanel()}${matchingSteps}${metrics}<section class="app-grid"><article class="panel"><div class="panel-head"><div><h2>Real educator locations</h2><p>Only verified, available educators who meet selected request criteria are shown.</p></div><span class="tag">OpenStreetMap</span></div><div class="map-actions"><select id="mapRequestSelect" class="form-control" aria-label="Choose map request">${requestOptions || "<option>No learning requests</option>"}</select><button class="button-light" data-action="refresh-map">Refresh pins</button></div><div class="map-container"><div id="managerMap" class="map" aria-label="Map of lesson request area and matching educators"></div></div><div class="map-key"><span><i class="map-dot request"></i>Lesson area, exact pin</span><span><i class="map-dot"></i>Verified tutor</span></div><div class="map-notice">Exact learner pins are visible only to authorized managers. Parents must grant location permission for in-person matching.</div></article><article class="panel"><div class="panel-head"><div><h2>Educator review</h2><p>New tutor accounts require manager verification.</p></div><span class="tag">${unverified} to review</span></div>${teachers.length ? teachers.map(teacher => `<div class="tutor-row"><span class="tutor-avatar">${initials(teacher.name)}</span><div class="tutor-info"><strong>${escapeHtml(teacher.name)}</strong><span>${escapeHtml(teacher.country)} · ${escapeHtml(teacher.curriculum)} · ${escapeHtml(formatTeacherSubjects(teacher.subjects))} · ${escapeHtml(teacher.levels.join(", "))}</span></div>${teacher.verified ? `<span class="status verified">Verified</span>` : `<button class="match-button" data-action="verify" data-teacher="${teacher.id}">Review & verify</button>`}</div>`).join("") : `<div class="empty">Tutor applications will appear here.</div>`}</article></section><section class="panel"><div class="panel-head"><div><h2>Learning requests</h2><p>Private learner records. Only managers can see precise lesson coordinates.</p></div><span class="tag">${requests.length} requests</span></div><div class="filter-row"><input class="form-control" id="managerSearch" type="search" placeholder="Search learner, neighborhood, subject"><select class="form-control" id="managerCountry"><option value="">All countries</option>${Object.keys(curriculaByCountry).map(country => `<option>${country}</option>`).join("")}</select><select class="form-control" id="managerLevel"><option value="">All levels</option>${levels.map(level => `<option>${level}</option>`).join("")}</select></div><div class="table-wrap"><table class="table"><thead><tr><th>Ref</th><th>Learner / neighborhood</th><th>Curriculum</th><th>Academic level</th><th>Subject</th><th>Radius</th><th>Status</th><th>Matching</th></tr></thead><tbody id="managerRows">${requestRows}</tbody></table>${requests.length ? "" : `<div class="empty">Family requests appear here after a parent creates an account and adds a learner.</div>`}</div></section>`;
 }
 
 function familyDirectoryView() {
@@ -343,7 +358,7 @@ function familyDirectoryView() {
 }
 
 function initials(name) {
-  return String(name).split(/\s+/).map(part => part[0]).join("").slice(0, 2).toUpperCase();
+  return escapeHtml(String(name).split(/\s+/).map(part => part[0]).join("").slice(0, 2).toUpperCase());
 }
 
 function parentView() {
@@ -382,7 +397,7 @@ function otherSectionView() {
   if (currentUser.role === "manager") {
     if (activeSection === "Families & learners") return familyDirectoryView();
     if (activeSection === "Learning requests") return `${managerView()}`;
-    if (activeSection === "Educator network") return `${heading("Educator network.", "Review educator profiles and verification before matching.")}<section class="panel"><div class="tutor-list">${teachers.length ? teachers.map(teacher => `<div class="tutor-row"><span class="tutor-avatar">${initials(teacher.name)}</span><div class="tutor-info"><strong>${escapeHtml(teacher.name)}</strong><span>${escapeHtml(teacher.country)} · ${escapeHtml(teacher.curriculum)} · ${escapeHtml(teacher.levels.join(", "))} · ${escapeHtml(teacher.subjects.join(", "))}</span></div>${teacher.verified ? `<span class="status verified">Verified</span>` : `<button class="match-button" data-action="verify" data-teacher="${teacher.id}">Review & verify</button>`}</div>`).join("") : `<div class="empty">No educator accounts yet.</div>`}</div></section>`;
+    if (activeSection === "Educator network") return `${heading("Educator network.", "Review educator profiles and verification before matching.")}<section class="panel"><div class="tutor-list">${teachers.length ? teachers.map(teacher => `<div class="tutor-row"><span class="tutor-avatar">${initials(teacher.name)}</span><div class="tutor-info"><strong>${escapeHtml(teacher.name)}</strong><span>${escapeHtml(teacher.country)} · ${escapeHtml(teacher.curriculum)} · ${escapeHtml(teacher.levels.join(", "))} · ${escapeHtml(formatTeacherSubjects(teacher.subjects))}</span></div>${teacher.verified ? `<span class="status verified">Verified</span>` : `<button class="match-button" data-action="verify" data-teacher="${teacher.id}">Review & verify</button>`}</div>`).join("") : `<div class="empty">No educator accounts yet.</div>`}</div></section>`;
     if (activeSection === "Material repository") return `${heading("A shared library for learning.", "PDF materials published by verified educators.", `<button class="button button-compact" data-action="resource-new">Share material</button>`)}${resourceRepository(resources, "material", false)}`;
     if (activeSection === "Curriculum repository") return `${heading("Curricula, by country.", "Official sources for the learning systems ReRa supports.")}${resourceRepository(resources, "curriculum", true)}`;
   }
@@ -419,14 +434,38 @@ function renderSection() {
   return activeSection === "Family overview" ? parentView() : otherSectionView();
 }
 
+async function updateResourceSubjects(form) {
+  const requestId = Number(form.dataset.subjectsRequest || 0) + 1;
+  form.dataset.subjectsRequest = String(requestId);
+  const country = form.elements.country.value;
+  const curriculum = form.elements.curriculum.value;
+  const level = form.elements.level.value;
+  const select = form.elements.subject;
+  const allSubjects = level === "All levels";
+  const result = await api(`/api/subjects?country=${encodeURIComponent(country)}&curriculum=${encodeURIComponent(curriculum)}`);
+  if (Number(form.dataset.subjectsRequest) !== requestId) return;
+  const options = allSubjects ? [...new Set(Object.values(result).flat())] : result[level] || [];
+  select.replaceChildren(new Option("All subjects", "All subjects"));
+  options.forEach(subject => select.add(new Option(subject, subject)));
+}
+
 function bindDynamicForms() {
   document.querySelectorAll(".country-select").forEach(countrySelect => {
+    if (countrySelect.dataset.curriculumBound === "true") return;
+    countrySelect.dataset.curriculumBound = "true";
     const form = countrySelect.closest("form");
     const curriculumSelect = form.querySelector(".curriculum-select");
+    const resourceForm = form.id === "materialForm";
     const update = () => {
       curriculumSelect.innerHTML = curriculaByCountry[countrySelect.value].map(item => `<option>${escapeHtml(item)}</option>`).join("");
+      if (resourceForm) updateResourceSubjects(form).catch(error => showToast(error.message));
     };
     countrySelect.addEventListener("change", update);
+    if (resourceForm) {
+      curriculumSelect.addEventListener("change", () => updateResourceSubjects(form).catch(error => showToast(error.message)));
+      form.elements.level.addEventListener("change", () => updateResourceSubjects(form).catch(error => showToast(error.message)));
+      form.addEventListener("reset", () => setTimeout(update, 0));
+    }
     update();
   });
 }
@@ -482,7 +521,9 @@ function requestMatches(request) {
   return teachers.filter(teacher => {
     if (!teacher.verified || !teacher.available) return false;
     if (teacher.country !== request.country || teacher.curriculum !== request.curriculum) return false;
-    if (!teacher.levels.includes(request.level) || !teacher.subjects.includes(request.subject)) return false;
+    const subjects = teacher.subject_keys || teacher.subjects;
+    if (!teacher.levels.includes(request.level)
+      || (!subjects.includes(`${request.level}::${request.subject}`) && !subjects.includes(request.subject))) return false;
     if (request.latitude != null && teacher.latitude != null) {
       const km = distanceKm(request.latitude, request.longitude, teacher.latitude, teacher.longitude);
       if (km > request.radius_km || km > teacher.radius_km) return false;
@@ -516,6 +557,28 @@ function openDialog(id) {
 function fillStudentOptions(selectedId) {
   const select = $("requestStudent");
   select.innerHTML = students.map(student => `<option value="${student.id}" ${String(student.id) === String(selectedId) ? "selected" : ""}>${escapeHtml(student.name)} · ${escapeHtml(student.level)} ${escapeHtml(student.grade)} · ${escapeHtml(student.curriculum)}</option>`).join("");
+}
+
+async function updateRequestSubjects() {
+  const student = students.find(item => String(item.id) === $("requestStudent").value);
+  const select = $("requestSubject");
+  const sequence = ++requestSubjectsSequence;
+  select.replaceChildren();
+  if (!student) return;
+  const result = await api(`/api/subjects?country=${encodeURIComponent(student.country)}&curriculum=${encodeURIComponent(student.curriculum)}`);
+  if (sequence !== requestSubjectsSequence) return;
+  const placeholder = document.createElement("option");
+  placeholder.value = "";
+  placeholder.textContent = "Choose a subject";
+  placeholder.disabled = true;
+  placeholder.selected = true;
+  select.append(placeholder);
+  (result[student.level] || []).forEach(subject => {
+    const option = document.createElement("option");
+    option.value = subject;
+    option.textContent = subject;
+    select.append(option);
+  });
 }
 
 function getCoordinates(form, success, failure) {
@@ -613,7 +676,11 @@ async function handleAction(action) {
     } else if (name === "request-new") {
       if (!students.length) return showToast("Add a learner profile before making a tutoring request.");
       fillStudentOptions(action.dataset.student || students[0].id);
+      await updateRequestSubjects();
       openDialog("requestDialog");
+    } else if (name === "manager-new") {
+      if (managers.length >= 3) return showToast("ReRa supports a maximum of three manager accounts.");
+      openDialog("managerDialog");
     } else if (name === "resource-new") {
       openDialog("materialDialog");
     } else if (name === "view-request") {
@@ -700,6 +767,31 @@ function bindForms() {
     }
   });
   $("requestForm")?.addEventListener("submit", event => { event.preventDefault(); submitRequest(event.currentTarget); });
+  $("requestStudent")?.addEventListener("change", () => updateRequestSubjects().catch(error => showToast(error.message)));
+  $("managerForm")?.addEventListener("submit", async event => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const data = new FormData(form);
+    const password = String(data.get("password") || "");
+    if (password !== data.get("password_confirm")) return showToast("Manager passwords do not match.");
+    const button = form.querySelector("button.button");
+    button.disabled = true;
+    try {
+      await api("/api/managers", {
+        method: "POST",
+        body: JSON.stringify({ name: data.get("name"), email: data.get("email"), password }),
+      });
+      $("managerDialog").close();
+      form.reset();
+      await refreshData();
+      render();
+      showToast("Manager account created. They can now sign in.");
+    } catch (error) {
+      showToast(error.message);
+    } finally {
+      button.disabled = false;
+    }
+  });
   $("pinRequestLocation")?.addEventListener("click", locateRequestArea);
   $("materialForm")?.addEventListener("submit", async event => {
     event.preventDefault();
