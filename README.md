@@ -49,6 +49,9 @@ The logistical, financial, and oversight hub for the family.
 A mobile-first interface optimized for local gig-economy educators and professional teachers.
 *   **Radius Settings & Availability:** Tutors can toggle their operating zone (e.g., "Within 5km of Gasabo, Kigali" or "Westlands, Nairobi") and update free hours.
 *   **Private Job Pipeline:** Receives incoming notification pings from Managers offering nearby tutoring gigs. Tutors can view the curriculum, level, and subjects required, then click to accept or decline.
+* **Nearby learner requests:** Verified, available educators can browse anonymous, approximate map areas for open learner requests that match their region, subjects, level and travel radius. An educator's interest goes to a manager for review; approval sends a private offer without disclosing the learner's identity or exact location.
+* **Teaching address and weekly availability:** Educators may save a private city, district, sector, cell, street and optional house number, alongside an optional map pin. Weekly availability slots are stored in the timetable, and overlapping slots are rejected with alternative times suggested. This is recurring availability, not a confirmed lesson schedule.
+* **Calendar reminders:** Google Calendar reminders are not enabled yet. ReRa does not currently have dated lesson bookings or Google OAuth credentials configured, so it cannot safely create lesson events or reminders.
 *   **Navigation Assistance:** In-app mapping (via Google Maps/OpenStreetMap) to easily navigate to the learner’s home or designated study center.
 *   **Curriculum-Specific Toolkit:** A portal to view specific national syllabi guidelines, ensuring lessons align perfectly with what the student faces in school.
 

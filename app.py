@@ -36,6 +36,7 @@ CURRICULA = {
     "Tanzania": {"NECTA"},
 }
 LEVELS = {"Primary", "Secondary", "University"}
+WEEKDAYS = ("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
 ROLES = {"parent", "teacher"}
 SUBJECT_CATALOG = {
     "Rwanda": {
@@ -114,6 +115,12 @@ def initialize_database() -> None:
                 curriculum TEXT NOT NULL,
                 subjects TEXT NOT NULL DEFAULT '[]',
                 levels TEXT NOT NULL DEFAULT '[]',
+                address_city TEXT NOT NULL DEFAULT '',
+                address_district TEXT NOT NULL DEFAULT '',
+                address_sector TEXT NOT NULL DEFAULT '',
+                address_cell TEXT NOT NULL DEFAULT '',
+                address_street TEXT NOT NULL DEFAULT '',
+                address_house_number TEXT NOT NULL DEFAULT '',
                 latitude REAL,
                 longitude REAL,
                 radius_km INTEGER NOT NULL DEFAULT 10,
@@ -163,6 +170,24 @@ def initialize_database() -> None:
                 created_at TEXT NOT NULL,
                 PRIMARY KEY (request_id, teacher_id)
             );
+            CREATE TABLE IF NOT EXISTS teacher_availability (
+                id INTEGER PRIMARY KEY,
+                teacher_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                weekday TEXT NOT NULL,
+                start_time TEXT NOT NULL,
+                end_time TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                UNIQUE(teacher_id, weekday, start_time, end_time)
+            );
+            CREATE TABLE IF NOT EXISTS teacher_request_interests (
+                id INTEGER PRIMARY KEY,
+                request_id INTEGER NOT NULL REFERENCES learning_requests(id) ON DELETE CASCADE,
+                teacher_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                status TEXT NOT NULL DEFAULT 'Pending',
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                UNIQUE(request_id, teacher_id)
+            );
             CREATE TABLE IF NOT EXISTS resources (
                 id INTEGER PRIMARY KEY,
                 title TEXT NOT NULL,
@@ -191,6 +216,10 @@ def initialize_database() -> None:
                 UNIQUE(request_id, parent_id)
             );
         """)
+        user_columns = {row["name"] for row in db.execute("PRAGMA table_info(users)")}
+        for column in ("address_city", "address_district", "address_sector", "address_cell", "address_street", "address_house_number"):
+            if column not in user_columns:
+                db.execute(f"ALTER TABLE users ADD COLUMN {column} TEXT NOT NULL DEFAULT ''")
         for title, kind, country, curriculum, level, subject, description, url in OFFICIAL_RESOURCES:
             db.execute("""INSERT INTO resources
                 (title, kind, country, curriculum, level, subject, description, url, created_at)
@@ -226,7 +255,11 @@ def safe_user(row: sqlite3.Row) -> dict:
             "country": row["country"], "curriculum": row["curriculum"],
             "subject_keys": subjects, "subjects": format_teacher_subjects(subjects),
             "levels": json.loads(row["levels"]), "radius_km": row["radius_km"],
-            "available": bool(row["available"]), "verified": bool(row["verified"])}
+            "available": bool(row["available"]), "verified": bool(row["verified"]),
+            "latitude": row["latitude"], "longitude": row["longitude"],
+            "city": row["address_city"], "district": row["address_district"],
+            "sector": row["address_sector"], "cell": row["address_cell"],
+            "street": row["address_street"], "house_number": row["address_house_number"]}
 
 
 def valid_coordinates(latitude, longitude) -> bool:
@@ -243,6 +276,34 @@ def distance_km(first_lat, first_lon, second_lat, second_lon) -> float:
     delta_lon = math.radians(second_lon - first_lon)
     value = math.sin(delta_lat / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(delta_lon / 2) ** 2
     return radius * 2 * math.atan2(math.sqrt(value), math.sqrt(1 - value))
+
+
+def time_minutes(value: str) -> int:
+    hours, minutes = map(int, value.split(":"))
+    return hours * 60 + minutes
+
+
+def availability_suggestions(existing, weekday: str, preferred_start: int, duration: int) -> list[dict]:
+    suggestions = []
+    for day in (weekday, *(item for item in WEEKDAYS if item != weekday)):
+        candidates = []
+        for start in range(8 * 60, 20 * 60 - duration + 1, 30):
+            end = start + duration
+            overlaps = any(slot["weekday"] == day
+                           and start < time_minutes(slot["end_time"])
+                           and end > time_minutes(slot["start_time"])
+                           for slot in existing)
+            if not overlaps:
+                candidates.append((start, {
+                    "weekday": day,
+                    "start_time": f"{start // 60:02d}:{start % 60:02d}",
+                    "end_time": f"{end // 60:02d}:{end % 60:02d}",
+                }))
+        candidates.sort(key=lambda slot: abs(slot[0] - preferred_start))
+        suggestions.extend(slot for _, slot in candidates[:3 - len(suggestions)])
+        if len(suggestions) == 3:
+            return suggestions
+    return suggestions
 
 
 class ReRaHandler(BaseHTTPRequestHandler):
@@ -408,6 +469,14 @@ class ReRaHandler(BaseHTTPRequestHandler):
                 return self.create_request(payload)
             if parsed.path == "/api/teacher/profile":
                 return self.update_teacher_profile(payload)
+            if parsed.path == "/api/teacher/availability":
+                return self.update_teacher_availability(payload)
+            interest_match = re.fullmatch(r"/api/requests/(\d+)/interest", parsed.path)
+            if interest_match:
+                return self.create_teacher_interest(int(interest_match.group(1)))
+            manager_interest_match = re.fullmatch(r"/api/manager/interests/(\d+)/(approve|decline)", parsed.path)
+            if manager_interest_match:
+                return self.update_teacher_interest(int(manager_interest_match.group(1)), manager_interest_match.group(2))
             if parsed.path == "/api/nearby-teachers":
                 return self.list_nearby_teachers(payload)
             if parsed.path == "/api/resources":
@@ -594,6 +663,16 @@ class ReRaHandler(BaseHTTPRequestHandler):
             return self.respond(200, [dict(manager) for manager in managers])
         if path == "/api/requests":
             return self.list_requests(user)
+        if path == "/api/teacher/availability":
+            if user["role"] != "teacher":
+                return self.error(403, "This action is not available for your account")
+            return self.list_teacher_availability(user)
+        if path == "/api/teacher/nearby-requests":
+            return self.list_nearby_requests(user)
+        if path == "/api/manager/interests":
+            if user["role"] != "manager":
+                return self.error(403, "Manager access required")
+            return self.list_manager_interests()
         if path == "/api/teachers":
             if user["role"] != "manager":
                 return self.error(403, "Manager access required")
@@ -816,10 +895,169 @@ class ReRaHandler(BaseHTTPRequestHandler):
         if (lat is None) != (lon is None):
             raise ValueError("Both location coordinates are required")
         available = bool(payload.get("available", True))
+        address_fields = {
+            "city": ("address_city", 100), "district": ("address_district", 100),
+            "sector": ("address_sector", 100), "cell": ("address_cell", 100),
+            "street": ("address_street", 160), "house_number": ("address_house_number", 40),
+        }
+        address = {}
+        for field, (column, maximum) in address_fields.items():
+            value = str(payload.get(field, user[column]) or "").strip()
+            if len(value) > maximum:
+                raise ValueError(f"{field.replace('_', ' ')} is too long")
+            address[column] = value
         with connect_db() as db:
-            db.execute("UPDATE users SET latitude = ?, longitude = ?, radius_km = ?, available = ? WHERE id = ?",
-                       (float(lat) if lat is not None else None, float(lon) if lon is not None else None, radius, int(available), user["id"]))
+            db.execute("""UPDATE users SET latitude = ?, longitude = ?, radius_km = ?, available = ?,
+                address_city = ?, address_district = ?, address_sector = ?, address_cell = ?,
+                address_street = ?, address_house_number = ? WHERE id = ?""",
+                (float(lat) if lat is not None else None, float(lon) if lon is not None else None,
+                 radius, int(available), address["address_city"], address["address_district"],
+                 address["address_sector"], address["address_cell"], address["address_street"],
+                 address["address_house_number"], user["id"]))
         return self.respond(200, {"ok": True})
+
+    def list_teacher_availability(self, user: sqlite3.Row) -> None:
+        with connect_db() as db:
+            rows = db.execute("""SELECT id, weekday, start_time, end_time FROM teacher_availability
+                WHERE teacher_id = ? ORDER BY CASE weekday
+                WHEN 'Monday' THEN 1 WHEN 'Tuesday' THEN 2 WHEN 'Wednesday' THEN 3
+                WHEN 'Thursday' THEN 4 WHEN 'Friday' THEN 5 WHEN 'Saturday' THEN 6 ELSE 7 END, start_time""",
+                (user["id"],)).fetchall()
+        return self.respond(200, [dict(row) for row in rows])
+
+    def update_teacher_availability(self, payload: dict) -> None:
+        user = self.require_user({"teacher"})
+        if not user:
+            return
+        with connect_db() as db:
+            if payload.get("action") == "remove":
+                try:
+                    slot_id = int(payload.get("id"))
+                except (TypeError, ValueError):
+                    raise ValueError("Choose a valid availability slot")
+                cursor = db.execute("DELETE FROM teacher_availability WHERE id = ? AND teacher_id = ?",
+                                    (slot_id, user["id"]))
+                if not cursor.rowcount:
+                    return self.error(404, "Availability slot not found")
+                return self.respond(200, {"ok": True})
+            weekday, start, end = payload.get("weekday"), payload.get("start_time"), payload.get("end_time")
+            if (weekday not in WEEKDAYS or not isinstance(start, str) or not re.fullmatch(r"(?:[01]\d|2[0-3]):[0-5]\d", start)
+                    or not isinstance(end, str) or not re.fullmatch(r"(?:[01]\d|2[0-3]):[0-5]\d", end)
+                    or time_minutes(end) <= time_minutes(start)):
+                raise ValueError("Choose a valid weekday and start/end time")
+            existing = db.execute("""SELECT id, weekday, start_time, end_time FROM teacher_availability
+                WHERE teacher_id = ?""", (user["id"],)).fetchall()
+            overlaps = any(slot["weekday"] == weekday
+                           and time_minutes(start) < time_minutes(slot["end_time"])
+                           and time_minutes(end) > time_minutes(slot["start_time"])
+                           for slot in existing)
+            if overlaps:
+                return self.respond(409, {
+                    "error": "This time overlaps an existing weekly availability slot",
+                    "suggestions": availability_suggestions(existing, weekday, time_minutes(start), time_minutes(end) - time_minutes(start)),
+                })
+            db.execute("""INSERT INTO teacher_availability(teacher_id, weekday, start_time, end_time, created_at)
+                VALUES (?, ?, ?, ?, ?)""", (user["id"], weekday, start, end, now_iso()))
+        return self.respond(201, {"ok": True})
+
+    def list_nearby_requests(self, user: sqlite3.Row) -> None:
+        if user["role"] != "teacher" or not user["verified"] or not user["available"]:
+            return self.error(403, "A verified, available educator profile is required to view nearby learner requests")
+        if user["latitude"] is None or user["longitude"] is None:
+            return self.error(400, "Add your teaching-area pin to find nearby learners")
+        with connect_db() as db:
+            candidates = db.execute("""SELECT id, country, curriculum, level, subject, latitude, longitude,
+                radius_km, mode, availability FROM learning_requests
+                WHERE status = 'Matching' AND latitude IS NOT NULL AND longitude IS NOT NULL
+                AND country = ? AND curriculum = ? ORDER BY created_at DESC""",
+                (user["country"], user["curriculum"])).fetchall()
+            results = []
+            teacher_subjects = json.loads(user["subjects"])
+            teacher_levels = json.loads(user["levels"])
+            for request in candidates:
+                has_subject = (f"{request['level']}::{request['subject']}" in teacher_subjects
+                               or request["subject"] in teacher_subjects)
+                if request["level"] not in teacher_levels or not has_subject:
+                    continue
+                distance = distance_km(user["latitude"], user["longitude"], request["latitude"], request["longitude"])
+                if distance > user["radius_km"] or distance > request["radius_km"]:
+                    continue
+                interest = db.execute("""SELECT status FROM teacher_request_interests
+                    WHERE request_id = ? AND teacher_id = ?""", (request["id"], user["id"])).fetchone()
+                results.append({
+                    "id": request["id"], "country": request["country"], "curriculum": request["curriculum"],
+                    "level": request["level"], "subject": request["subject"],
+                    "latitude": round(request["latitude"], 1), "longitude": round(request["longitude"], 1),
+                    "radius_km": request["radius_km"], "mode": request["mode"],
+                    "availability": request["availability"], "interest_status": interest["status"] if interest else None,
+                })
+        return self.respond(200, {"requests": results})
+
+    def list_manager_interests(self) -> None:
+        with connect_db() as db:
+            rows = db.execute("""SELECT i.id, i.status, i.created_at, r.id AS request_id, r.country,
+                r.curriculum, r.level, r.grade, r.subject, r.location_label, r.radius_km,
+                s.name AS learner_name, u.id AS teacher_id, u.name AS teacher_name, u.email AS teacher_email
+                FROM teacher_request_interests i JOIN learning_requests r ON r.id = i.request_id
+                JOIN users u ON u.id = i.teacher_id JOIN students s ON s.id = r.student_id
+                WHERE i.status = 'Pending' ORDER BY i.created_at""").fetchall()
+        return self.respond(200, [dict(row) for row in rows])
+
+    def create_teacher_interest(self, request_id: int) -> None:
+        teacher = self.require_user({"teacher"})
+        if not teacher:
+            return
+        if not teacher["verified"] or not teacher["available"]:
+            return self.error(403, "Only verified, available educators can express interest")
+        if teacher["latitude"] is None or teacher["longitude"] is None:
+            return self.error(400, "Add your teaching-area pin before expressing interest")
+        with connect_db() as db:
+            request = db.execute("""SELECT * FROM learning_requests
+                WHERE id = ? AND status = 'Matching'""", (request_id,)).fetchone()
+            if not request or request["latitude"] is None or request["longitude"] is None:
+                return self.error(404, "This nearby learner request is no longer available")
+            subjects = json.loads(teacher["subjects"])
+            levels = json.loads(teacher["levels"])
+            distance = distance_km(teacher["latitude"], teacher["longitude"], request["latitude"], request["longitude"])
+            if (teacher["country"] != request["country"] or teacher["curriculum"] != request["curriculum"]
+                    or request["level"] not in levels
+                    or f"{request['level']}::{request['subject']}" not in subjects and request["subject"] not in subjects
+                    or distance > teacher["radius_km"] or distance > request["radius_km"]):
+                return self.error(403, "This request no longer matches your teaching profile")
+            existing = db.execute("""SELECT status FROM teacher_request_interests
+                WHERE request_id = ? AND teacher_id = ?""", (request_id, teacher["id"])).fetchone()
+            if existing and existing["status"] != "Declined":
+                return self.error(409, f"Your interest is already {existing['status'].lower()}")
+            db.execute("""INSERT INTO teacher_request_interests(request_id, teacher_id, status, created_at, updated_at)
+                VALUES (?, ?, 'Pending', ?, ?) ON CONFLICT(request_id, teacher_id) DO UPDATE SET
+                status = 'Pending', updated_at = excluded.updated_at""",
+                (request_id, teacher["id"], now_iso(), now_iso()))
+        return self.respond(201, {"ok": True, "status": "Pending"})
+
+    def update_teacher_interest(self, interest_id: int, action: str) -> None:
+        if not self.require_user({"manager"}):
+            return
+        with connect_db() as db:
+            interest = db.execute("""SELECT id, request_id, teacher_id, status
+                FROM teacher_request_interests WHERE id = ?""", (interest_id,)).fetchone()
+            if not interest or interest["status"] != "Pending":
+                return self.error(404, "Pending educator interest not found")
+            if action == "approve":
+                request = db.execute("""SELECT * FROM learning_requests
+                    WHERE id = ? AND status = 'Matching'""", (interest["request_id"],)).fetchone()
+                if not request or interest["teacher_id"] not in {teacher["id"] for teacher in self.matching_teachers(request, db)}:
+                    return self.error(409, "This educator no longer meets the request criteria")
+                db.execute("INSERT OR IGNORE INTO pitches(request_id, teacher_id, created_at) VALUES (?, ?, ?)",
+                           (interest["request_id"], interest["teacher_id"], now_iso()))
+                db.execute("UPDATE learning_requests SET status = 'Pitched' WHERE id = ?", (interest["request_id"],))
+            status = "Approved" if action == "approve" else "Declined"
+            db.execute("""UPDATE teacher_request_interests SET status = ?, updated_at = ?
+                WHERE id = ? AND status = 'Pending'""", (status, now_iso(), interest_id))
+            if action == "approve":
+                db.execute("""UPDATE teacher_request_interests SET status = 'Declined', updated_at = ?
+                    WHERE request_id = ? AND id != ? AND status = 'Pending'""",
+                    (now_iso(), interest["request_id"], interest_id))
+        return self.respond(200, {"ok": True, "status": status})
 
     def matching_teachers(self, request: sqlite3.Row, db: sqlite3.Connection) -> list[sqlite3.Row]:
         teachers = db.execute("""SELECT * FROM users WHERE role = 'teacher' AND verified = 1 AND available = 1

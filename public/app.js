@@ -25,12 +25,16 @@ let families = [];
 let requests = [];
 let teachers = [];
 let managers = [];
+let managerInterests = [];
 let pitches = [];
+let nearbyRequests = [];
+let teacherAvailability = [];
 let resources = [];
 let feedback = [];
 let selectedRequestId = null;
 let requestSubjectsSequence = 0;
 let mapInstance = null;
+let teacherMapInstance = null;
 let toastTimeout;
 let learnerView = false;
 let dashboardSlideIndex = 0;
@@ -135,20 +139,28 @@ async function api(path, options = {}) {
   const data = response.status === 204 ? null : await response.json();
   if (!response.ok) {
     if (response.status === 401) window.location.assign("/");
-    throw new Error(data?.error || "The request could not be completed");
+    const error = new Error(data?.error || "The request could not be completed");
+    error.suggestions = data?.suggestions || [];
+    throw error;
   }
   return data;
 }
 
 async function refreshData() {
+  nearbyRequests = [];
   const me = await api("/api/me");
   if (!me?.user?.role) throw new Error("Your account could not be loaded.");
   currentUser = me.user;
 
   const tasks = ["/api/requests", "/api/resources"];
   if (currentUser.role === "parent") tasks.push("/api/students", "/api/pitches", "/api/feedback");
-  if (currentUser.role === "teacher") tasks.push("/api/pitches", "/api/feedback");
-  if (currentUser.role === "manager") tasks.push("/api/teachers", "/api/feedback", "/api/families", "/api/managers");
+  if (currentUser.role === "teacher") {
+    tasks.push("/api/pitches", "/api/feedback", "/api/teacher/availability");
+    if (currentUser.verified && currentUser.available && currentUser.latitude != null && currentUser.longitude != null) {
+      tasks.push("/api/teacher/nearby-requests");
+    }
+  }
+  if (currentUser.role === "manager") tasks.push("/api/teachers", "/api/feedback", "/api/families", "/api/managers", "/api/manager/interests");
   const results = await Promise.all(tasks.map(path => api(path)));
   requests = results[0];
   resources = results[1];
@@ -159,12 +171,15 @@ async function refreshData() {
     feedback = results[cursor];
   } else if (currentUser.role === "teacher") {
     pitches = results[cursor++];
-    feedback = [];
+    cursor += 1;
+    teacherAvailability = results[cursor++];
+    nearbyRequests = results[cursor]?.requests || [];
   } else {
     teachers = results[cursor++];
     feedback = results[cursor];
     families = results[cursor + 1];
     managers = results[cursor + 2];
+    managerInterests = results[cursor + 3];
   }
 }
 
@@ -195,6 +210,7 @@ function renderShell() {
   bindResourceFilters();
   startDashboardCarousel();
   if (currentUser.role === "manager" && ["Overview", "Learning requests"].includes(activeSection)) setTimeout(initManagerMap, 40);
+  if (currentUser.role === "teacher") setTimeout(initTeacherMap, 40);
 }
 
 function decorateDashboardCards(root) {
@@ -334,6 +350,10 @@ function managerTeamPanel() {
   return `<section class="panel"><div class="panel-head"><div><h2>Manager team</h2><p>${managers.length} of 3 manager accounts. Managers can add another manager until the limit is reached.</p></div>${canAddManager ? `<button class="button button-compact" data-action="manager-new">Add manager</button>` : `<span class="tag">Maximum reached</span>`}</div><div class="tutor-list">${managers.map(manager => `<div class="tutor-row"><span class="tutor-avatar">${initials(manager.name)}</span><div class="tutor-info"><strong>${escapeHtml(manager.name)}</strong><span>${escapeHtml(manager.email)}</span></div><span class="status verified">Manager</span></div>`).join("")}</div></section>`;
 }
 
+function managerInterestPanel() {
+  return `<section class="panel"><div class="panel-head"><div><h2>Educator requests awaiting review</h2><p>Approve an educator's interest to send them a private offer. Learner identity stays private.</p></div><span class="tag">${managerInterests.length} pending</span></div>${managerInterests.length ? managerInterests.map(item => `<div class="offer-card"><div><strong>${escapeHtml(item.teacher_name)} · ${escapeHtml(item.subject)}</strong><p>${escapeHtml(item.teacher_email)} · ${escapeHtml(item.country)} · ${escapeHtml(item.curriculum)}</p><p>For ${escapeHtml(item.learner_name)} · ${escapeHtml(item.level)} ${escapeHtml(item.grade)} · ${escapeHtml(item.location_label)}</p></div><div class="offer-actions"><button data-action="interest-approve" data-interest="${item.id}">Approve &amp; send offer</button><button data-action="interest-decline" data-interest="${item.id}">Decline</button></div></div>`).join("") : `<div class="empty">No educator interests are waiting for review.</div>`}</section>`;
+}
+
 function managerView() {
   const matching = requests.filter(request => request.status === "Matching").length;
   const unverified = teachers.filter(teacher => !teacher.verified).length;
@@ -343,7 +363,7 @@ function managerView() {
   const requestOptions = requests.map(request => `<option value="${request.id}" ${String(request.id) === String(selectedRequestId || requests[0]?.id) ? "selected" : ""}>${escapeHtml(request.id)} · ${escapeHtml(request.location_label)} · ${escapeHtml(request.subject)}</option>`).join("");
   const requestRows = requests.map(request => `<tr><td class="tag">LR-${request.id}</td><td><strong>${escapeHtml(request.learner_name)}</strong><br><span>${escapeHtml(request.location_label)} · ${escapeHtml(request.country)}</span></td><td>${escapeHtml(request.curriculum)}</td><td>${escapeHtml(request.level)} · ${escapeHtml(request.grade)}</td><td><span class="tag">${escapeHtml(request.subject)}</span></td><td>${request.radius_km} km</td><td><span class="status ${escapeHtml(request.status.toLowerCase())}">${escapeHtml(request.status)}</span></td><td><button class="match-button" data-action="view-request" data-request="${request.id}">Qualified tutors</button></td></tr>`).join("");
   const matchingSteps = `<section class="manager-match-flow" aria-label="Manager-led matching workflow"><div><span>01</span><strong>Review the request</strong><small>Check subject, curriculum, level and lesson area.</small></div><div><span>02</span><strong>Shortlist &amp; pitch</strong><small>Choose a verified educator and send a private offer.</small></div><div><span>03</span><strong>Confirm the match</strong><small>After acceptance, ReRa coordinates the family introduction.</small></div></section>`;
-  return `${heading("Coordinate the right match.", "ReRa managers are the trusted middle link: they verify educators, shortlist by learner needs and coordinate introductions.", `<button class="button button-compact" data-action="resource-new">Share material</button>`)}${managerTeamPanel()}${matchingSteps}${metrics}<section class="app-grid"><article class="panel"><div class="panel-head"><div><h2>Real educator locations</h2><p>Only verified, available educators who meet selected request criteria are shown.</p></div><span class="tag">OpenStreetMap</span></div><div class="map-actions"><select id="mapRequestSelect" class="form-control" aria-label="Choose map request">${requestOptions || "<option>No learning requests</option>"}</select><button class="button-light" data-action="refresh-map">Refresh pins</button></div><div class="map-container"><div id="managerMap" class="map" aria-label="Map of lesson request area and matching educators"></div></div><div class="map-key"><span><i class="map-dot request"></i>Lesson area, exact pin</span><span><i class="map-dot"></i>Verified tutor</span></div><div class="map-notice">Exact learner pins are visible only to authorized managers. Parents must grant location permission for in-person matching.</div></article><article class="panel"><div class="panel-head"><div><h2>Educator review</h2><p>New tutor accounts require manager verification.</p></div><span class="tag">${unverified} to review</span></div>${teachers.length ? teachers.map(teacher => `<div class="tutor-row"><span class="tutor-avatar">${initials(teacher.name)}</span><div class="tutor-info"><strong>${escapeHtml(teacher.name)}</strong><span>${escapeHtml(teacher.country)} · ${escapeHtml(teacher.curriculum)} · ${escapeHtml(formatTeacherSubjects(teacher.subjects))} · ${escapeHtml(teacher.levels.join(", "))}</span></div>${teacher.verified ? `<span class="status verified">Verified</span>` : `<button class="match-button" data-action="verify" data-teacher="${teacher.id}">Review & verify</button>`}</div>`).join("") : `<div class="empty">Tutor applications will appear here.</div>`}</article></section><section class="panel"><div class="panel-head"><div><h2>Learning requests</h2><p>Private learner records. Only managers can see precise lesson coordinates.</p></div><span class="tag">${requests.length} requests</span></div><div class="filter-row"><input class="form-control" id="managerSearch" type="search" placeholder="Search learner, neighborhood, subject"><select class="form-control" id="managerCountry"><option value="">All countries</option>${Object.keys(curriculaByCountry).map(country => `<option>${country}</option>`).join("")}</select><select class="form-control" id="managerLevel"><option value="">All levels</option>${levels.map(level => `<option>${level}</option>`).join("")}</select></div><div class="table-wrap"><table class="table"><thead><tr><th>Ref</th><th>Learner / neighborhood</th><th>Curriculum</th><th>Academic level</th><th>Subject</th><th>Radius</th><th>Status</th><th>Matching</th></tr></thead><tbody id="managerRows">${requestRows}</tbody></table>${requests.length ? "" : `<div class="empty">Family requests appear here after a parent creates an account and adds a learner.</div>`}</div></section>`;
+  return `${heading("Coordinate the right match.", "ReRa managers are the trusted middle link: they verify educators, shortlist by learner needs and coordinate introductions.", `<button class="button button-compact" data-action="resource-new">Share material</button>`)}${managerTeamPanel()}${matchingSteps}${managerInterestPanel()}${metrics}<section class="app-grid"><article class="panel"><div class="panel-head"><div><h2>Real educator locations</h2><p>Only verified, available educators who meet selected request criteria are shown.</p></div><span class="tag">OpenStreetMap</span></div><div class="map-actions"><select id="mapRequestSelect" class="form-control" aria-label="Choose map request">${requestOptions || "<option>No learning requests</option>"}</select><button class="button-light" data-action="refresh-map">Refresh pins</button></div><div class="map-container"><div id="managerMap" class="map" aria-label="Map of lesson request area and matching educators"></div></div><div class="map-key"><span><i class="map-dot request"></i>Lesson area, exact pin</span><span><i class="map-dot"></i>Verified tutor</span></div><div class="map-notice">Exact learner pins are visible only to authorized managers. Parents must grant location permission for in-person matching.</div></article><article class="panel"><div class="panel-head"><div><h2>Educator review</h2><p>New tutor accounts require manager verification.</p></div><span class="tag">${unverified} to review</span></div>${teachers.length ? teachers.map(teacher => `<div class="tutor-row"><span class="tutor-avatar">${initials(teacher.name)}</span><div class="tutor-info"><strong>${escapeHtml(teacher.name)}</strong><span>${escapeHtml(teacher.country)} · ${escapeHtml(teacher.curriculum)} · ${escapeHtml(formatTeacherSubjects(teacher.subjects))} · ${escapeHtml(teacher.levels.join(", "))}</span></div>${teacher.verified ? `<span class="status verified">Verified</span>` : `<button class="match-button" data-action="verify" data-teacher="${teacher.id}">Review & verify</button>`}</div>`).join("") : `<div class="empty">Tutor applications will appear here.</div>`}</article></section><section class="panel"><div class="panel-head"><div><h2>Learning requests</h2><p>Private learner records. Only managers can see precise lesson coordinates.</p></div><span class="tag">${requests.length} requests</span></div><div class="filter-row"><input class="form-control" id="managerSearch" type="search" placeholder="Search learner, neighborhood, subject"><select class="form-control" id="managerCountry"><option value="">All countries</option>${Object.keys(curriculaByCountry).map(country => `<option>${country}</option>`).join("")}</select><select class="form-control" id="managerLevel"><option value="">All levels</option>${levels.map(level => `<option>${level}</option>`).join("")}</select></div><div class="table-wrap"><table class="table"><thead><tr><th>Ref</th><th>Learner / neighborhood</th><th>Curriculum</th><th>Academic level</th><th>Subject</th><th>Radius</th><th>Status</th><th>Matching</th></tr></thead><tbody id="managerRows">${requestRows}</tbody></table>${requests.length ? "" : `<div class="empty">Family requests appear here after a parent creates an account and adds a learner.</div>`}</div></section>`;
 }
 
 function familyDirectoryView() {
@@ -375,7 +395,21 @@ function learnerViewPage() {
 
 function teacherView() {
   const offers = pitches.filter(pitch => pitch.pitch_status === "Offered");
-  return `${heading(`Welcome, ${escapeHtml(currentUser.name)}.`, "Manage your teaching profile, nearby private offers and shared materials.", `<button class="button button-compact" data-action="teacher-location">Update my location</button>`)}<section class="info-grid"><article class="info-card"><h3>Application status</h3><div class="big">${currentUser.verified ? "Verified" : "In review"}</div><p>${currentUser.verified ? "Eligible for manager matching" : "A ReRa manager must verify your account before private offers can be matched."}</p></article><article class="info-card"><h3>Subjects</h3><div class="big">${escapeHtml(currentUser.subjects.join(", ") || "Not set")}</div><p>${escapeHtml(currentUser.levels.join(" · "))}</p></article><article class="info-card"><h3>Offers</h3><div class="big">${offers.length}</div><p>Private matching offers</p></article></section><section class="app-grid"><article class="panel"><div class="panel-head"><div><h2>Private job pipeline</h2><p>Family names and exact addresses stay hidden before acceptance.</p></div></div>${offers.length ? offers.map(offer => `<div class="offer-card"><div><strong>${escapeHtml(offer.subject)} · ${escapeHtml(offer.level)} ${escapeHtml(offer.grade)}</strong><p>${escapeHtml(offer.curriculum)} · ${escapeHtml(offer.country)} · ${escapeHtml(offer.location_label)}</p><p>${escapeHtml(offer.mode)} · ${escapeHtml(offer.availability)} · within ${offer.radius_km} km</p></div><div class="offer-actions"><button data-action="offer-accept" data-request="${offer.request_id}">Accept</button><button data-action="offer-decline" data-request="${offer.request_id}">Decline</button></div></div>`).join("") : `<div class="empty">No offers yet. Keep your profile accurate; a manager will contact you when your verified subjects and level fit a request.</div>`}</article><article class="panel"><div class="panel-head"><div><h2>Teaching area and availability</h2><p>Location is used for private matching only.</p></div></div><form id="teacherProfileForm" class="dialog-body"><div class="form-grid"><label class="field"><span>Maximum travel radius</span><select class="form-control" name="radius_km"><option value="5" ${currentUser.radius_km === 5 ? "selected" : ""}>5 km</option><option value="10" ${currentUser.radius_km === 10 ? "selected" : ""}>10 km</option><option value="20" ${currentUser.radius_km === 20 ? "selected" : ""}>20 km</option><option value="50" ${currentUser.radius_km === 50 ? "selected" : ""}>50 km</option></select></label><label class="field"><span>Availability</span><select class="form-control" name="available"><option value="true" ${currentUser.available ? "selected" : ""}>Available</option><option value="false" ${!currentUser.available ? "selected" : ""}>Pause new offers</option></select></label><div class="field full"><span>${currentUser.latitude == null ? "No precise location saved" : "Teaching location saved"}</span><span class="material-upload-note">Your precise coordinates are never shown to families.</span><input type="hidden" name="latitude" value="${currentUser.latitude ?? ""}"><input type="hidden" name="longitude" value="${currentUser.longitude ?? ""}"></div></div><div class="dialog-actions"><button class="button button-compact">Save teaching profile</button></div></form></article></section><section class="app-grid"><article class="panel"><div class="panel-head"><div><h2>My materials</h2><p>Share your own curriculum-aligned PDFs.</p></div><button class="text-button" data-action="resource-new">Add PDF</button></div>${resourceRepository(resources.filter(item => item.kind === "material"), "material", false)}</article>${resourceRepository(resources, "curriculum", true)}</section>`;
+  const interestStatus = request => request.interest_status === "Pending" ? "Waiting for manager review"
+    : request.interest_status === "Approved" ? "Manager approved; offer sent"
+      : request.interest_status === "Declined" ? "Previously reviewed" : "";
+  const addressFields = [
+    ["city", "City"], ["district", "District"], ["sector", "Sector"], ["cell", "Cell"],
+    ["street", "Street name / number"], ["house_number", "House number (optional)"],
+  ];
+  const mapContent = !currentUser.verified
+    ? `<div class="empty">A manager must verify your educator profile before nearby requests are shown.</div>`
+    : currentUser.latitude == null
+      ? `<div class="empty">Add your teaching-area pin to see approximate nearby learner requests.</div>`
+      : nearbyRequests.length ? `<div class="map-container"><div id="teacherMap" class="map" aria-label="Map showing approximate areas of nearby learner requests"></div></div><div class="map-notice">Pins are intentionally approximate. Learner names, addresses and exact coordinates are never shown.</div>`
+        : `<div class="empty">No open learner requests currently match your subjects, curriculum, level and travel radius.</div>`;
+  const requestCards = nearbyRequests.map(request => `<div class="offer-card"><div><strong>${escapeHtml(request.subject)} · ${escapeHtml(request.level)}</strong><p>${escapeHtml(request.curriculum)} · ${escapeHtml(request.country)} · ${escapeHtml(request.mode)}</p><p>Approximate area · within ${request.radius_km} km · ${escapeHtml(request.availability)}</p>${interestStatus(request) ? `<span class="status">${escapeHtml(interestStatus(request))}</span>` : ""}</div>${request.interest_status ? "" : `<button class="match-button" data-action="request-interest" data-request="${request.id}">Ask manager to review</button>`}</div>`).join("");
+  return `${heading(`Welcome, ${escapeHtml(currentUser.name)}.`, "See more nearby learners, keep your weekly availability current and respond to private offers.", `<button class="button button-compact" data-action="teacher-location">Set teaching-area pin</button>`)}<section class="info-grid"><article class="info-card"><h3>Application status</h3><div class="big">${currentUser.verified ? "Verified" : "In review"}</div><p>${currentUser.verified ? "Eligible to ask managers to review your interest." : "A ReRa manager must verify your account first."}</p></article><article class="info-card"><h3>Nearby learners waiting</h3><div class="big">${nearbyRequests.length}</div><p>Open requests matching your profile</p></article><article class="info-card"><h3>Offers</h3><div class="big">${offers.length}</div><p>Private matching offers</p></article></section><section class="app-grid"><article class="panel"><div class="panel-head"><div><h2>Nearby learners waiting</h2><p>Requests are filtered by your country, curriculum, subjects, level and travel radius.</p></div><span class="tag">${nearbyRequests.length} nearby</span></div>${mapContent}<div class="tutor-list">${requestCards || (currentUser.verified && currentUser.latitude != null ? `<div class="empty">Matching learner requests will appear here.</div>` : "")}</div></article><article class="panel"><div class="panel-head"><div><h2>Private job pipeline</h2><p>Family names and exact addresses stay hidden before acceptance.</p></div></div>${offers.length ? offers.map(offer => `<div class="offer-card"><div><strong>${escapeHtml(offer.subject)} · ${escapeHtml(offer.level)} ${escapeHtml(offer.grade)}</strong><p>${escapeHtml(offer.curriculum)} · ${escapeHtml(offer.country)} · ${escapeHtml(offer.location_label)}</p><p>${escapeHtml(offer.mode)} · ${escapeHtml(offer.availability)} · within ${offer.radius_km} km</p></div><div class="offer-actions"><button data-action="offer-accept" data-request="${offer.request_id}">Accept</button><button data-action="offer-decline" data-request="${offer.request_id}">Decline</button></div></div>`).join("") : `<div class="empty">No offers yet. Keep your profile accurate; a manager will contact you when your verified subjects and level fit a request.</div>`}</article></section><section class="app-grid"><article class="panel"><div class="panel-head"><div><h2>Teaching address &amp; area</h2><p>Address details are private to your profile. Add a map pin separately for nearby matching.</p></div></div><form id="teacherProfileForm" class="dialog-body"><div class="form-grid"><label class="field"><span>Maximum travel radius</span><select class="form-control" name="radius_km"><option value="5" ${currentUser.radius_km === 5 ? "selected" : ""}>5 km</option><option value="10" ${currentUser.radius_km === 10 ? "selected" : ""}>10 km</option><option value="20" ${currentUser.radius_km === 20 ? "selected" : ""}>20 km</option><option value="50" ${currentUser.radius_km === 50 ? "selected" : ""}>50 km</option></select></label><label class="field"><span>New matching offers</span><select class="form-control" name="available"><option value="true" ${currentUser.available ? "selected" : ""}>Available</option><option value="false" ${!currentUser.available ? "selected" : ""}>Pause new offers</option></select></label>${addressFields.map(([name, label]) => `<label class="field"><span>${label}</span><input class="form-control" name="${name}" value="${escapeHtml(currentUser[name] || "")}" maxlength="${name === "street" ? 160 : name === "house_number" ? 40 : 100}"></label>`).join("")}<div class="field full"><span>${currentUser.latitude == null ? "No map pin saved" : "Teaching-area pin saved"}</span><span class="material-upload-note">Your pin is private; nearby learner pins are approximate. Addresses are not sent to a geocoding service.</span><input type="hidden" name="latitude" value="${currentUser.latitude ?? ""}"><input type="hidden" name="longitude" value="${currentUser.longitude ?? ""}"></div></div><div class="dialog-actions"><button class="button button-compact">Save teaching profile</button></div></form></article><article class="panel"><div class="panel-head"><div><h2>Weekly teaching timetable</h2><p>Availability repeats weekly; it is not a confirmed lesson booking.</p></div></div><form id="availabilityForm" class="dialog-body"><div class="form-grid"><label class="field"><span>Day</span><select class="form-control" name="weekday">${["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map(day => `<option>${day}</option>`).join("")}</select></label><label class="field"><span>Start time</span><input class="form-control" type="time" name="start_time" required></label><label class="field"><span>End time</span><input class="form-control" type="time" name="end_time" required></label></div><div id="availabilitySuggestions" class="availability-suggestions" aria-live="polite"></div><div class="dialog-actions"><button class="button button-compact">Add weekly slot</button></div></form><div class="tutor-list">${teacherAvailability.length ? teacherAvailability.map(slot => `<div class="tutor-row"><div class="tutor-info"><strong>${escapeHtml(slot.weekday)} · ${escapeHtml(slot.start_time)}–${escapeHtml(slot.end_time)}</strong><span>Repeats every week</span></div><button class="match-button" data-action="availability-remove" data-slot="${slot.id}">Remove</button></div>`).join("") : `<div class="empty">Add your weekly teaching hours to keep this timetable up to date.</div>`}<div class="privacy-note">Overlapping weekly slots are blocked and alternative times are suggested. Confirmed lesson scheduling and Google Calendar reminders are not available until ReRa has dated lesson bookings and calendar credentials configured.</div></div></article></section><section class="app-grid"><article class="panel"><div class="panel-head"><div><h2>My materials</h2><p>Share your own curriculum-aligned PDFs.</p></div><button class="text-button" data-action="resource-new">Add PDF</button></div>${resourceRepository(resources.filter(item => item.kind === "material"), "material", false)}</article>${resourceRepository(resources, "curriculum", true)}</section>`;
 }
 
 function resourceRepository(items, kind, officialOnly) {
@@ -517,6 +551,30 @@ async function drawManagerPins() {
   } catch (error) { showToast(error.message); }
 }
 
+function initTeacherMap() {
+  const mapNode = $("teacherMap");
+  if (!mapNode || !window.L || !nearbyRequests.length) return;
+  if (teacherMapInstance) { teacherMapInstance.remove(); teacherMapInstance = null; }
+  teacherMapInstance = L.map(mapNode, { scrollWheelZoom: false }).setView([-1.95, 30.06], 10);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 16,
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+  }).addTo(teacherMapInstance);
+  const group = L.featureGroup();
+  nearbyRequests.forEach(request => {
+    const circle = L.circle([request.latitude, request.longitude], {
+      radius: 8000, color: "#df775f", weight: 1, fillColor: "#df775f", fillOpacity: .12,
+    }).bindPopup("Approximate request area · learner details are private");
+    const marker = L.circleMarker([request.latitude, request.longitude], {
+      radius: 7, color: "#df775f", fillColor: "#df775f", fillOpacity: .88, weight: 2,
+    }).bindPopup(`${escapeHtml(request.subject)} · ${escapeHtml(request.level)}<br>Approximate area only`);
+    group.addLayer(circle);
+    group.addLayer(marker);
+  });
+  group.addTo(teacherMapInstance);
+  teacherMapInstance.fitBounds(group.getBounds().pad(.18), { maxZoom: 11 });
+}
+
 function requestMatches(request) {
   return teachers.filter(teacher => {
     if (!teacher.verified || !teacher.available) return false;
@@ -631,7 +689,11 @@ async function updateTeacherLocation() {
   showToast("Allow location access to place your private tutor pin.");
   startLocationRequest(async (latitude, longitude) => {
     try {
-      await api("/api/teacher/profile", { method: "POST", body: JSON.stringify({ latitude, longitude, radius_km: currentUser.radius_km, available: currentUser.available }) });
+      await api("/api/teacher/profile", { method: "POST", body: JSON.stringify({
+        latitude, longitude, radius_km: currentUser.radius_km, available: currentUser.available,
+        city: currentUser.city, district: currentUser.district, sector: currentUser.sector,
+        cell: currentUser.cell, street: currentUser.street, house_number: currentUser.house_number,
+      }) });
       await refreshData();
       render();
       showToast("Your teaching location is saved privately.");
@@ -694,6 +756,31 @@ async function handleAction(action) {
       await refreshData();
       render();
       showToast("Educator verified and eligible for matching.");
+    } else if (name === "interest-approve" || name === "interest-decline") {
+      const decision = name === "interest-approve" ? "approve" : "decline";
+      await api(`/api/manager/interests/${action.dataset.interest}/${decision}`, { method: "POST", body: "{}" });
+      await refreshData();
+      render();
+      showToast(decision === "approve" ? "Interest approved and a private offer sent to the educator." : "Educator interest declined.");
+    } else if (name === "request-interest") {
+      await api(`/api/requests/${action.dataset.request}/interest`, { method: "POST", body: "{}" });
+      await refreshData();
+      render();
+      showToast("Your interest was sent to the manager for review.");
+    } else if (name === "availability-remove") {
+      await api("/api/teacher/availability", { method: "POST", body: JSON.stringify({ action: "remove", id: Number(action.dataset.slot) }) });
+      await refreshData();
+      render();
+      showToast("Weekly availability slot removed.");
+    } else if (name === "availability-use") {
+      const form = $("availabilityForm");
+      if (form) {
+        form.elements.weekday.value = action.dataset.weekday;
+        form.elements.start_time.value = action.dataset.start;
+        form.elements.end_time.value = action.dataset.end;
+        $("availabilitySuggestions").replaceChildren();
+        form.elements.start_time.focus();
+      }
     } else if (name === "pitch") {
       await api(`/api/requests/${action.dataset.request}/pitch`, { method: "POST", body: JSON.stringify({ teacher_id: Number(action.dataset.teacher) }) });
       $("detailDialog").close();
@@ -821,12 +908,36 @@ function bindForms() {
     const data = new FormData(event.currentTarget);
     const latitude = data.get("latitude");
     const longitude = data.get("longitude");
+    const body = Object.fromEntries(data.entries());
+    body.radius_km = Number(data.get("radius_km"));
+    body.available = data.get("available") === "true";
+    body.latitude = latitude ? Number(latitude) : null;
+    body.longitude = longitude ? Number(longitude) : null;
     try {
-      await api("/api/teacher/profile", { method: "POST", body: JSON.stringify({ radius_km: Number(data.get("radius_km")), available: data.get("available") === "true", latitude: latitude ? Number(latitude) : null, longitude: longitude ? Number(longitude) : null }) });
+      await api("/api/teacher/profile", { method: "POST", body: JSON.stringify(body) });
       await refreshData();
       render();
       showToast("Teaching profile updated.");
     } catch (error) { showToast(error.message); }
+  });
+  $("availabilityForm")?.addEventListener("submit", async event => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const body = Object.fromEntries(new FormData(form).entries());
+    try {
+      await api("/api/teacher/availability", { method: "POST", body: JSON.stringify(body) });
+      await refreshData();
+      render();
+      showToast("Weekly availability added.");
+    } catch (error) {
+      const suggestions = $("availabilitySuggestions");
+      if (suggestions && error.suggestions?.length) {
+        suggestions.innerHTML = `<p>${escapeHtml(error.message)}. Try one of these alternatives:</p><div class="availability-suggestion-list">${error.suggestions.map(slot => `<button type="button" class="button-light" data-action="availability-use" data-weekday="${escapeHtml(slot.weekday)}" data-start="${escapeHtml(slot.start_time)}" data-end="${escapeHtml(slot.end_time)}">${escapeHtml(slot.weekday)} ${escapeHtml(slot.start_time)}–${escapeHtml(slot.end_time)}</button>`).join("")}</div>`;
+        decorateButtons(suggestions);
+      } else {
+        showToast(error.message);
+      }
+    }
   });
 }
 

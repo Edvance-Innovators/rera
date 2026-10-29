@@ -153,3 +153,6 @@
 .side-nav button[aria-current="page"]{color:#fff}
 @media(max-width:720px){.sidebar .sidebar-identity{display:none}.dashboard-page .topbar{min-height:58px;align-items:center;gap:7px;padding:6px 9px}.account-identity{gap:6px}.account-identity .avatar{width:27px;height:27px;flex-basis:27px}.account-copy{gap:2px}.account-copy strong{font-size:9px;line-height:1.25}.account-copy span{font-size:7px;line-height:1.2}.top-actions{gap:4px}.top-actions>.tag{padding:5px 6px;font-size:7px}.dashboard-page .portal-switch{max-width:128px}.dashboard-page .portal-switch button{padding:6px 7px;font-size:7px}}
 @media(max-width:390px){.dashboard-page .topbar{padding-right:7px;padding-left:7px}.account-identity{gap:5px}.account-identity .avatar{width:25px;height:25px;flex-basis:25px}.account-copy strong{font-size:8px}.account-copy span{font-size:6px}.dashboard-page .portal-switch{max-width:114px}}
+.availability-suggestions{display:grid;gap:7px;margin-top:8px;color:#7947c7;font-size:12px}
+.availability-suggestion-list{display:flex;flex-wrap:wrap;gap:6px}
+.dashboard-page .availability-suggestion-list .button-light{font-size:11px}

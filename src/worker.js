@@ -28,6 +28,12 @@ export class ReraStore {
       for (const [name, definition] of [
         ["subjects", "TEXT NOT NULL DEFAULT '[]'"],
         ["levels", "TEXT NOT NULL DEFAULT '[]'"],
+        ["address_city", "TEXT NOT NULL DEFAULT ''"],
+        ["address_district", "TEXT NOT NULL DEFAULT ''"],
+        ["address_sector", "TEXT NOT NULL DEFAULT ''"],
+        ["address_cell", "TEXT NOT NULL DEFAULT ''"],
+        ["address_street", "TEXT NOT NULL DEFAULT ''"],
+        ["address_house_number", "TEXT NOT NULL DEFAULT ''"],
         ["latitude", "REAL"],
         ["longitude", "REAL"],
         ["radius_km", "INTEGER NOT NULL DEFAULT 10"],
@@ -82,6 +88,24 @@ export class ReraStore {
         created_at TEXT NOT NULL,
         PRIMARY KEY (request_id, teacher_id)
       )`);
+      this.state.storage.sql.exec(`CREATE TABLE IF NOT EXISTS teacher_availability (
+        id INTEGER PRIMARY KEY,
+        teacher_id INTEGER NOT NULL,
+        weekday TEXT NOT NULL,
+        start_time TEXT NOT NULL,
+        end_time TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        UNIQUE(teacher_id, weekday, start_time, end_time)
+      )`);
+      this.state.storage.sql.exec(`CREATE TABLE IF NOT EXISTS teacher_request_interests (
+        id INTEGER PRIMARY KEY,
+        request_id INTEGER NOT NULL,
+        teacher_id INTEGER NOT NULL,
+        status TEXT NOT NULL DEFAULT 'Pending',
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        UNIQUE(request_id, teacher_id)
+      )`);
       this.state.storage.sql.exec(`CREATE TABLE IF NOT EXISTS resources (
         id INTEGER PRIMARY KEY,
         title TEXT NOT NULL,
@@ -131,6 +155,7 @@ const CURRICULA = {
   Tanzania: new Set(["NECTA"]),
 };
 const LEVELS = new Set(["Primary", "Secondary", "University"]);
+const WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 const SUBJECT_CATALOG = {
   Rwanda: {
     Primary: ["Mathematics", "English", "Kinyarwanda", "French", "Social and Religious Studies", "Science and Elementary Technology", "Creative Arts and Physical Education"],
@@ -210,6 +235,38 @@ function validCoordinates(latitude, longitude) {
   return Number.isFinite(Number(latitude)) && Number.isFinite(Number(longitude))
     && Number(latitude) >= -90 && Number(latitude) <= 90
     && Number(longitude) >= -180 && Number(longitude) <= 180;
+}
+
+function validTime(value) {
+  return typeof value === "string" && /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(value);
+}
+
+function timeToMinutes(value) {
+  const [hours, minutes] = value.split(":").map(Number);
+  return hours * 60 + minutes;
+}
+
+function availabilitySuggestions(existing, weekday, preferredStart, duration) {
+  const days = [weekday, ...WEEKDAYS.filter(day => day !== weekday)];
+  const suggestions = [];
+  for (const day of days) {
+    const candidates = [];
+    for (let start = 8 * 60; start + duration <= 20 * 60; start += 30) {
+      const end = start + duration;
+      const overlaps = existing.some(slot => slot.weekday === day
+        && start < timeToMinutes(slot.end_time) && end > timeToMinutes(slot.start_time));
+      if (!overlaps) candidates.push({
+        start,
+        weekday: day,
+        start_time: `${String(Math.floor(start / 60)).padStart(2, "0")}:${String(start % 60).padStart(2, "0")}`,
+        end_time: `${String(Math.floor(end / 60)).padStart(2, "0")}:${String(end % 60).padStart(2, "0")}`,
+      });
+    }
+    candidates.sort((left, right) => Math.abs(left.start - preferredStart) - Math.abs(right.start - preferredStart));
+    suggestions.push(...candidates.slice(0, 3 - suggestions.length).map(({ start, ...slot }) => slot));
+    if (suggestions.length >= 3) return suggestions;
+  }
+  return suggestions;
 }
 
 function distanceKm(lat1, lon1, lat2, lon2) {
@@ -298,6 +355,57 @@ function getStoreData(request, state, url) {
   if (url.pathname === "/api/managers") {
     if (user.role !== "manager") return response({ error: "Manager access required" }, 403);
     return response(rows(state, "SELECT id, name, email, created_at FROM users WHERE role = 'manager' ORDER BY id"));
+  }
+  if (url.pathname === "/api/teacher/availability") {
+    if (user.role !== "teacher") return response({ error: "This action is not available for your account" }, 403);
+    return response(rows(state, `SELECT id, weekday, start_time, end_time FROM teacher_availability
+      WHERE teacher_id = ? ORDER BY CASE weekday
+      WHEN 'Monday' THEN 1 WHEN 'Tuesday' THEN 2 WHEN 'Wednesday' THEN 3
+      WHEN 'Thursday' THEN 4 WHEN 'Friday' THEN 5 WHEN 'Saturday' THEN 6 ELSE 7 END, start_time`, user.id));
+  }
+  if (url.pathname === "/api/teacher/nearby-requests") {
+    if (user.role !== "teacher" || !user.verified || !user.available) {
+      return response({ error: "A verified, available educator profile is required to view nearby learner requests" }, 403);
+    }
+    if (user.latitude == null || user.longitude == null) {
+      return response({ error: "Add your teaching-area pin to find nearby learners" }, 400);
+    }
+    const candidates = rows(state, `SELECT r.id, r.country, r.curriculum, r.level, r.subject,
+      r.latitude, r.longitude, r.radius_km, r.mode, r.availability, r.created_at
+      FROM learning_requests r WHERE r.status = 'Matching' AND r.latitude IS NOT NULL AND r.longitude IS NOT NULL
+      AND r.country = ? AND r.curriculum = ? ORDER BY r.created_at DESC`, user.country, user.curriculum);
+    const subjects = user.subject_keys;
+    const results = candidates.filter(request => {
+      const teacherHasSubject = subjects.includes(teacherSubjectKey(request.level, request.subject))
+        || subjects.includes(request.subject);
+      if (!teacherHasSubject || !user.levels.includes(request.level)) return false;
+      const distance = distanceKm(user.latitude, user.longitude, request.latitude, request.longitude);
+      return distance <= user.radius_km && distance <= request.radius_km;
+    }).map(request => ({
+      id: request.id,
+      country: request.country,
+      curriculum: request.curriculum,
+      level: request.level,
+      subject: request.subject,
+      latitude: Math.round(request.latitude * 10) / 10,
+      longitude: Math.round(request.longitude * 10) / 10,
+      radius_km: request.radius_km,
+      mode: request.mode,
+      availability: request.availability,
+      interest_status: rows(state, "SELECT status FROM teacher_request_interests WHERE request_id = ? AND teacher_id = ?", request.id, user.id)[0]?.status || null,
+    }));
+    return response({ requests: results });
+  }
+  if (url.pathname === "/api/manager/interests") {
+    if (user.role !== "manager") return response({ error: "Manager access required" }, 403);
+    return response(rows(state, `SELECT i.id, i.status, i.created_at, r.id AS request_id, r.country,
+      r.curriculum, r.level, r.grade, r.subject, r.location_label, r.radius_km,
+      s.name AS learner_name, u.id AS teacher_id, u.name AS teacher_name, u.email AS teacher_email
+      FROM teacher_request_interests i
+      JOIN learning_requests r ON r.id = i.request_id
+      JOIN users u ON u.id = i.teacher_id
+      JOIN students s ON s.id = r.student_id
+      WHERE i.status = 'Pending' ORDER BY i.created_at`));
   }
   if (url.pathname === "/api/students") {
     if (user.role !== "parent") return response([]);
@@ -488,9 +596,50 @@ async function postStoreData(request, state, url) {
     if ((latitude == null) !== (longitude == null) || (latitude != null && !validCoordinates(latitude, longitude))) {
       return response({ error: "Location coordinates are invalid" }, 400);
     }
-    state.storage.sql.exec("UPDATE users SET latitude = ?, longitude = ?, radius_km = ?, available = ? WHERE id = ?",
-      latitude == null ? null : Number(latitude), longitude == null ? null : Number(longitude), radius, body.available === false ? 0 : 1, user.id);
+    const address = {};
+    for (const [field, column, maxLength] of [
+      ["city", "address_city", 100], ["district", "address_district", 100],
+      ["sector", "address_sector", 100], ["cell", "address_cell", 100],
+      ["street", "address_street", 160], ["house_number", "address_house_number", 40],
+    ]) {
+      const value = body[field] == null ? (user[field] || "") : String(body[field]).trim();
+      if (value.length > maxLength) return response({ error: `${field.replace("_", " ")} is too long` }, 400);
+      address[column] = value;
+    }
+    state.storage.sql.exec(`UPDATE users SET latitude = ?, longitude = ?, radius_km = ?, available = ?,
+      address_city = ?, address_district = ?, address_sector = ?, address_cell = ?, address_street = ?,
+      address_house_number = ? WHERE id = ?`,
+    latitude == null ? null : Number(latitude), longitude == null ? null : Number(longitude),
+    radius, body.available === false ? 0 : 1, address.address_city, address.address_district,
+    address.address_sector, address.address_cell, address.address_street, address.address_house_number, user.id);
     return response({ ok: true });
+  }
+  if (url.pathname === "/api/teacher/availability") {
+    if (user.role !== "teacher") return response({ error: "This action is not available for your account" }, 403);
+    if (body.action === "remove") {
+      const id = Number(body.id);
+      const result = state.storage.sql.exec("DELETE FROM teacher_availability WHERE id = ? AND teacher_id = ?", id, user.id);
+      if (!result.rowsWritten) return response({ error: "Availability slot not found" }, 404);
+      return response({ ok: true });
+    }
+    const { weekday, start_time: startTime, end_time: endTime } = body;
+    if (!WEEKDAYS.includes(weekday) || !validTime(startTime) || !validTime(endTime)
+      || timeToMinutes(endTime) <= timeToMinutes(startTime)) {
+      return response({ error: "Choose a valid weekday and start/end time" }, 400);
+    }
+    const existing = rows(state, "SELECT id, weekday, start_time, end_time FROM teacher_availability WHERE teacher_id = ?", user.id);
+    const overlaps = existing.some(slot => slot.weekday === weekday
+      && timeToMinutes(startTime) < timeToMinutes(slot.end_time)
+      && timeToMinutes(endTime) > timeToMinutes(slot.start_time));
+    if (overlaps) {
+      return response({
+        error: "This time overlaps an existing weekly availability slot",
+        suggestions: availabilitySuggestions(existing, weekday, timeToMinutes(startTime), timeToMinutes(endTime) - timeToMinutes(startTime)),
+      }, 409);
+    }
+    state.storage.sql.exec(`INSERT INTO teacher_availability(teacher_id, weekday, start_time, end_time, created_at)
+      VALUES (?, ?, ?, ?, ?)`, user.id, weekday, startTime, endTime, new Date().toISOString());
+    return response({ ok: true }, 201);
   }
   if (url.pathname === "/api/feedback") {
     const rating = Number(body.rating);
@@ -533,6 +682,60 @@ function createPitch(request, state, requestId) {
     state.storage.sql.exec("UPDATE learning_requests SET status = 'Pitched' WHERE id = ?", requestId);
     return response({ ok: true }, 201);
   });
+}
+
+function createTeacherInterest(request, state, requestId) {
+  const access = requireUser(request, state, ["teacher"]);
+  if (access.error) return access.error;
+  const teacher = access.user;
+  if (!teacher.verified || !teacher.available) return response({ error: "Only verified, available educators can express interest" }, 403);
+  if (teacher.latitude == null || teacher.longitude == null) return response({ error: "Add your teaching-area pin before expressing interest" }, 400);
+  const learningRequest = rows(state, "SELECT * FROM learning_requests WHERE id = ? AND status = 'Matching'", requestId)[0];
+  if (!learningRequest || learningRequest.latitude == null || learningRequest.longitude == null) {
+    return response({ error: "This nearby learner request is no longer available" }, 404);
+  }
+  const hasSubject = teacher.subject_keys.includes(teacherSubjectKey(learningRequest.level, learningRequest.subject))
+    || teacher.subject_keys.includes(learningRequest.subject);
+  const distance = distanceKm(teacher.latitude, teacher.longitude, learningRequest.latitude, learningRequest.longitude);
+  if (teacher.country !== learningRequest.country || teacher.curriculum !== learningRequest.curriculum
+    || !teacher.levels.includes(learningRequest.level) || !hasSubject
+    || distance > teacher.radius_km || distance > learningRequest.radius_km) {
+    return response({ error: "This request no longer matches your teaching profile" }, 403);
+  }
+  const existing = rows(state, "SELECT status FROM teacher_request_interests WHERE request_id = ? AND teacher_id = ?", requestId, teacher.id)[0];
+  if (existing && existing.status !== "Declined") {
+    return response({ error: `Your interest is already ${existing.status.toLowerCase()}` }, 409);
+  }
+  state.storage.sql.exec(`INSERT INTO teacher_request_interests(request_id, teacher_id, status, created_at, updated_at)
+    VALUES (?, ?, 'Pending', ?, ?) ON CONFLICT(request_id, teacher_id) DO UPDATE SET
+    status = 'Pending', updated_at = excluded.updated_at`,
+  requestId, teacher.id, new Date().toISOString(), new Date().toISOString());
+  return response({ ok: true, status: "Pending" }, 201);
+}
+
+function updateTeacherInterest(request, state, interestId, action) {
+  const access = requireUser(request, state, ["manager"]);
+  if (access.error) return access.error;
+  const interest = rows(state, `SELECT i.id, i.request_id, i.teacher_id, i.status
+    FROM teacher_request_interests i WHERE i.id = ?`, interestId)[0];
+  if (!interest || interest.status !== "Pending") return response({ error: "Pending educator interest not found" }, 404);
+  if (action === "approve") {
+    const learningRequest = rows(state, "SELECT * FROM learning_requests WHERE id = ? AND status = 'Matching'", interest.request_id)[0];
+    if (!learningRequest || !matchingTeachers(state, learningRequest).some(teacher => teacher.id === interest.teacher_id)) {
+      return response({ error: "This educator no longer meets the request criteria" }, 409);
+    }
+    state.storage.sql.exec("INSERT OR IGNORE INTO pitches(request_id, teacher_id, created_at) VALUES (?, ?, ?)",
+      interest.request_id, interest.teacher_id, new Date().toISOString());
+    state.storage.sql.exec("UPDATE learning_requests SET status = 'Pitched' WHERE id = ?", interest.request_id);
+  }
+  state.storage.sql.exec("UPDATE teacher_request_interests SET status = ?, updated_at = ? WHERE id = ? AND status = 'Pending'",
+    action === "approve" ? "Approved" : "Declined", new Date().toISOString(), interestId);
+  if (action === "approve") {
+    state.storage.sql.exec(`UPDATE teacher_request_interests SET status = 'Declined', updated_at = ?
+      WHERE request_id = ? AND id != ? AND status = 'Pending'`,
+    new Date().toISOString(), interest.request_id, interestId);
+  }
+  return response({ ok: true, status: action === "approve" ? "Approved" : "Declined" });
 }
 
 function updatePitch(request, state, requestId, action) {
@@ -802,11 +1005,19 @@ async function handleStoreRequest(request, state, env) {
     return response({ ok: true }, 200, { "Set-Cookie": "rera_session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0" });
   }
 
+  const interestMatch = url.pathname.match(/^\/api\/requests\/(\d+)\/interest$/);
+  if (interestMatch && request.method === "POST") return createTeacherInterest(request, state, Number(interestMatch[1]));
+  const managerInterestMatch = url.pathname.match(/^\/api\/manager\/interests\/(\d+)\/(approve|decline)$/);
+  if (managerInterestMatch && request.method === "POST") {
+    return updateTeacherInterest(request, state, Number(managerInterestMatch[1]), managerInterestMatch[2]);
+  }
+
   if (url.pathname === "/api/families" || url.pathname === "/api/managers" || url.pathname === "/api/subjects"
     || url.pathname === "/api/students" || url.pathname === "/api/requests"
     || url.pathname === "/api/resources" || url.pathname === "/api/pitches" || url.pathname === "/api/feedback"
     || url.pathname === "/api/teachers" || url.pathname === "/api/coordinates" || url.pathname === "/api/teacher/profile"
-    || url.pathname === "/api/nearby-teachers") {
+    || url.pathname === "/api/teacher/availability" || url.pathname === "/api/teacher/nearby-requests"
+    || url.pathname === "/api/manager/interests" || url.pathname === "/api/nearby-teachers") {
     if (request.method === "GET") return getStoreData(request, state, url);
     if (request.method === "POST") return postStoreData(request, state, url);
   }
@@ -835,6 +1046,9 @@ function currentUser(request, state) {
     id: row.id, name: row.name, email: row.email, role: row.role, country: row.country, curriculum: row.curriculum,
     subject_keys: parseArray(row.subjects), subjects: formatTeacherSubjects(row.subjects), levels: parseArray(row.levels), radius_km: row.radius_km,
     available: Boolean(row.available), verified: Boolean(row.verified),
+    latitude: row.latitude, longitude: row.longitude,
+    city: row.address_city, district: row.address_district, sector: row.address_sector,
+    cell: row.address_cell, street: row.address_street, house_number: row.address_house_number,
   };
 }
 
