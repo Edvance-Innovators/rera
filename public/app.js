@@ -34,6 +34,9 @@ let feedback = [];
 let selectedRequestId = null;
 let requestSubjectsSequence = 0;
 let mapInstance = null;
+let managerEducatorMapInstance = null;
+let managerLearnerPins = null;
+let managerEducatorPins = null;
 let teacherMapInstance = null;
 let toastTimeout;
 let learnerView = false;
@@ -202,8 +205,10 @@ function renderShell() {
   const initials = currentUser.name.split(/\s+/).map(part => part[0]).join("").slice(0, 2).toUpperCase();
   const persona = personaName();
   const sectionList = sectionsForUser();
+  const imageCarousel = currentUser.role === "parent" ? renderRegionalCarousel() : "";
   app.innerHTML = `<aside class="sidebar"><a class="logo" href="/"><span class="logo-symbol">R</span><span>ReRa<span class="logo-dot">.</span></span></a><div class="sidebar-identity"><div class="avatar">${escapeHtml(initials)}</div><div><strong>${escapeHtml(currentUser.name)}</strong><span>${escapeHtml(persona)}</span></div></div><p class="side-label">${escapeHtml(persona)} menu</p><nav class="side-nav" aria-label="${escapeHtml(persona)} menu">${sectionList.map(section => `<button class="${section === activeSection ? "active" : ""}" data-section="${escapeHtml(section)}" aria-label="${escapeHtml(section)}" title="${escapeHtml(section)}" aria-current="${section === activeSection ? "page" : "false"}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">${navIcon(section)}</svg>${escapeHtml(section)}</button>`).join("")}</nav><div class="sidebar-foot"><div class="region-card"><span>REGIONAL NETWORK</span><strong>${escapeHtml(currentUser.country)} · ${escapeHtml(currentUser.curriculum)}</strong><div class="region-flags"><span>RW</span><span>KE</span><span>UG</span><span>TZ</span></div></div></div></aside>
-    <main class="app-main"><header class="topbar"><div class="account-identity"><div class="avatar">${escapeHtml(initials)}</div><div class="account-copy"><strong>${escapeHtml(currentUser.name)}</strong><span>${escapeHtml(persona)} · ${escapeHtml(activeSection)}</span></div></div><div class="top-actions">${currentUser.role === "parent" ? `<nav class="portal-switch" aria-label="Family or learner view"><button class="${learnerView ? "" : "active"}" data-action="parent-view">Family</button><button class="${learnerView ? "active" : ""}" data-action="learner-view">Learner</button></nav>` : `<span class="tag">${escapeHtml(persona)} portal</span>`}<button class="icon-btn" data-action="logout" aria-label="Sign out" title="Sign out"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 17l5-5-5-5m5 5H3"/><path d="M12 3h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6"/></svg></button></div></header><div class="app-content" id="pageContent">${renderRegionalCarousel()}${renderSection()}</div></main>`;
+    <main class="app-main"><header class="topbar"><div class="account-identity"><div class="avatar">${escapeHtml(initials)}</div><div class="account-copy"><strong>${escapeHtml(currentUser.name)}</strong><span>${escapeHtml(persona)} · ${escapeHtml(activeSection)}</span></div></div><div class="top-actions">${currentUser.role === "parent" ? `<nav class="portal-switch" aria-label="Family or learner view"><button class="${learnerView ? "" : "active"}" data-action="parent-view">Family</button><button class="${learnerView ? "active" : ""}" data-action="learner-view">Learner</button></nav>` : `<span class="tag">${escapeHtml(persona)} portal</span>`}<button class="icon-btn" data-action="logout" aria-label="Sign out" title="Sign out"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 17l5-5-5-5m5 5H3"/><path d="M12 3h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6"/></svg></button></div></header><div class="app-content" id="pageContent">${imageCarousel}${renderSection()}</div></main>`;
+  if (currentUser.role === "manager") $("managerMap")?.closest("article.panel")?.remove();
   decorateDashboardCards(app);
   decorateButtons(app);
   bindDynamicForms();
@@ -331,6 +336,19 @@ function navIcon(section) {
 }
 
 function heading(title, subtitle, action = "") {
+  if (currentUser.role === "manager" && title === "Coordinate the right match.") {
+    const options = requests.map(request => `<option value="${request.id}" ${String(request.id) === String(selectedRequestId || requests[0]?.id) ? "selected" : ""}>${escapeHtml(request.id)} · ${escapeHtml(request.location_label)} · ${escapeHtml(request.subject)}</option>`).join("");
+    return `<section class="workflow-hero manager-workflow-hero"><div class="workflow-hero-copy"><span class="portal-hero-kicker">MANAGER MATCHING · ${escapeHtml(currentUser.country)}</span><h1>Match efficiently!</h1><p>Compare the learner's lesson area with verified educators, then review the strongest three qualified matches.</p>${action}<div class="map-actions"><label for="mapRequestSelect">Choose a learner request</label><select id="mapRequestSelect" class="form-control" aria-label="Choose map request">${options || "<option>No learning requests</option>"}</select><button class="button-light" data-action="refresh-map">Refresh maps</button></div></div><div class="manager-maps"><article class="manager-map-card"><h2>Learner location</h2><div id="managerLearnerMap" class="workflow-map" aria-label="Map of selected learner lesson area"></div></article><article class="manager-map-card"><h2>Qualified educators</h2><div id="managerEducatorMap" class="workflow-map" aria-label="Map of verified educators matching the selected learner"></div></article></div><p class="map-notice manager-map-privacy">Exact pins are manager-only. Learner names and addresses are not shown to educators before a confirmed match.</p><section class="manager-recommendations"><div class="manager-recommendations-head"><div><h2>Top three matches to approve</h2><p>Ranked from closest to farthest among verified educators who meet the request criteria.</p></div><span class="tag">Left to right · strongest first</span></div><div id="managerRecommendations" class="recommendation-track">${managerRecommendationCards(selectedRequestId || requests[0]?.id)}</div></section></section>`;
+  }
+  if (currentUser.role === "teacher" && title.startsWith("Welcome,")) {
+    const mapContent = !currentUser.verified
+      ? `<div class="empty">A manager must verify your educator profile before nearby requests are shown.</div>`
+      : currentUser.latitude == null
+        ? `<div class="empty">Add your teaching-area pin to see approximate nearby learner requests.</div>`
+        : nearbyRequests.length ? `<div class="map-container workflow-map-container"><div id="teacherMap" class="map workflow-map" aria-label="Map showing approximate areas of nearby learner requests"></div></div><div class="map-notice">Pins are intentionally approximate. Learner names, addresses and exact coordinates are never shown.</div>`
+          : `<div class="empty">No open learner requests currently match your subjects, curriculum, level and travel radius.</div>`;
+    return `<section class="workflow-hero teacher-workflow-hero"><div class="workflow-hero-copy"><span class="portal-hero-kicker">EDUCATOR OPPORTUNITIES · ${escapeHtml(currentUser.country)}</span><h1>More and more learners awaiting!</h1><p>View anonymous, approximate nearby learners whose requests match your subjects, level, curriculum and travel area.</p><div class="teacher-hero-count"><strong>${nearbyRequests.length}</strong><span>matching learners nearby</span></div><button class="button button-compact" data-action="teacher-location">Update teaching-area pin</button></div><div class="teacher-hero-map">${mapContent}</div></section>`;
+  }
   return `<section class="page-heading"><div><div class="page-eyebrow">${escapeHtml(activeSection)} · ${escapeHtml(currentUser.country)}</div><h1>${title}</h1><p>${subtitle}</p></div>${action}</section>`;
 }
 
@@ -343,6 +361,20 @@ function formatTeacherSubjects(subjects) {
     const [level, ...parts] = String(value).split("::");
     return parts.length ? `${parts.join("::")} (${level})` : value;
   }).join(", ");
+}
+
+function managerRecommendationCards(requestId) {
+  const request = requests.find(item => String(item.id) === String(requestId));
+  if (!request) return `<div class="empty">Select a learner request to see qualified educators.</div>`;
+  if (request.status !== "Matching") return `<div class="empty">This learner request is no longer open for new educator offers.</div>`;
+  const matches = requestMatches(request).map(teacher => ({
+    teacher,
+    distance: request.latitude != null && teacher.latitude != null
+      ? distanceKm(request.latitude, request.longitude, teacher.latitude, teacher.longitude)
+      : null,
+  })).sort((left, right) => (left.distance ?? Number.POSITIVE_INFINITY) - (right.distance ?? Number.POSITIVE_INFINITY)).slice(0, 3);
+  if (!matches.length) return `<div class="empty">No verified educator currently meets every matching criterion for this request.</div>`;
+  return matches.map(({ teacher, distance }, index) => `<article class="recommendation-card"><span class="recommendation-rank">0${index + 1} · ${index === 0 ? "Best fit" : "Qualified match"}</span><strong>${escapeHtml(teacher.name)}</strong><span>${escapeHtml(teacher.country)} · ${escapeHtml(teacher.curriculum)}</span><span>${escapeHtml(formatTeacherSubjects(teacher.subjects))}</span><span>${distance == null ? "Online / location not shared" : `About ${distance.toFixed(1)} km away`}</span><button class="match-button" data-action="pitch" data-request="${request.id}" data-teacher="${teacher.id}">Approve &amp; send offer</button></article>`).join("");
 }
 
 function managerTeamPanel() {
@@ -402,12 +434,7 @@ function teacherView() {
     ["city", "City"], ["district", "District"], ["sector", "Sector"], ["cell", "Cell"],
     ["street", "Street name / number"], ["house_number", "House number (optional)"],
   ];
-  const mapContent = !currentUser.verified
-    ? `<div class="empty">A manager must verify your educator profile before nearby requests are shown.</div>`
-    : currentUser.latitude == null
-      ? `<div class="empty">Add your teaching-area pin to see approximate nearby learner requests.</div>`
-      : nearbyRequests.length ? `<div class="map-container"><div id="teacherMap" class="map" aria-label="Map showing approximate areas of nearby learner requests"></div></div><div class="map-notice">Pins are intentionally approximate. Learner names, addresses and exact coordinates are never shown.</div>`
-        : `<div class="empty">No open learner requests currently match your subjects, curriculum, level and travel radius.</div>`;
+  const mapContent = "";
   const requestCards = nearbyRequests.map(request => `<div class="offer-card"><div><strong>${escapeHtml(request.subject)} · ${escapeHtml(request.level)}</strong><p>${escapeHtml(request.curriculum)} · ${escapeHtml(request.country)} · ${escapeHtml(request.mode)}</p><p>Approximate area · within ${request.radius_km} km · ${escapeHtml(request.availability)}</p>${interestStatus(request) ? `<span class="status">${escapeHtml(interestStatus(request))}</span>` : ""}</div>${request.interest_status ? "" : `<button class="match-button" data-action="request-interest" data-request="${request.id}">Ask manager to review</button>`}</div>`).join("");
   return `${heading(`Welcome, ${escapeHtml(currentUser.name)}.`, "See more nearby learners, keep your weekly availability current and respond to private offers.", `<button class="button button-compact" data-action="teacher-location">Set teaching-area pin</button>`)}<section class="info-grid"><article class="info-card"><h3>Application status</h3><div class="big">${currentUser.verified ? "Verified" : "In review"}</div><p>${currentUser.verified ? "Eligible to ask managers to review your interest." : "A ReRa manager must verify your account first."}</p></article><article class="info-card"><h3>Nearby learners waiting</h3><div class="big">${nearbyRequests.length}</div><p>Open requests matching your profile</p></article><article class="info-card"><h3>Offers</h3><div class="big">${offers.length}</div><p>Private matching offers</p></article></section><section class="app-grid"><article class="panel"><div class="panel-head"><div><h2>Nearby learners waiting</h2><p>Requests are filtered by your country, curriculum, subjects, level and travel radius.</p></div><span class="tag">${nearbyRequests.length} nearby</span></div>${mapContent}<div class="tutor-list">${requestCards || (currentUser.verified && currentUser.latitude != null ? `<div class="empty">Matching learner requests will appear here.</div>` : "")}</div></article><article class="panel"><div class="panel-head"><div><h2>Private job pipeline</h2><p>Family names and exact addresses stay hidden before acceptance.</p></div></div>${offers.length ? offers.map(offer => `<div class="offer-card"><div><strong>${escapeHtml(offer.subject)} · ${escapeHtml(offer.level)} ${escapeHtml(offer.grade)}</strong><p>${escapeHtml(offer.curriculum)} · ${escapeHtml(offer.country)} · ${escapeHtml(offer.location_label)}</p><p>${escapeHtml(offer.mode)} · ${escapeHtml(offer.availability)} · within ${offer.radius_km} km</p></div><div class="offer-actions"><button data-action="offer-accept" data-request="${offer.request_id}">Accept</button><button data-action="offer-decline" data-request="${offer.request_id}">Decline</button></div></div>`).join("") : `<div class="empty">No offers yet. Keep your profile accurate; a manager will contact you when your verified subjects and level fit a request.</div>`}</article></section><section class="app-grid"><article class="panel"><div class="panel-head"><div><h2>Teaching address &amp; area</h2><p>Address details are private to your profile. Add a map pin separately for nearby matching.</p></div></div><form id="teacherProfileForm" class="dialog-body"><div class="form-grid"><label class="field"><span>Maximum travel radius</span><select class="form-control" name="radius_km"><option value="5" ${currentUser.radius_km === 5 ? "selected" : ""}>5 km</option><option value="10" ${currentUser.radius_km === 10 ? "selected" : ""}>10 km</option><option value="20" ${currentUser.radius_km === 20 ? "selected" : ""}>20 km</option><option value="50" ${currentUser.radius_km === 50 ? "selected" : ""}>50 km</option></select></label><label class="field"><span>New matching offers</span><select class="form-control" name="available"><option value="true" ${currentUser.available ? "selected" : ""}>Available</option><option value="false" ${!currentUser.available ? "selected" : ""}>Pause new offers</option></select></label>${addressFields.map(([name, label]) => `<label class="field"><span>${label}</span><input class="form-control" name="${name}" value="${escapeHtml(currentUser[name] || "")}" maxlength="${name === "street" ? 160 : name === "house_number" ? 40 : 100}"></label>`).join("")}<div class="field full"><span>${currentUser.latitude == null ? "No map pin saved" : "Teaching-area pin saved"}</span><span class="material-upload-note">Your pin is private; nearby learner pins are approximate. Addresses are not sent to a geocoding service.</span><input type="hidden" name="latitude" value="${currentUser.latitude ?? ""}"><input type="hidden" name="longitude" value="${currentUser.longitude ?? ""}"></div></div><div class="dialog-actions"><button class="button button-compact">Save teaching profile</button></div></form></article><article class="panel"><div class="panel-head"><div><h2>Weekly teaching timetable</h2><p>Availability repeats weekly; it is not a confirmed lesson booking.</p></div></div><form id="availabilityForm" class="dialog-body"><div class="form-grid"><label class="field"><span>Day</span><select class="form-control" name="weekday">${["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map(day => `<option>${day}</option>`).join("")}</select></label><label class="field"><span>Start time</span><input class="form-control" type="time" name="start_time" required></label><label class="field"><span>End time</span><input class="form-control" type="time" name="end_time" required></label></div><div id="availabilitySuggestions" class="availability-suggestions" aria-live="polite"></div><div class="dialog-actions"><button class="button button-compact">Add weekly slot</button></div></form><div class="tutor-list">${teacherAvailability.length ? teacherAvailability.map(slot => `<div class="tutor-row"><div class="tutor-info"><strong>${escapeHtml(slot.weekday)} · ${escapeHtml(slot.start_time)}–${escapeHtml(slot.end_time)}</strong><span>Repeats every week</span></div><button class="match-button" data-action="availability-remove" data-slot="${slot.id}">Remove</button></div>`).join("") : `<div class="empty">Add your weekly teaching hours to keep this timetable up to date.</div>`}<div class="privacy-note">Overlapping weekly slots are blocked and alternative times are suggested. Confirmed lesson scheduling and Google Calendar reminders are not available until ReRa has dated lesson bookings and calendar credentials configured.</div></div></article></section><section class="app-grid"><article class="panel"><div class="panel-head"><div><h2>My materials</h2><p>Share your own curriculum-aligned PDFs.</p></div><button class="text-button" data-action="resource-new">Add PDF</button></div>${resourceRepository(resources.filter(item => item.kind === "material"), "material", false)}</article>${resourceRepository(resources, "curriculum", true)}</section>`;
 }
@@ -516,38 +543,73 @@ function startLocationRequest(onSuccess, onFailure) {
 }
 
 function initManagerMap() {
-  const mapNode = $("managerMap");
+  const learnerMapNode = $("managerLearnerMap");
+  const educatorMapNode = $("managerEducatorMap");
   const requestSelect = $("mapRequestSelect");
-  if (!mapNode || !window.L) return;
+  if (!learnerMapNode || !educatorMapNode || !window.L) return;
   if (mapInstance) { mapInstance.remove(); mapInstance = null; }
-  mapInstance = L.map(mapNode, { scrollWheelZoom: false }).setView([-1.95, 30.06], 11);
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' }).addTo(mapInstance);
+  if (managerEducatorMapInstance) { managerEducatorMapInstance.remove(); managerEducatorMapInstance = null; }
+  managerLearnerPins = null;
+  managerEducatorPins = null;
+  mapInstance = L.map(learnerMapNode, { scrollWheelZoom: false }).setView([-1.95, 30.06], 11);
+  managerEducatorMapInstance = L.map(educatorMapNode, { scrollWheelZoom: false }).setView([-1.95, 30.06], 11);
+  const tiles = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
+  const attribution = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
+  L.tileLayer(tiles, { maxZoom: 18, attribution }).addTo(mapInstance);
+  L.tileLayer(tiles, { maxZoom: 18, attribution }).addTo(managerEducatorMapInstance);
   if (requestSelect && requestSelect.value) selectedRequestId = Number(requestSelect.value);
   drawManagerPins();
   requestSelect?.addEventListener("change", () => {
     selectedRequestId = Number(requestSelect.value);
     drawManagerPins();
+    const recommendations = $("managerRecommendations");
+    if (recommendations) {
+      recommendations.innerHTML = managerRecommendationCards(selectedRequestId);
+      decorateButtons(recommendations);
+    }
   });
 }
 
 async function drawManagerPins() {
-  if (!mapInstance || !selectedRequestId) return;
+  if (!mapInstance || !managerEducatorMapInstance || !selectedRequestId) return;
   try {
     const response = await api(`/api/coordinates?request_id=${selectedRequestId}`);
     const points = response.points;
-    const group = L.featureGroup();
+    if (managerLearnerPins) mapInstance.removeLayer(managerLearnerPins);
+    if (managerEducatorPins) managerEducatorMapInstance.removeLayer(managerEducatorPins);
+    const learnerGroup = L.featureGroup();
+    const educatorGroup = L.featureGroup();
     points.forEach(point => {
-      const color = point.type === "request" ? "#df775f" : "#176b52";
-      const marker = L.circleMarker([point.latitude, point.longitude], { radius: point.type === "request" ? 9 : 7, color, fillColor: color, fillOpacity: .88, weight: 2 }).bindPopup(escapeHtml(point.label));
-      group.addLayer(marker);
+      if (point.type === "request") {
+        learnerGroup.addLayer(L.circleMarker([point.latitude, point.longitude], {
+          radius: 9, color: "#df775f", fillColor: "#df775f", fillOpacity: .88, weight: 2,
+        }).bindPopup("Selected learner lesson area"));
+      } else {
+        educatorGroup.addLayer(L.circleMarker([point.latitude, point.longitude], {
+          radius: 7, color: "#176b52", fillColor: "#176b52", fillOpacity: .88, weight: 2,
+        }).bindPopup(escapeHtml(point.label)));
+      }
     });
-    if (points.some(point => point.type === "request")) {
-      const request = points.find(point => point.type === "request");
-      group.addLayer(L.circle([request.latitude, request.longitude], { radius: response.request.radius_km * 1000, color: "#9dbb9f", weight: 1, fillOpacity: .07 }));
+    const request = points.find(point => point.type === "request");
+    if (request) {
+      learnerGroup.addLayer(L.circle([request.latitude, request.longitude], {
+        radius: response.request.radius_km * 1000, color: "#9dbb9f", weight: 1, fillOpacity: .07,
+      }));
     }
-    group.addTo(mapInstance);
-    if (points.length) mapInstance.fitBounds(group.getBounds().pad(.18), { maxZoom: 14 });
+    learnerGroup.addTo(mapInstance);
+    educatorGroup.addTo(managerEducatorMapInstance);
+    managerLearnerPins = learnerGroup;
+    managerEducatorPins = educatorGroup;
+    if (learnerGroup.getLayers().length) mapInstance.fitBounds(learnerGroup.getBounds().pad(.18), { maxZoom: 14 });
     else mapInstance.setView([-1.95, 30.06], 10);
+    if (educatorGroup.getLayers().length) managerEducatorMapInstance.fitBounds(educatorGroup.getBounds().pad(.18), { maxZoom: 14 });
+    else if (request) managerEducatorMapInstance.setView([request.latitude, request.longitude], 10);
+    else managerEducatorMapInstance.setView([-1.95, 30.06], 10);
+    const recommendations = $("managerRecommendations");
+    if (recommendations) {
+      recommendations.innerHTML = managerRecommendationCards(selectedRequestId);
+      decorateButtons(recommendations);
+    }
   } catch (error) { showToast(error.message); }
 }
 

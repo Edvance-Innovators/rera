@@ -27,6 +27,7 @@ The central command center of the platform. Managers act as the absolute coordin
 *   **Family Directory:** A manager-only view that maps registered parent accounts to their learner profiles and open tutoring requests, with teacher recommendations available from each request.
 *   **Curriculum & Level Filtering:** Advanced search matrices allowing managers to filter educators by country-specific curricula (e.g., CBC vs. REB), academic levels (Primary, Secondary, University), and targeted subject expertise.
 *   **Manager-led matching:** Managers review each request, shortlist verified educators by curriculum, level, subject and location, then privately pitch an educator. After the educator accepts, ReRa coordinates the family introduction; learner details stay private until then.
+* **Match efficiently dashboard:** The manager home replaces the photo carousel with side-by-side maps for the selected learner area and qualified educators, followed by up to three closest matches in a left-to-right approval row.
 * **Manager team:** A signed-in manager can create additional manager accounts from the dashboard, up to three managers total. New managers can sign in immediately.
 *   **Escrow & Billing Management:** Oversees local payment integrations (Mobile Money like MTN MoMo, Airtel Money, and card payments) and processes payouts to teachers upon successful lesson delivery.
 
