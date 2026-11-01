@@ -214,6 +214,9 @@
 .weekly-timetable tr>*:last-child{border-right:0}
 .availability-timetable tbody td{background:#fff5c266}
 .confirmed-timetable tbody td{background:#e2f5e966}
+.timetable-add-slot{display:inline-flex;min-height:25px;align-items:center;justify-content:center;padding:3px 6px;border:1px dashed #c3a526;border-radius:6px;background:#fff9dc;color:#695400;font-size:9px;font-weight:800;white-space:nowrap}
+.timetable-add-slot:hover:not(:disabled){background:#ffe889}
+.timetable-add-slot:disabled{border-color:#e4ddb9;background:#fffdf1;color:#aaa27e;cursor:not-allowed}
 .timetable-slot{display:block;margin:0 0 3px;padding:4px 5px;border:1px solid #ddbd36;border-radius:6px;background:#ffed93d9;color:#594600;font-size:9px;font-weight:700;line-height:1.35;overflow-wrap:anywhere}
 .confirmed-timetable .timetable-slot{border-color:#71b88f;background:#bde8cddf;color:#164b30}
 .timetable-slot.timetable-continuation{opacity:.7;font-size:8px;font-weight:600}

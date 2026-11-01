@@ -475,7 +475,7 @@ function timetableGrid(entries, kind) {
     const hourEnd = `${String(hour + 1).padStart(2, "0")}:00`;
     const cells = weekdays.map(day => {
       const items = byDay.get(day).filter(entry => entry.start_time < hourEnd && entry.end_time > hourStart);
-      return `<td>${items.map(entry => {
+      const slots = items.map(entry => {
         if (entry.start_time < hourStart) {
           return `<span class="timetable-slot timetable-continuation">Continues to ${escapeHtml(entry.end_time)}</span>`;
         }
@@ -483,7 +483,9 @@ function timetableGrid(entries, kind) {
         const dateLabel = new Intl.DateTimeFormat("en", { month: "short", day: "numeric" })
           .format(new Date(`${entry.lesson_date}T12:00:00`));
         return `<span class="timetable-slot">${escapeHtml(dateLabel)} · ${escapeHtml(entry.start_time)}–${escapeHtml(entry.end_time)}<br>${escapeHtml(entry.subject)} · ${escapeHtml(entry.learner_name)}</span>`;
-      }).join("")}</td>`;
+      }).join("");
+      const addButton = confirmed ? "" : `<button class="timetable-add-slot" type="button" data-action="availability-cell-add" data-weekday="${day}" data-start="${hourStart}" data-end="${hourEnd}" aria-label="Add ${hourStart} to ${hourEnd} availability on ${day}" ${items.length ? "disabled title=\"This hour already has availability\"" : ""}>+ Add</button>`;
+      return `<td>${slots}${addButton}</td>`;
     }).join("");
     return `<tr><th scope="row">${hourStart}</th>${cells}</tr>`;
   }).join("");
@@ -952,6 +954,18 @@ async function handleAction(action) {
       await refreshData();
       render();
       showToast("Weekly availability slot removed.");
+    } else if (name === "availability-cell-add") {
+      await api("/api/teacher/availability", {
+        method: "POST",
+        body: JSON.stringify({
+          weekday: action.dataset.weekday,
+          start_time: action.dataset.start,
+          end_time: action.dataset.end,
+        }),
+      });
+      await refreshData();
+      render();
+      showToast(`${action.dataset.weekday} ${action.dataset.start}–${action.dataset.end} added to weekly availability.`);
     } else if (name === "availability-use") {
       const form = $("availabilityForm");
       if (form) {
