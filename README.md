@@ -26,33 +26,34 @@ The central command center of the platform. Managers act as the absolute coordin
 *   **Hyper-Local Proximity Mapping:** A real-time dispatch dashboard where managers can visually locate teachers within a specific radius of a learner's house or school.
 *   **Family Directory:** A manager-only view that maps registered parent accounts to their learner profiles and open tutoring requests, with teacher recommendations available from each request.
 *   **Curriculum & Level Filtering:** Advanced search matrices allowing managers to filter educators by country-specific curricula (e.g., CBC vs. REB), academic levels (Primary, Secondary, University), and targeted subject expertise.
-*   **Manager-led matching:** Managers review each request, shortlist verified educators by curriculum, level, subject and location, then privately pitch an educator. After the educator accepts, ReRa coordinates the family introduction; learner details stay private until then.
+*   **Manager-led matching:** Managers review each request, shortlist verified educators by curriculum, level, subject and location, then privately pitch an educator. Once the educator accepts, the parent confirms the match before lesson scheduling and educator-specific materials become available.
 * **Match efficiently dashboard:** The manager home replaces the photo carousel with side-by-side maps for the selected learner area and qualified educators, followed by up to three closest matches in a left-to-right approval row.
 * **Manager team:** A signed-in manager can create additional manager accounts from the dashboard, up to three managers total. New managers can sign in immediately.
-*   **Escrow & Billing Management:** Oversees local payment integrations (Mobile Money like MTN MoMo, Airtel Money, and card payments) and processes payouts to teachers upon successful lesson delivery.
+*   **Payments:** Mobile Money checkout and payouts are not implemented. A provider/merchant API and lesson price must be selected and configured before ReRa can collect or confirm payments.
 
 ### 2. 🎒 The Learner Space (The Student Portal)
 Designed strictly for learning engagement, academic progression, and safety.
 *   **Academic Level Selection:** Students can self-identify or update their exact level—from primary foundational numbers to complex university course codes.
 * **Regional subjects:** Tutor signup and family requests use subject options specific to the selected country, curriculum and academic level; educator subjects are matched to the same level.
-*   **Interactive Schedule:** A calendar detailing upcoming in-person home visits or digital sessions.
+*   **Interactive Schedule:** A view of upcoming lessons booked by the parent after confirming an educator match.
 *   **Assignment & Resource Locker:** A direct repository to download worksheets, syllabus guides, or past papers provided by their matched teacher.
 *   **Direct Feedback Loop:** A simple, emoji-supported rating system for younger learners or comprehensive text reviews for university students to log session quality.
 
 ### 3. 👨‍👩‍👧 The Parent Space (The Customer Portal)
 The logistical, financial, and oversight hub for the family.
 *   **Request Intake Engine:** Parents submit requests outlining the student's current school level, struggling subjects, and physical address.
-*   **Curated Recommendations Feed:** A space to review authorized, vetted profiles of nearby teachers recommended by the ReRa Manager.
-*   **Progress Tracking & Reports:** Transparent logs of what was covered in each session, attendance verification, and performance milestones.
-*   **Secure Payments Vault:** Handles seamless subscription or pay-per-session transactions using local East African payment gateways.
+*   **Curated Recommendations Feed:** A space to review the educator assigned by the ReRa Manager, confirm the match, and choose lesson dates from the educator's weekly availability. Conflicting educator or learner lesson times are rejected.
+*   **Lesson timetable:** Confirmed lesson dates appear in the family and educator schedules. The parent books a date from the educator's available weekday and time.
+*   **Payments:** Indicative rates per lesson are Primary: 20,000 RWF, Secondary: 30,000 RWF, University: 40,000 RWF; Kenya: 1,800 / 2,600 / 3,500 KES; Uganda: 58,000 / 87,000 / 116,000 UGX; Tanzania: 36,000 / 54,000 / 71,000 TZS, respectively. Local-currency amounts are rounded conversions using the 1 Nov 2026 exchange-rate snapshot from [ExchangeRate-API](https://open.er-api.com/v6/latest/RWF); they are estimates, not live quotes. Checkout is not enabled; direct Mobile Money provider APIs must be configured and tested before ReRa can request or confirm pre-lesson payments.
 
 ### 4. 🎓 The Teacher Space (The Educator App)
 A mobile-first interface optimized for local gig-economy educators and professional teachers.
 *   **Radius Settings & Availability:** Tutors can toggle their operating zone (e.g., "Within 5km of Gasabo, Kigali" or "Westlands, Nairobi") and update free hours.
 *   **Private Job Pipeline:** Receives incoming notification pings from Managers offering nearby tutoring gigs. Tutors can view the curriculum, level, and subjects required, then click to accept or decline.
 * **Nearby learner requests:** Verified, available educators can browse anonymous, approximate map areas for open learner requests that match their region, subjects, level and travel radius. An educator's interest goes to a manager for review; approval sends a private offer without disclosing the learner's identity or exact location.
-* **Teaching address and weekly availability:** Educators may save a private city, district, sector, cell, street and optional house number, alongside an optional map pin. Weekly availability slots are stored in the timetable, and overlapping slots are rejected with alternative times suggested. This is recurring availability, not a confirmed lesson schedule.
-* **Calendar reminders:** Google Calendar reminders are not enabled yet. ReRa does not currently have dated lesson bookings or Google OAuth credentials configured, so it cannot safely create lesson events or reminders.
+* **Teaching address and weekly availability:** Educators may save a private city, district, sector, cell, street and optional house number, alongside an optional map pin. Weekly availability slots are stored and overlapping recurring slots are rejected with alternatives suggested.
+* **Lesson timetable:** Confirmed lessons booked by parents appear under the educator's schedule. Conflicting lesson bookings are rejected.
+* **Calendar reminders:** Google Calendar reminders are not enabled yet; calendar authorization and event-sync configuration are still required.
 *   **Navigation Assistance:** In-app mapping (via Google Maps/OpenStreetMap) to easily navigate to the learner’s home or designated study center.
 *   **Curriculum-Specific Toolkit:** A portal to view specific national syllabi guidelines, ensuring lessons align perfectly with what the student faces in school.
 

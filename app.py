@@ -167,6 +167,7 @@ def initialize_database() -> None:
                 request_id INTEGER NOT NULL REFERENCES learning_requests(id) ON DELETE CASCADE,
                 teacher_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
                 status TEXT NOT NULL DEFAULT 'Offered',
+                parent_status TEXT NOT NULL DEFAULT 'Pending',
                 created_at TEXT NOT NULL,
                 PRIMARY KEY (request_id, teacher_id)
             );
@@ -178,6 +179,17 @@ def initialize_database() -> None:
                 end_time TEXT NOT NULL,
                 created_at TEXT NOT NULL,
                 UNIQUE(teacher_id, weekday, start_time, end_time)
+            );
+            CREATE TABLE IF NOT EXISTS lessons (
+                id INTEGER PRIMARY KEY,
+                request_id INTEGER NOT NULL REFERENCES learning_requests(id) ON DELETE CASCADE,
+                availability_id INTEGER NOT NULL REFERENCES teacher_availability(id),
+                lesson_date TEXT NOT NULL,
+                start_time TEXT NOT NULL,
+                end_time TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'Scheduled',
+                created_at TEXT NOT NULL,
+                UNIQUE(request_id, lesson_date, start_time, end_time)
             );
             CREATE TABLE IF NOT EXISTS teacher_request_interests (
                 id INTEGER PRIMARY KEY,
@@ -220,6 +232,9 @@ def initialize_database() -> None:
         for column in ("address_city", "address_district", "address_sector", "address_cell", "address_street", "address_house_number"):
             if column not in user_columns:
                 db.execute(f"ALTER TABLE users ADD COLUMN {column} TEXT NOT NULL DEFAULT ''")
+        pitch_columns = {row["name"] for row in db.execute("PRAGMA table_info(pitches)")}
+        if "parent_status" not in pitch_columns:
+            db.execute("ALTER TABLE pitches ADD COLUMN parent_status TEXT NOT NULL DEFAULT 'Pending'")
         for title, kind, country, curriculum, level, subject, description, url in OFFICIAL_RESOURCES:
             db.execute("""INSERT INTO resources
                 (title, kind, country, curriculum, level, subject, description, url, created_at)
@@ -471,6 +486,8 @@ class ReRaHandler(BaseHTTPRequestHandler):
                 return self.update_teacher_profile(payload)
             if parsed.path == "/api/teacher/availability":
                 return self.update_teacher_availability(payload)
+            if parsed.path == "/api/lessons":
+                return self.schedule_lesson(payload)
             interest_match = re.fullmatch(r"/api/requests/(\d+)/interest", parsed.path)
             if interest_match:
                 return self.create_teacher_interest(int(interest_match.group(1)))
@@ -490,6 +507,9 @@ class ReRaHandler(BaseHTTPRequestHandler):
             offer_match = re.fullmatch(r"/api/pitches/(\d+)/(accept|decline)", parsed.path)
             if offer_match:
                 return self.update_pitch(int(offer_match.group(1)), offer_match.group(2))
+            family_match = re.fullmatch(r"/api/pitches/(\d+)/family-accept", parsed.path)
+            if family_match:
+                return self.accept_family_match(int(family_match.group(1)))
             if parsed.path == "/api/feedback":
                 return self.save_feedback(payload)
             self.error(404, "API route not found")
@@ -663,6 +683,11 @@ class ReRaHandler(BaseHTTPRequestHandler):
             return self.respond(200, [dict(manager) for manager in managers])
         if path == "/api/requests":
             return self.list_requests(user)
+        if path == "/api/lessons":
+            return self.list_lessons(user)
+        lesson_availability_match = re.fullmatch(r"/api/pitches/(\d+)/availability", path)
+        if lesson_availability_match:
+            return self.parent_lesson_availability(int(lesson_availability_match.group(1)))
         if path == "/api/teacher/availability":
             if user["role"] != "teacher":
                 return self.error(403, "This action is not available for your account")
@@ -1091,6 +1116,8 @@ class ReRaHandler(BaseHTTPRequestHandler):
             teacher = db.execute("SELECT * FROM users WHERE id = ? AND role = 'teacher'", (teacher_id,)).fetchone()
             if not request or not teacher:
                 raise ValueError("Request or educator not found")
+            if request["status"] != "Matching":
+                return self.error(409, "This learner request is no longer open for new educator offers")
             candidates = self.matching_teachers(request, db)
             if teacher_id not in {item["id"] for item in candidates}:
                 raise ValueError("This educator does not currently meet all request criteria")
@@ -1108,10 +1135,12 @@ class ReRaHandler(BaseHTTPRequestHandler):
             return self.respond(200, [dict(row) for row in rows])
         if user["role"] == "parent":
             with connect_db() as db:
-                rows = db.execute("""SELECT p.request_id, p.status AS pitch_status, u.name AS teacher_name,
+                rows = db.execute("""SELECT p.request_id, p.status AS pitch_status, p.parent_status,
+                    r.status AS request_status, u.name AS teacher_name,
                     u.country, u.curriculum, u.subjects, u.verified FROM pitches p
                     JOIN learning_requests r ON r.id = p.request_id JOIN users u ON u.id = p.teacher_id
-                    WHERE r.parent_id = ? ORDER BY p.created_at DESC""", (user["id"],)).fetchall()
+                    WHERE r.parent_id = ? AND p.status = 'Accepted'
+                    ORDER BY p.created_at DESC""", (user["id"],)).fetchall()
             result = [dict(row) for row in rows]
             for item in result:
                 item["subjects"] = format_teacher_subjects(json.loads(item["subjects"]))
@@ -1125,12 +1154,133 @@ class ReRaHandler(BaseHTTPRequestHandler):
             return
         status = "Accepted" if action == "accept" else "Declined"
         with connect_db() as db:
+            request = db.execute("SELECT status FROM learning_requests WHERE id = ?", (request_id,)).fetchone()
+            if action == "accept" and (not request or request["status"] != "Pitched"):
+                return self.error(409, "This educator offer is no longer available")
             cursor = db.execute("UPDATE pitches SET status = ? WHERE request_id = ? AND teacher_id = ? AND status = 'Offered'", (status, request_id, user["id"]))
             if cursor.rowcount != 1:
                 return self.error(404, "Offer not found or already answered")
             if action == "accept":
-                db.execute("UPDATE learning_requests SET status = 'Matched' WHERE id = ?", (request_id,))
+                db.execute("UPDATE learning_requests SET status = 'AwaitingFamily' WHERE id = ?", (request_id,))
+                db.execute("UPDATE pitches SET status = 'Declined' WHERE request_id = ? AND teacher_id != ? AND status = 'Offered'",
+                           (request_id, user["id"]))
+            elif not db.execute("SELECT 1 FROM pitches WHERE request_id = ? AND status IN ('Offered', 'Accepted') LIMIT 1",
+                                (request_id,)).fetchone():
+                db.execute("UPDATE learning_requests SET status = 'Matching' WHERE id = ? AND status = 'Pitched'",
+                           (request_id,))
         return self.respond(200, {"ok": True, "status": status})
+
+    def accept_family_match(self, request_id: int) -> None:
+        parent = self.require_user({"parent"})
+        if not parent:
+            return
+        with connect_db() as db:
+            pitch = db.execute("""SELECT p.status, p.parent_status, r.status AS request_status
+                FROM pitches p JOIN learning_requests r ON r.id = p.request_id
+                WHERE p.request_id = ? AND r.parent_id = ? AND p.status = 'Accepted'""",
+                (request_id, parent["id"])).fetchone()
+            if (not pitch or pitch["parent_status"] != "Pending"
+                    or pitch["request_status"] not in {"AwaitingFamily", "Matched"}):
+                return self.error(404, "There is no educator match awaiting your confirmation")
+            db.execute("""UPDATE pitches SET parent_status = 'Accepted'
+                WHERE request_id = ? AND status = 'Accepted' AND parent_status = 'Pending'""", (request_id,))
+            db.execute("""UPDATE pitches SET parent_status = 'Declined'
+                WHERE request_id = ? AND parent_status = 'Pending'
+                AND teacher_id != (SELECT teacher_id FROM pitches
+                    WHERE request_id = ? AND status = 'Accepted' AND parent_status = 'Accepted')""",
+                (request_id, request_id))
+            db.execute("UPDATE learning_requests SET status = 'Matched' WHERE id = ? AND parent_id = ?",
+                       (request_id, parent["id"]))
+        return self.respond(200, {"ok": True, "status": "Accepted"})
+
+    def parent_lesson_availability(self, request_id: int) -> None:
+        parent = self.require_user({"parent"})
+        if not parent:
+            return
+        with connect_db() as db:
+            assignment = db.execute("""SELECT p.teacher_id FROM pitches p
+                JOIN learning_requests r ON r.id = p.request_id
+                WHERE p.request_id = ? AND r.parent_id = ? AND r.status = 'Matched'
+                AND p.status = 'Accepted' AND p.parent_status = 'Accepted'""",
+                (request_id, parent["id"])).fetchone()
+            if not assignment:
+                return self.error(403, "Confirm the educator match before scheduling lessons")
+            slots = db.execute("""SELECT id, weekday, start_time, end_time FROM teacher_availability
+                WHERE teacher_id = ? ORDER BY CASE weekday
+                WHEN 'Monday' THEN 1 WHEN 'Tuesday' THEN 2 WHEN 'Wednesday' THEN 3
+                WHEN 'Thursday' THEN 4 WHEN 'Friday' THEN 5 WHEN 'Saturday' THEN 6 ELSE 7 END, start_time""",
+                (assignment["teacher_id"],)).fetchall()
+        return self.respond(200, [dict(slot) for slot in slots])
+
+    def schedule_lesson(self, payload: dict) -> None:
+        parent = self.require_user({"parent"})
+        if not parent:
+            return
+        try:
+            request_id = int(payload.get("request_id"))
+            availability_id = int(payload.get("availability_id"))
+            lesson_date = datetime.strptime(str(payload.get("lesson_date", "")), "%Y-%m-%d").date()
+        except (TypeError, ValueError):
+            raise ValueError("Choose a learner request, weekly time, and valid lesson date")
+        east_africa_now = datetime.now(timezone.utc) + timedelta(hours=3)
+        if lesson_date < east_africa_now.date():
+            raise ValueError("Choose a future lesson date")
+        with connect_db() as db:
+            db.execute("BEGIN IMMEDIATE")
+            assignment = db.execute("""SELECT r.student_id, p.teacher_id FROM learning_requests r
+                JOIN pitches p ON p.request_id = r.id
+                WHERE r.id = ? AND r.parent_id = ? AND r.status = 'Matched'
+                AND p.status = 'Accepted' AND p.parent_status = 'Accepted'""",
+                (request_id, parent["id"])).fetchone()
+            if not assignment:
+                return self.error(403, "Confirm the educator match before scheduling lessons")
+            slot = db.execute("""SELECT id, weekday, start_time, end_time FROM teacher_availability
+                WHERE id = ? AND teacher_id = ?""", (availability_id, assignment["teacher_id"])).fetchone()
+            if not slot:
+                return self.error(409, "That weekly teaching time is no longer available")
+            if lesson_date.strftime("%A") != slot["weekday"]:
+                raise ValueError("Choose a date that falls on the selected weekday")
+            if lesson_date == east_africa_now.date() and slot["start_time"] <= east_africa_now.strftime("%H:%M"):
+                raise ValueError("Choose a time later today or a future date")
+            conflicts = db.execute("""SELECT l.start_time, l.end_time FROM lessons l
+                JOIN learning_requests r ON r.id = l.request_id
+                JOIN pitches p ON p.request_id = r.id AND p.parent_status = 'Accepted'
+                WHERE l.lesson_date = ? AND l.status = 'Scheduled'
+                AND (p.teacher_id = ? OR r.student_id = ?)""",
+                (lesson_date.isoformat(), assignment["teacher_id"], assignment["student_id"])).fetchall()
+            if any(slot["start_time"] < lesson["end_time"] and slot["end_time"] > lesson["start_time"]
+                   for lesson in conflicts):
+                return self.error(409, "This time conflicts with another lesson for the educator or learner")
+            try:
+                cursor = db.execute("""INSERT INTO lessons
+                    (request_id, availability_id, lesson_date, start_time, end_time, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?)""",
+                    (request_id, availability_id, lesson_date.isoformat(), slot["start_time"], slot["end_time"], now_iso()))
+            except sqlite3.IntegrityError:
+                return self.error(409, "This lesson is already on the timetable")
+        return self.respond(201, {"ok": True, "id": cursor.lastrowid, "status": "Scheduled"})
+
+    def list_lessons(self, user: sqlite3.Row) -> None:
+        if user["role"] == "parent":
+            query = """SELECT l.id, l.request_id, l.lesson_date, l.start_time, l.end_time, l.status,
+                r.subject, r.level, r.grade, s.name AS learner_name, u.name AS teacher_name
+                FROM lessons l JOIN learning_requests r ON r.id = l.request_id
+                JOIN students s ON s.id = r.student_id
+                JOIN pitches p ON p.request_id = r.id AND p.parent_status = 'Accepted'
+                JOIN users u ON u.id = p.teacher_id
+                WHERE r.parent_id = ? ORDER BY l.lesson_date, l.start_time"""
+        elif user["role"] == "teacher":
+            query = """SELECT l.id, l.request_id, l.lesson_date, l.start_time, l.end_time, l.status,
+                r.subject, r.level, r.grade, s.name AS learner_name
+                FROM lessons l JOIN learning_requests r ON r.id = l.request_id
+                JOIN students s ON s.id = r.student_id
+                JOIN pitches p ON p.request_id = r.id AND p.parent_status = 'Accepted'
+                WHERE p.teacher_id = ? ORDER BY l.lesson_date, l.start_time"""
+        else:
+            return self.respond(200, [])
+        with connect_db() as db:
+            lessons = db.execute(query, (user["id"],)).fetchall()
+        return self.respond(200, [dict(lesson) for lesson in lessons])
 
     def list_resources(self, user: sqlite3.Row, query: dict) -> None:
         filters = []
@@ -1139,7 +1289,7 @@ class ReRaHandler(BaseHTTPRequestHandler):
             filters.append("(r.owner_id IS NULL OR r.owner_id = ?)")
             parameters.append(user["id"])
         elif user["role"] == "parent":
-            filters.append("(r.owner_id IS NULL OR EXISTS (SELECT 1 FROM pitches p JOIN learning_requests lr ON lr.id = p.request_id WHERE p.teacher_id = r.owner_id AND lr.parent_id = ? AND p.status = 'Accepted'))")
+            filters.append("(r.owner_id IS NULL OR EXISTS (SELECT 1 FROM pitches p JOIN learning_requests lr ON lr.id = p.request_id WHERE p.teacher_id = r.owner_id AND lr.parent_id = ? AND p.status = 'Accepted' AND p.parent_status = 'Accepted'))")
             parameters.append(user["id"])
         for key in ("kind", "country", "curriculum", "level", "subject"):
             value = query.get(key, [""])[0].strip()
@@ -1207,7 +1357,7 @@ class ReRaHandler(BaseHTTPRequestHandler):
             resource = db.execute("""SELECT r.file_name FROM resources r WHERE r.id = ? AND r.published = 1 AND (
                 ? = 'manager' OR r.owner_id IS NULL OR (? = 'teacher' AND r.owner_id = ?) OR
                 (? = 'parent' AND EXISTS (SELECT 1 FROM pitches p JOIN learning_requests lr ON lr.id = p.request_id
-                    WHERE p.teacher_id = r.owner_id AND lr.parent_id = ? AND p.status = 'Accepted'))
+                    WHERE p.teacher_id = r.owner_id AND lr.parent_id = ? AND p.status = 'Accepted' AND p.parent_status = 'Accepted'))
             )""", (resource_id, user["role"], user["role"], user["id"], user["role"], user["id"])).fetchone()
         if not resource or not resource["file_name"]:
             return self.error(404, "Material not found")

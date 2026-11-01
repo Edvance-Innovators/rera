@@ -85,9 +85,14 @@ export class ReraStore {
         request_id INTEGER NOT NULL,
         teacher_id INTEGER NOT NULL,
         status TEXT NOT NULL DEFAULT 'Offered',
+        parent_status TEXT NOT NULL DEFAULT 'Pending',
         created_at TEXT NOT NULL,
         PRIMARY KEY (request_id, teacher_id)
       )`);
+      const pitchColumns = this.state.storage.sql.exec("PRAGMA table_info(pitches)").toArray();
+      if (!pitchColumns.some(column => column.name === "parent_status")) {
+        this.state.storage.sql.exec("ALTER TABLE pitches ADD COLUMN parent_status TEXT NOT NULL DEFAULT 'Pending'");
+      }
       this.state.storage.sql.exec(`CREATE TABLE IF NOT EXISTS teacher_availability (
         id INTEGER PRIMARY KEY,
         teacher_id INTEGER NOT NULL,
@@ -96,6 +101,17 @@ export class ReraStore {
         end_time TEXT NOT NULL,
         created_at TEXT NOT NULL,
         UNIQUE(teacher_id, weekday, start_time, end_time)
+      )`);
+      this.state.storage.sql.exec(`CREATE TABLE IF NOT EXISTS lessons (
+        id INTEGER PRIMARY KEY,
+        request_id INTEGER NOT NULL,
+        availability_id INTEGER NOT NULL,
+        lesson_date TEXT NOT NULL,
+        start_time TEXT NOT NULL,
+        end_time TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'Scheduled',
+        created_at TEXT NOT NULL,
+        UNIQUE(request_id, lesson_date, start_time, end_time)
       )`);
       this.state.storage.sql.exec(`CREATE TABLE IF NOT EXISTS teacher_request_interests (
         id INTEGER PRIMARY KEY,
@@ -407,6 +423,26 @@ function getStoreData(request, state, url) {
       JOIN students s ON s.id = r.student_id
       WHERE i.status = 'Pending' ORDER BY i.created_at`));
   }
+  if (url.pathname === "/api/lessons") {
+    if (user.role === "parent") {
+      return response(rows(state, `SELECT l.id, l.request_id, l.lesson_date, l.start_time, l.end_time, l.status,
+        r.subject, r.level, r.grade, s.name AS learner_name, u.name AS teacher_name
+        FROM lessons l JOIN learning_requests r ON r.id = l.request_id
+        JOIN students s ON s.id = r.student_id
+        JOIN pitches p ON p.request_id = r.id AND p.parent_status = 'Accepted'
+        JOIN users u ON u.id = p.teacher_id
+        WHERE r.parent_id = ? ORDER BY l.lesson_date, l.start_time`, user.id));
+    }
+    if (user.role === "teacher") {
+      return response(rows(state, `SELECT l.id, l.request_id, l.lesson_date, l.start_time, l.end_time, l.status,
+        r.subject, r.level, r.grade, s.name AS learner_name
+        FROM lessons l JOIN learning_requests r ON r.id = l.request_id
+        JOIN students s ON s.id = r.student_id
+        JOIN pitches p ON p.request_id = r.id AND p.parent_status = 'Accepted'
+        WHERE p.teacher_id = ? ORDER BY l.lesson_date, l.start_time`, user.id));
+    }
+    return response([]);
+  }
   if (url.pathname === "/api/students") {
     if (user.role !== "parent") return response([]);
     return response(rows(state, "SELECT id, name, country, curriculum, level, grade FROM students WHERE parent_id = ? ORDER BY id", user.id));
@@ -443,9 +479,10 @@ function getStoreData(request, state, url) {
     }
     if (user.role === "parent") {
       return response(rows(state, `SELECT p.request_id, p.status AS pitch_status, u.name AS teacher_name,
+        p.parent_status, r.status AS request_status, r.subject, r.level, r.grade,
         u.country, u.curriculum, u.subjects, u.verified FROM pitches p
         JOIN learning_requests r ON r.id = p.request_id JOIN users u ON u.id = p.teacher_id
-        WHERE r.parent_id = ? ORDER BY p.created_at DESC`, user.id).map(pitch => ({
+        WHERE r.parent_id = ? AND p.status = 'Accepted' ORDER BY p.created_at DESC`, user.id).map(pitch => ({
         ...pitch, subjects: formatTeacherSubjects(pitch.subjects), verified: Boolean(pitch.verified),
       })));
     }
@@ -742,11 +779,110 @@ function updatePitch(request, state, requestId, action) {
   const access = requireUser(request, state, ["teacher"]);
   if (access.error) return access.error;
   const status = action === "accept" ? "Accepted" : "Declined";
+  const learningRequest = rows(state, "SELECT status FROM learning_requests WHERE id = ?", requestId)[0];
+  if (action === "accept" && (!learningRequest || learningRequest.status !== "Pitched")) {
+    return response({ error: "This educator offer is no longer available" }, 409);
+  }
   const cursor = state.storage.sql.exec("UPDATE pitches SET status = ? WHERE request_id = ? AND teacher_id = ? AND status = 'Offered'",
     status, requestId, access.user.id);
   if (!cursor.rowsWritten) return response({ error: "Offer not found or already answered" }, 404);
-  if (action === "accept") state.storage.sql.exec("UPDATE learning_requests SET status = 'Matched' WHERE id = ?", requestId);
+  if (action === "accept") {
+    state.storage.sql.exec("UPDATE learning_requests SET status = 'AwaitingFamily' WHERE id = ?", requestId);
+    state.storage.sql.exec("UPDATE pitches SET status = 'Declined' WHERE request_id = ? AND teacher_id != ? AND status = 'Offered'",
+      requestId, access.user.id);
+  } else if (!rows(state, "SELECT 1 FROM pitches WHERE request_id = ? AND status IN ('Offered', 'Accepted') LIMIT 1", requestId).length) {
+    state.storage.sql.exec("UPDATE learning_requests SET status = 'Matching' WHERE id = ? AND status = 'Pitched'", requestId);
+  }
   return response({ ok: true, status });
+}
+
+function acceptFamilyMatch(request, state, requestId) {
+  const access = requireUser(request, state, ["parent"]);
+  if (access.error) return access.error;
+  const pitch = rows(state, `SELECT p.status, p.parent_status, r.status AS request_status
+    FROM pitches p JOIN learning_requests r ON r.id = p.request_id
+    WHERE p.request_id = ? AND r.parent_id = ? AND p.status = 'Accepted'`,
+  requestId, access.user.id)[0];
+  if (!pitch || pitch.parent_status !== "Pending"
+    || !["AwaitingFamily", "Matched"].includes(pitch.request_status)) {
+    return response({ error: "There is no educator match awaiting your confirmation" }, 404);
+  }
+  state.storage.sql.exec("UPDATE pitches SET parent_status = 'Accepted' WHERE request_id = ? AND status = 'Accepted' AND parent_status = 'Pending'",
+    requestId);
+  state.storage.sql.exec("UPDATE pitches SET parent_status = 'Declined' WHERE request_id = ? AND teacher_id != (SELECT teacher_id FROM pitches WHERE request_id = ? AND status = 'Accepted' AND parent_status = 'Accepted') AND parent_status = 'Pending'",
+    requestId, requestId);
+  state.storage.sql.exec("UPDATE learning_requests SET status = 'Matched' WHERE id = ? AND parent_id = ?", requestId, access.user.id);
+  return response({ ok: true, status: "Accepted" });
+}
+
+function parentLessonAvailability(request, state, requestId) {
+  const access = requireUser(request, state, ["parent"]);
+  if (access.error) return access.error;
+  const assignment = rows(state, `SELECT p.teacher_id FROM pitches p
+    JOIN learning_requests r ON r.id = p.request_id
+    WHERE p.request_id = ? AND r.parent_id = ? AND r.status = 'Matched'
+      AND p.status = 'Accepted' AND p.parent_status = 'Accepted'`,
+  requestId, access.user.id)[0];
+  if (!assignment) return response({ error: "Confirm the educator match before scheduling lessons" }, 403);
+  return response(rows(state, `SELECT id, weekday, start_time, end_time FROM teacher_availability
+    WHERE teacher_id = ? ORDER BY CASE weekday
+    WHEN 'Monday' THEN 1 WHEN 'Tuesday' THEN 2 WHEN 'Wednesday' THEN 3
+    WHEN 'Thursday' THEN 4 WHEN 'Friday' THEN 5 WHEN 'Saturday' THEN 6 ELSE 7 END, start_time`,
+  assignment.teacher_id));
+}
+
+function scheduleLesson(request, state) {
+  const access = requireUser(request, state, ["parent"]);
+  if (access.error) return access.error;
+  return readJson(request).then(body => {
+    const requestId = Number(body.request_id);
+    const availabilityId = Number(body.availability_id);
+    const lessonDate = String(body.lesson_date || "");
+    if (!Number.isInteger(requestId) || !Number.isInteger(availabilityId)
+      || !/^\d{4}-\d{2}-\d{2}$/.test(lessonDate)) {
+      return response({ error: "Choose a learner request, weekly time, and valid lesson date" }, 400);
+    }
+    const parsedDate = new Date(`${lessonDate}T00:00:00Z`);
+    if (!Number.isFinite(parsedDate.getTime()) || parsedDate.toISOString().slice(0, 10) !== lessonDate) {
+      return response({ error: "Choose a valid lesson date" }, 400);
+    }
+    const eastAfricaNow = new Date(Date.now() + 3 * 60 * 60 * 1000);
+    const today = eastAfricaNow.toISOString().slice(0, 10);
+    const currentTime = eastAfricaNow.toISOString().slice(11, 16);
+    if (lessonDate < today) return response({ error: "Choose a future lesson date" }, 400);
+    const assignment = rows(state, `SELECT r.student_id, p.teacher_id FROM learning_requests r
+      JOIN pitches p ON p.request_id = r.id
+      WHERE r.id = ? AND r.parent_id = ? AND r.status = 'Matched'
+        AND p.status = 'Accepted' AND p.parent_status = 'Accepted'`,
+    requestId, access.user.id)[0];
+    if (!assignment) return response({ error: "Confirm the educator match before scheduling lessons" }, 403);
+    const slot = rows(state, `SELECT id, weekday, start_time, end_time FROM teacher_availability
+      WHERE id = ? AND teacher_id = ?`, availabilityId, assignment.teacher_id)[0];
+    if (!slot) return response({ error: "That weekly teaching time is no longer available" }, 409);
+    const weekday = WEEKDAYS[(parsedDate.getUTCDay() + 6) % 7];
+    if (weekday !== slot.weekday) return response({ error: "Choose a date that falls on the selected weekday" }, 400);
+    if (lessonDate === today && slot.start_time <= currentTime) return response({ error: "Choose a time later today or a future date" }, 400);
+    const existing = rows(state, `SELECT l.start_time, l.end_time, r.student_id, p.teacher_id
+      FROM lessons l JOIN learning_requests r ON r.id = l.request_id
+      JOIN pitches p ON p.request_id = r.id AND p.parent_status = 'Accepted'
+      WHERE l.lesson_date = ? AND l.status = 'Scheduled'
+        AND (p.teacher_id = ? OR r.student_id = ?)`,
+    lessonDate, assignment.teacher_id, assignment.student_id);
+    const overlaps = existing.some(lesson => slot.start_time < lesson.end_time && slot.end_time > lesson.start_time);
+    if (overlaps) return response({ error: "This time conflicts with another lesson for the educator or learner" }, 409);
+    try {
+      state.storage.sql.exec(`INSERT INTO lessons(request_id, availability_id, lesson_date, start_time, end_time, created_at)
+        VALUES (?, ?, ?, ?, ?, ?)`,
+      requestId, availabilityId, lessonDate, slot.start_time, slot.end_time, new Date().toISOString());
+    } catch (error) {
+      if (String(error.message).includes("UNIQUE constraint failed")) {
+        return response({ error: "This lesson is already on the timetable" }, 409);
+      }
+      throw error;
+    }
+    const lesson = rows(state, "SELECT last_insert_rowid() AS id")[0];
+    return response({ ok: true, id: lesson.id, status: "Scheduled" }, 201);
+  });
 }
 
 async function deleteExpiredUnverifiedAccounts(state) {
@@ -1005,6 +1141,16 @@ async function handleStoreRequest(request, state, env) {
     return response({ ok: true }, 200, { "Set-Cookie": "rera_session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0" });
   }
 
+  const lessonAvailabilityMatch = url.pathname.match(/^\/api\/pitches\/(\d+)\/availability$/);
+  if (lessonAvailabilityMatch && request.method === "GET") {
+    return parentLessonAvailability(request, state, Number(lessonAvailabilityMatch[1]));
+  }
+  const familyMatchDecision = url.pathname.match(/^\/api\/pitches\/(\d+)\/family-accept$/);
+  if (familyMatchDecision && request.method === "POST") {
+    return acceptFamilyMatch(request, state, Number(familyMatchDecision[1]));
+  }
+  if (url.pathname === "/api/lessons" && request.method === "POST") return scheduleLesson(request, state);
+
   const interestMatch = url.pathname.match(/^\/api\/requests\/(\d+)\/interest$/);
   if (interestMatch && request.method === "POST") return createTeacherInterest(request, state, Number(interestMatch[1]));
   const managerInterestMatch = url.pathname.match(/^\/api\/manager\/interests\/(\d+)\/(approve|decline)$/);
@@ -1017,7 +1163,8 @@ async function handleStoreRequest(request, state, env) {
     || url.pathname === "/api/resources" || url.pathname === "/api/pitches" || url.pathname === "/api/feedback"
     || url.pathname === "/api/teachers" || url.pathname === "/api/coordinates" || url.pathname === "/api/teacher/profile"
     || url.pathname === "/api/teacher/availability" || url.pathname === "/api/teacher/nearby-requests"
-    || url.pathname === "/api/manager/interests" || url.pathname === "/api/nearby-teachers") {
+    || url.pathname === "/api/manager/interests" || url.pathname === "/api/lessons"
+    || url.pathname === "/api/nearby-teachers") {
     if (request.method === "GET") return getStoreData(request, state, url);
     if (request.method === "POST") return postStoreData(request, state, url);
   }

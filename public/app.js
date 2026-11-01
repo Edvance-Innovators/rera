@@ -16,6 +16,12 @@ const officialCurriculumSources = [
   { title: "Tanzania curriculum resources", country: "Tanzania", curriculum: "NECTA", description: "Curriculum resources from the Tanzania Institute of Education.", url: "https://www.tie.go.tz/" }
 ].map(source => ({ ...source, kind: "curriculum", level: "All levels", subject: "All subjects" }));
 const levels = ["Primary", "Secondary", "University"];
+const lessonPrices = {
+  Rwanda: { currency: "RWF", Primary: 20000, Secondary: 30000, University: 40000 },
+  Kenya: { currency: "KES", Primary: 1800, Secondary: 2600, University: 3500 },
+  Uganda: { currency: "UGX", Primary: 58000, Secondary: 87000, University: 116000 },
+  Tanzania: { currency: "TZS", Primary: 36000, Secondary: 54000, University: 71000 },
+};
 const $ = id => document.getElementById(id);
 const app = $("app");
 let currentUser;
@@ -29,6 +35,7 @@ let managerInterests = [];
 let pitches = [];
 let nearbyRequests = [];
 let teacherAvailability = [];
+let lessons = [];
 let resources = [];
 let feedback = [];
 let selectedRequestId = null;
@@ -156,9 +163,9 @@ async function refreshData() {
   currentUser = me.user;
 
   const tasks = ["/api/requests", "/api/resources"];
-  if (currentUser.role === "parent") tasks.push("/api/students", "/api/pitches", "/api/feedback");
+  if (currentUser.role === "parent") tasks.push("/api/students", "/api/pitches", "/api/feedback", "/api/lessons");
   if (currentUser.role === "teacher") {
-    tasks.push("/api/pitches", "/api/feedback", "/api/teacher/availability");
+    tasks.push("/api/pitches", "/api/feedback", "/api/teacher/availability", "/api/lessons");
     if (currentUser.verified && currentUser.available && currentUser.latitude != null && currentUser.longitude != null) {
       tasks.push("/api/teacher/nearby-requests");
     }
@@ -171,11 +178,13 @@ async function refreshData() {
   if (currentUser.role === "parent") {
     students = results[cursor++];
     pitches = results[cursor++];
-    feedback = results[cursor];
+    cursor += 1;
+    lessons = results[cursor];
   } else if (currentUser.role === "teacher") {
     pitches = results[cursor++];
     cursor += 1;
     teacherAvailability = results[cursor++];
+    lessons = results[cursor++];
     nearbyRequests = results[cursor]?.requests || [];
   } else {
     teachers = results[cursor++];
@@ -188,7 +197,7 @@ async function refreshData() {
 
 function sectionsForUser() {
   if (currentUser.role === "manager") return ["Overview", "Families & learners", "Learning requests", "Educator network", "Material repository", "Curriculum repository"];
-  if (currentUser.role === "teacher") return ["Teaching home", "Job offers", "My materials", "Teaching profile", "Curriculum repository"];
+  if (currentUser.role === "teacher") return ["Teaching home", "Job offers", "My schedule", "My materials", "Teaching profile", "Curriculum repository"];
   return learnerView
     ? ["My learning", "My schedule", "Study materials", "Curriculum repository", "Feedback"]
     : ["Family overview", "Learners", "Learning requests", "Materials", "Curriculum repository", "Payments"];
@@ -417,7 +426,50 @@ function parentView() {
   const action = `<button class="button button-compact" data-action="student-new">Add learner</button>`;
   const studentCards = students.length ? students.map(student => `<article class="info-card"><h3>${escapeHtml(student.name)}</h3><div class="big">${escapeHtml(student.level)} · ${escapeHtml(student.grade)}</div><p>${escapeHtml(student.country)} · ${escapeHtml(student.curriculum)}</p><button class="button-light request-add" data-action="request-new" data-student="${student.id}">Find a tutor</button></article>`).join("") : `<article class="info-card"><h3>Start with a learner profile</h3><p>Add a learner's country, curriculum and exact academic level. These criteria make tutor matches relevant.</p><button class="button-light request-add" data-action="student-new">Add learner</button></article>`;
   const requestRows = requests.map(request => `<div class="request-card"><div class="request-card-head"><strong>${escapeHtml(request.subject)} · ${escapeHtml(request.level)} ${escapeHtml(request.grade)}</strong><span class="status ${escapeHtml(request.status.toLowerCase())}">${escapeHtml(request.status)}</span></div><p>${escapeHtml(request.curriculum)} · ${escapeHtml(request.location_label)} · ${escapeHtml(request.mode)}</p><p>Preferred: ${escapeHtml(request.availability)}</p><div class="progress-track request-progress ${escapeHtml(request.status.toLowerCase())}"><span></span></div></div>`).join("");
-  return `${heading("A little closer to their goals.", "Manage learners and tutoring requests for your family.", action)}<section class="info-grid">${studentCards}</section><section class="app-grid"><article class="panel"><div class="panel-head"><div><h2>Your learning requests</h2><p>Review matching progress and educator proposals.</p></div><span class="tag">${requests.length}</span></div>${requestRows || `<div class="empty">No learning requests yet. Add a learner profile to begin.</div>`}</article><article class="panel"><div class="panel-head"><div><h2>Educator proposals</h2><p>ReRa managers coordinate introductions.</p></div></div>${pitches.length ? pitches.map(pitch => `<div class="tutor-row"><span class="tutor-avatar">${initials(pitch.teacher_name)}</span><div class="tutor-info"><strong>${escapeHtml(pitch.teacher_name)} ${pitch.verified ? "· Verified" : "· Review pending"}</strong><span>${escapeHtml(pitch.country)} · ${escapeHtml(pitch.curriculum)} · ${escapeHtml(pitch.subjects.join(", "))}</span></div><span class="status ${escapeHtml(pitch.pitch_status.toLowerCase())}">${escapeHtml(pitch.pitch_status)}</span></div>`).join("") : `<div class="empty">When a manager proposes an educator, their profile appears here. Your address stays private until a match is confirmed.</div>`}</article></section><section class="app-grid"><article class="panel"><div class="panel-head"><div><h2>Upcoming lessons</h2><p>Confirmed sessions from your learning plans.</p></div></div><div class="empty">No confirmed sessions yet. A ReRa manager will coordinate the first session after you accept an educator match.</div></article><article class="panel"><div class="panel-head"><div><h2>Payment methods</h2><p>Mobile Money and card support</p></div></div><div class="privacy-note">Payment collection is not enabled in this local build. No payment details are requested or stored.</div></article></section>`;
+  const proposals = pitches.length ? pitches.map(pitch => `<div class="family-match-card"><div class="tutor-avatar">${initials(pitch.teacher_name)}</div><div class="tutor-info"><strong>${escapeHtml(pitch.teacher_name)} · ${pitch.verified ? "Verified" : "Review pending"}</strong><span>${escapeHtml(pitch.country)} · ${escapeHtml(pitch.curriculum)} · ${escapeHtml(pitch.subjects.join(", "))} · ${escapeHtml(pitch.level)}</span></div>${pitch.parent_status === "Accepted" ? `<span class="status matched">Your educator</span><button class="button-light" data-action="schedule-lesson" data-request="${pitch.request_id}">Book a lesson</button>` : `<button class="button button-compact" data-action="family-match-accept" data-request="${pitch.request_id}">Confirm educator</button>`}<div class="lesson-scheduler" id="lesson-scheduler-${pitch.request_id}"></div></div>`).join("") : `<div class="empty">A manager will send an educator for your review after the educator accepts the offer.</div>`;
+  return `${heading("A little closer to their goals.", "Review your assigned educator, confirm the match and book lesson dates from their weekly availability.", action)}<section class="info-grid">${studentCards}</section><section class="app-grid"><article class="panel"><div class="panel-head"><div><h2>Your learning requests</h2><p>Review matching progress and educator proposals.</p></div><span class="tag">${requests.length}</span></div>${requestRows || `<div class="empty">No learning requests yet. Add a learner profile to begin.</div>`}</article><article class="panel"><div class="panel-head"><div><h2>Educator match</h2><p>Confirm the assigned educator before scheduling lessons.</p></div></div>${proposals}</article></section><section class="app-grid"><article class="panel"><div class="panel-head"><div><h2>Upcoming lessons</h2><p>Scheduled sessions from your confirmed educator matches.</p></div></div>${lessonList(lessons, true)}</article><article class="panel"><div class="panel-head"><div><h2>Mobile Money payments</h2><p>Payment before each lesson</p></div></div><div class="privacy-note">${paymentStatusMessage()}</div></article></section>`;
+}
+
+function lessonList(items, includeTeacher = false) {
+  if (!items.length) return `<div class="empty">No lessons scheduled yet. Confirm your educator match, then book a date from the educator's weekly availability.</div>`;
+  return `<div class="tutor-list">${items.map(lesson => `<article class="lesson-card"><div class="lesson-card-date"><strong>${escapeHtml(new Date(`${lesson.lesson_date}T12:00:00`).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric", year: "numeric" }))}</strong><span>${escapeHtml(lesson.start_time)}–${escapeHtml(lesson.end_time)}</span></div><div class="tutor-info"><strong>${escapeHtml(lesson.subject)} · ${escapeHtml(lesson.level)} ${escapeHtml(lesson.grade)}</strong><span>${includeTeacher ? `Educator: ${escapeHtml(lesson.teacher_name)}` : `Learner: ${escapeHtml(lesson.learner_name)}`}</span></div><span class="status ${escapeHtml(lesson.status.toLowerCase())}">${escapeHtml(lesson.status)}</span></article>`).join("")}</div>`;
+}
+
+function paymentStatusMessage() {
+  const prices = lessonPrices[currentUser.country];
+  if (!prices) return "A lesson rate has not been set for your country.";
+  const levelPrices = levels.map(level =>
+    `<p>${level}: ${new Intl.NumberFormat("en").format(prices[level])} ${prices.currency}</p>`
+  ).join("");
+  return `<p>Indicative price per lesson, by learner level:</p><div class="lesson-price-list">${levelPrices}</div><p>Non-RWF amounts are rounded local-currency estimates based on exchange rates dated 1 Nov 2026. Live checkout remains disabled until the direct Mobile Money provider APIs are configured and tested. No payment has been taken.</p>`;
+}
+
+async function openLessonScheduler(requestId) {
+  const container = $(`lesson-scheduler-${requestId}`);
+  if (!container) return;
+  const slots = await api(`/api/pitches/${requestId}/availability`);
+  if (!slots.length) {
+    container.innerHTML = `<div class="empty">Your educator has not added weekly availability yet.</div>`;
+    return;
+  }
+  const today = new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  container.innerHTML = `<form class="lesson-booking-form" data-lesson-form data-request="${requestId}"><label class="field"><span>Lesson date</span><input class="form-control" type="date" name="lesson_date" min="${today}" required></label><label class="field"><span>Available lesson time</span><select class="form-control" name="availability_id" required>${slots.map(slot => `<option value="${slot.id}">${escapeHtml(slot.weekday)} · ${escapeHtml(slot.start_time)}–${escapeHtml(slot.end_time)}</option>`).join("")}</select></label><button class="button button-compact">Add to timetable</button></form>`;
+}
+
+async function submitLessonBooking(form) {
+  const requestId = Number(form.dataset.request);
+  const data = new FormData(form);
+  await api("/api/lessons", {
+    method: "POST",
+    body: JSON.stringify({
+      request_id: requestId,
+      lesson_date: data.get("lesson_date"),
+      availability_id: Number(data.get("availability_id")),
+    }),
+  });
+  await refreshData();
+  render();
+  showToast("Lesson added to your timetable. Payment checkout is not enabled yet.");
 }
 
 function learnerViewPage() {
@@ -436,7 +488,7 @@ function teacherView() {
   ];
   const mapContent = "";
   const requestCards = nearbyRequests.map(request => `<div class="offer-card"><div><strong>${escapeHtml(request.subject)} · ${escapeHtml(request.level)}</strong><p>${escapeHtml(request.curriculum)} · ${escapeHtml(request.country)} · ${escapeHtml(request.mode)}</p><p>Approximate area · within ${request.radius_km} km · ${escapeHtml(request.availability)}</p>${interestStatus(request) ? `<span class="status">${escapeHtml(interestStatus(request))}</span>` : ""}</div>${request.interest_status ? "" : `<button class="match-button" data-action="request-interest" data-request="${request.id}">Ask manager to review</button>`}</div>`).join("");
-  return `${heading(`Welcome, ${escapeHtml(currentUser.name)}.`, "See more nearby learners, keep your weekly availability current and respond to private offers.", `<button class="button button-compact" data-action="teacher-location">Set teaching-area pin</button>`)}<section class="info-grid"><article class="info-card"><h3>Application status</h3><div class="big">${currentUser.verified ? "Verified" : "In review"}</div><p>${currentUser.verified ? "Eligible to ask managers to review your interest." : "A ReRa manager must verify your account first."}</p></article><article class="info-card"><h3>Nearby learners waiting</h3><div class="big">${nearbyRequests.length}</div><p>Open requests matching your profile</p></article><article class="info-card"><h3>Offers</h3><div class="big">${offers.length}</div><p>Private matching offers</p></article></section><section class="app-grid"><article class="panel"><div class="panel-head"><div><h2>Nearby learners waiting</h2><p>Requests are filtered by your country, curriculum, subjects, level and travel radius.</p></div><span class="tag">${nearbyRequests.length} nearby</span></div>${mapContent}<div class="tutor-list">${requestCards || (currentUser.verified && currentUser.latitude != null ? `<div class="empty">Matching learner requests will appear here.</div>` : "")}</div></article><article class="panel"><div class="panel-head"><div><h2>Private job pipeline</h2><p>Family names and exact addresses stay hidden before acceptance.</p></div></div>${offers.length ? offers.map(offer => `<div class="offer-card"><div><strong>${escapeHtml(offer.subject)} · ${escapeHtml(offer.level)} ${escapeHtml(offer.grade)}</strong><p>${escapeHtml(offer.curriculum)} · ${escapeHtml(offer.country)} · ${escapeHtml(offer.location_label)}</p><p>${escapeHtml(offer.mode)} · ${escapeHtml(offer.availability)} · within ${offer.radius_km} km</p></div><div class="offer-actions"><button data-action="offer-accept" data-request="${offer.request_id}">Accept</button><button data-action="offer-decline" data-request="${offer.request_id}">Decline</button></div></div>`).join("") : `<div class="empty">No offers yet. Keep your profile accurate; a manager will contact you when your verified subjects and level fit a request.</div>`}</article></section><section class="app-grid"><article class="panel"><div class="panel-head"><div><h2>Teaching address &amp; area</h2><p>Address details are private to your profile. Add a map pin separately for nearby matching.</p></div></div><form id="teacherProfileForm" class="dialog-body"><div class="form-grid"><label class="field"><span>Maximum travel radius</span><select class="form-control" name="radius_km"><option value="5" ${currentUser.radius_km === 5 ? "selected" : ""}>5 km</option><option value="10" ${currentUser.radius_km === 10 ? "selected" : ""}>10 km</option><option value="20" ${currentUser.radius_km === 20 ? "selected" : ""}>20 km</option><option value="50" ${currentUser.radius_km === 50 ? "selected" : ""}>50 km</option></select></label><label class="field"><span>New matching offers</span><select class="form-control" name="available"><option value="true" ${currentUser.available ? "selected" : ""}>Available</option><option value="false" ${!currentUser.available ? "selected" : ""}>Pause new offers</option></select></label>${addressFields.map(([name, label]) => `<label class="field"><span>${label}</span><input class="form-control" name="${name}" value="${escapeHtml(currentUser[name] || "")}" maxlength="${name === "street" ? 160 : name === "house_number" ? 40 : 100}"></label>`).join("")}<div class="field full"><span>${currentUser.latitude == null ? "No map pin saved" : "Teaching-area pin saved"}</span><span class="material-upload-note">Your pin is private; nearby learner pins are approximate. Addresses are not sent to a geocoding service.</span><input type="hidden" name="latitude" value="${currentUser.latitude ?? ""}"><input type="hidden" name="longitude" value="${currentUser.longitude ?? ""}"></div></div><div class="dialog-actions"><button class="button button-compact">Save teaching profile</button></div></form></article><article class="panel"><div class="panel-head"><div><h2>Weekly teaching timetable</h2><p>Availability repeats weekly; it is not a confirmed lesson booking.</p></div></div><form id="availabilityForm" class="dialog-body"><div class="form-grid"><label class="field"><span>Day</span><select class="form-control" name="weekday">${["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map(day => `<option>${day}</option>`).join("")}</select></label><label class="field"><span>Start time</span><input class="form-control" type="time" name="start_time" required></label><label class="field"><span>End time</span><input class="form-control" type="time" name="end_time" required></label></div><div id="availabilitySuggestions" class="availability-suggestions" aria-live="polite"></div><div class="dialog-actions"><button class="button button-compact">Add weekly slot</button></div></form><div class="tutor-list">${teacherAvailability.length ? teacherAvailability.map(slot => `<div class="tutor-row"><div class="tutor-info"><strong>${escapeHtml(slot.weekday)} · ${escapeHtml(slot.start_time)}–${escapeHtml(slot.end_time)}</strong><span>Repeats every week</span></div><button class="match-button" data-action="availability-remove" data-slot="${slot.id}">Remove</button></div>`).join("") : `<div class="empty">Add your weekly teaching hours to keep this timetable up to date.</div>`}<div class="privacy-note">Overlapping weekly slots are blocked and alternative times are suggested. Confirmed lesson scheduling and Google Calendar reminders are not available until ReRa has dated lesson bookings and calendar credentials configured.</div></div></article></section><section class="app-grid"><article class="panel"><div class="panel-head"><div><h2>My materials</h2><p>Share your own curriculum-aligned PDFs.</p></div><button class="text-button" data-action="resource-new">Add PDF</button></div>${resourceRepository(resources.filter(item => item.kind === "material"), "material", false)}</article>${resourceRepository(resources, "curriculum", true)}</section>`;
+  return `${heading(`Welcome, ${escapeHtml(currentUser.name)}.`, "See more nearby learners, keep your weekly availability current and respond to private offers.", `<button class="button button-compact" data-action="teacher-location">Set teaching-area pin</button>`)}<section class="info-grid"><article class="info-card"><h3>Application status</h3><div class="big">${currentUser.verified ? "Verified" : "In review"}</div><p>${currentUser.verified ? "Eligible to ask managers to review your interest." : "A ReRa manager must verify your account first."}</p></article><article class="info-card"><h3>Nearby learners waiting</h3><div class="big">${nearbyRequests.length}</div><p>Open requests matching your profile</p></article><article class="info-card"><h3>Offers</h3><div class="big">${offers.length}</div><p>Private matching offers</p></article></section><section class="app-grid"><article class="panel"><div class="panel-head"><div><h2>Nearby learners waiting</h2><p>Requests are filtered by your country, curriculum, subjects, level and travel radius.</p></div><span class="tag">${nearbyRequests.length} nearby</span></div>${mapContent}<div class="tutor-list">${requestCards || (currentUser.verified && currentUser.latitude != null ? `<div class="empty">Matching learner requests will appear here.</div>` : "")}</div></article><article class="panel"><div class="panel-head"><div><h2>Private job pipeline</h2><p>Family names and exact addresses stay hidden before acceptance.</p></div></div>${offers.length ? offers.map(offer => `<div class="offer-card"><div><strong>${escapeHtml(offer.subject)} · ${escapeHtml(offer.level)} ${escapeHtml(offer.grade)}</strong><p>${escapeHtml(offer.curriculum)} · ${escapeHtml(offer.country)} · ${escapeHtml(offer.location_label)}</p><p>${escapeHtml(offer.mode)} · ${escapeHtml(offer.availability)} · within ${offer.radius_km} km</p></div><div class="offer-actions"><button data-action="offer-accept" data-request="${offer.request_id}">Accept</button><button data-action="offer-decline" data-request="${offer.request_id}">Decline</button></div></div>`).join("") : `<div class="empty">No offers yet. Keep your profile accurate; a manager will contact you when your verified subjects and level fit a request.</div>`}</article></section><section class="app-grid"><article class="panel"><div class="panel-head"><div><h2>Teaching address &amp; area</h2><p>Address details are private to your profile. Add a map pin separately for nearby matching.</p></div></div><form id="teacherProfileForm" class="dialog-body"><div class="form-grid"><label class="field"><span>Maximum travel radius</span><select class="form-control" name="radius_km"><option value="5" ${currentUser.radius_km === 5 ? "selected" : ""}>5 km</option><option value="10" ${currentUser.radius_km === 10 ? "selected" : ""}>10 km</option><option value="20" ${currentUser.radius_km === 20 ? "selected" : ""}>20 km</option><option value="50" ${currentUser.radius_km === 50 ? "selected" : ""}>50 km</option></select></label><label class="field"><span>New matching offers</span><select class="form-control" name="available"><option value="true" ${currentUser.available ? "selected" : ""}>Available</option><option value="false" ${!currentUser.available ? "selected" : ""}>Pause new offers</option></select></label>${addressFields.map(([name, label]) => `<label class="field"><span>${label}</span><input class="form-control" name="${name}" value="${escapeHtml(currentUser[name] || "")}" maxlength="${name === "street" ? 160 : name === "house_number" ? 40 : 100}"></label>`).join("")}<div class="field full"><span>${currentUser.latitude == null ? "No map pin saved" : "Teaching-area pin saved"}</span><span class="material-upload-note">Your pin is private; nearby learner pins are approximate. Addresses are not sent to a geocoding service.</span><input type="hidden" name="latitude" value="${currentUser.latitude ?? ""}"><input type="hidden" name="longitude" value="${currentUser.longitude ?? ""}"></div></div><div class="dialog-actions"><button class="button button-compact">Save teaching profile</button></div></form></article><article class="panel"><div class="panel-head"><div><h2>Weekly teaching timetable</h2><p>Availability repeats weekly; it is not a confirmed lesson booking.</p></div></div><form id="availabilityForm" class="dialog-body"><div class="form-grid"><label class="field"><span>Day</span><select class="form-control" name="weekday">${["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map(day => `<option>${day}</option>`).join("")}</select></label><label class="field"><span>Start time</span><input class="form-control" type="time" name="start_time" required></label><label class="field"><span>End time</span><input class="form-control" type="time" name="end_time" required></label></div><div id="availabilitySuggestions" class="availability-suggestions" aria-live="polite"></div><div class="dialog-actions"><button class="button button-compact">Add weekly slot</button></div></form><div class="tutor-list">${teacherAvailability.length ? teacherAvailability.map(slot => `<div class="tutor-row"><div class="tutor-info"><strong>${escapeHtml(slot.weekday)} · ${escapeHtml(slot.start_time)}–${escapeHtml(slot.end_time)}</strong><span>Repeats every week</span></div><button class="match-button" data-action="availability-remove" data-slot="${slot.id}">Remove</button></div>`).join("") : `<div class="empty">Add your weekly teaching hours to keep this timetable up to date.</div>`}<div class="privacy-note">Overlapping weekly slots are blocked and alternative times are suggested. Confirmed lessons appear in My schedule. Google Calendar reminders still need calendar authorization and event-sync configuration.</div></div></article></section><section class="app-grid"><article class="panel"><div class="panel-head"><div><h2>My materials</h2><p>Share your own curriculum-aligned PDFs.</p></div><button class="text-button" data-action="resource-new">Add PDF</button></div>${resourceRepository(resources.filter(item => item.kind === "material"), "material", false)}</article>${resourceRepository(resources, "curriculum", true)}</section>`;
 }
 
 function resourceRepository(items, kind, officialOnly) {
@@ -463,6 +515,7 @@ function otherSectionView() {
     if (activeSection === "Curriculum repository") return `${heading("Curricula, by country.", "Official sources for the learning systems ReRa supports.")}${resourceRepository(resources, "curriculum", true)}`;
   }
   if (currentUser.role === "teacher") {
+    if (activeSection === "My schedule") return `${heading("Your teaching schedule.", "Confirmed lesson dates with families who accepted your match.")}<section class="panel">${lessonList(lessons)}</section>`;
     if (activeSection === "Job offers") return teacherView();
     if (activeSection === "Teaching profile") return teacherView();
     if (activeSection === "My materials") return `${heading("Materials you share.", "Upload PDF resources aligned to the curricula you teach.", `<button class="button button-compact" data-action="resource-new">Add PDF</button>`)}${resourceRepository(resources, "material", false)}`;
@@ -472,15 +525,15 @@ function otherSectionView() {
     if (activeSection === "Curriculum repository") return `${heading("Your curriculum.", "Official sources and study guidance for your school system.")}${resourceRepository(resources, "curriculum", true)}`;
     if (activeSection === "Study materials") return `${heading("Your resource locker.", "Materials shared by your matched educators.")}${resourceRepository(resources, "material", true)}`;
     if (activeSection === "Feedback") return feedbackSection();
-    if (activeSection === "My schedule") return `${heading("Your learning schedule.", "Upcoming lessons will appear here after a match is confirmed.")}<section class="panel"><div class="empty">There are no confirmed lessons to show yet.</div></section>`;
+    if (activeSection === "My schedule") return `${heading("Your learning schedule.", "Confirmed lesson dates for your family.")}<section class="panel">${lessonList(lessons, true)}</section>`;
     return learnerViewPage();
   }
   if (activeSection === "Learners") return `${heading("Learner profiles.", "Manage academic context for your family.", `<button class="button button-compact" data-action="student-new">Add learner</button>`)}<section class="info-grid">${students.map(student => `<article class="info-card"><h3>${escapeHtml(student.name)}</h3><div class="big">${escapeHtml(student.level)} · ${escapeHtml(student.grade)}</div><p>${escapeHtml(student.country)} · ${escapeHtml(student.curriculum)}</p><button class="button-light request-add" data-action="request-new" data-student="${student.id}">Find a tutor</button></article>`).join("") || `<article class="info-card"><h3>No learner profiles yet</h3><p>Add a learner to begin finding local academic support.</p><button class="button-light request-add" data-action="student-new">Add learner</button></article>`}</section>`;
   if (activeSection === "Learning requests") return `${heading("Learning requests.", "Track your family's educator matches.", `<button class="button button-compact" data-action="request-new">Find a tutor</button>`)}${parentView()}`;
   if (activeSection === "Materials") return `${heading("Learning materials.", "Browse resources shared by your matched educators.")}${resourceRepository(resources, "material", true)}`;
   if (activeSection === "Curriculum repository") return `${heading("Curriculum repository.", "Official sources for local curricula.")}${resourceRepository(resources, "curriculum", true)}`;
-  if (activeSection === "Payments") return `${heading("Secure payments.", "Mobile Money and card collection will be added with a payment provider.")}<section class="panel"><div class="privacy-note">Payment collection is not enabled in this local build. No payment details are requested or stored.</div></section>`;
-  if (activeSection === "My schedule") return `${heading("Your learning schedule.", "A family-managed view of upcoming sessions.")}<section class="panel"><div class="empty">No confirmed sessions are scheduled yet.</div></section>`;
+  if (activeSection === "Payments") return `${heading("Mobile Money payments.", "Payment is due before each lesson.")}<section class="panel"><div class="privacy-note">${paymentStatusMessage()}</div></section>`;
+  if (activeSection === "My schedule") return `${heading("Your learning schedule.", "A family-managed view of upcoming lessons.")}<section class="panel">${lessonList(lessons, true)}</section>`;
   return parentView();
 }
 
@@ -855,6 +908,13 @@ async function handleAction(action) {
       await refreshData();
       render();
       showToast(actionName === "accept" ? "Offer accepted. ReRa will coordinate the introduction." : "Offer declined. The family remains private.");
+    } else if (name === "family-match-accept") {
+      await api(`/api/pitches/${action.dataset.request}/family-accept`, { method: "POST", body: "{}" });
+      await refreshData();
+      render();
+      showToast("Educator match confirmed. You can now book a lesson date.");
+    } else if (name === "schedule-lesson") {
+      await openLessonScheduler(action.dataset.request);
     } else if (name === "teacher-location") {
       await updateTeacherLocation();
     } else if (name === "resource-delete") {
@@ -1013,6 +1073,12 @@ function fileToBase64(file) {
 }
 
 function bindGlobalEvents() {
+  document.addEventListener("submit", event => {
+    const form = event.target.closest("[data-lesson-form]");
+    if (!form) return;
+    event.preventDefault();
+    submitLessonBooking(form).catch(error => showToast(error.message));
+  });
   document.addEventListener("pointerover", event => {
     if (event.pointerType === "touch") return;
     const wrapper = event.target.closest("[data-educator-preview]");
