@@ -16,11 +16,36 @@ const officialCurriculumSources = [
   { title: "Tanzania curriculum resources", country: "Tanzania", curriculum: "NECTA", description: "Curriculum resources from the Tanzania Institute of Education.", url: "https://www.tie.go.tz/" }
 ].map(source => ({ ...source, kind: "curriculum", level: "All levels", subject: "All subjects" }));
 const levels = ["Primary", "Secondary", "University"];
+const weekdays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 const lessonPrices = {
   Rwanda: { currency: "RWF", Primary: 20000, Secondary: 30000, University: 40000 },
   Kenya: { currency: "KES", Primary: 1800, Secondary: 2600, University: 3500 },
   Uganda: { currency: "UGX", Primary: 58000, Secondary: 87000, University: 116000 },
   Tanzania: { currency: "TZS", Primary: 36000, Secondary: 54000, University: 71000 },
+};
+const paymentMethodsByCountry = {
+  Rwanda: [
+    { name: "MTN MoMo", brand: "mtn", mark: "MTN" },
+    { name: "Airtel Money", brand: "airtel", mark: "A" },
+    { name: "Visa card", brand: "visa", mark: "VISA" },
+  ],
+  Kenya: [
+    { name: "M-PESA", brand: "mpesa", mark: "M-PESA" },
+    { name: "Airtel Money", brand: "airtel", mark: "A" },
+    { name: "Visa card", brand: "visa", mark: "VISA" },
+  ],
+  Uganda: [
+    { name: "MTN MoMo", brand: "mtn", mark: "MTN" },
+    { name: "Airtel Money", brand: "airtel", mark: "A" },
+    { name: "Visa card", brand: "visa", mark: "VISA" },
+  ],
+  Tanzania: [
+    { name: "M-PESA", brand: "mpesa", mark: "M-PESA" },
+    { name: "Airtel Money", brand: "airtel", mark: "A" },
+    { name: "Mixx by Yas", brand: "mixx", mark: "mixx" },
+    { name: "HaloPesa", brand: "halo", mark: "halo" },
+    { name: "Visa card", brand: "visa", mark: "VISA" },
+  ],
 };
 const $ = id => document.getElementById(id);
 const app = $("app");
@@ -197,7 +222,7 @@ async function refreshData() {
 
 function sectionsForUser() {
   if (currentUser.role === "manager") return ["Overview", "Families & learners", "Learning requests", "Educator network", "Material repository", "Curriculum repository"];
-  if (currentUser.role === "teacher") return ["Teaching home", "Job offers", "My schedule", "My materials", "Teaching profile", "Curriculum repository"];
+  if (currentUser.role === "teacher") return ["Teaching home", "Job offers", "Timetable", "My materials", "Teaching profile", "Curriculum repository"];
   return learnerView
     ? ["My learning", "My schedule", "Study materials", "Curriculum repository", "Feedback"]
     : ["Family overview", "Learners", "Learning requests", "Materials", "Curriculum repository", "Payments"];
@@ -332,7 +357,7 @@ function navIcon(section) {
   if (["Teaching profile"].includes(section)) {
     return `<circle cx="12" cy="8" r="4"/><path d="M5 21v-2a7 7 0 0 1 14 0v2"/>`;
   }
-  if (["My schedule"].includes(section)) {
+  if (["My schedule", "Timetable"].includes(section)) {
     return `<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 17h.01M12 17h.01"/>`;
   }
   if (["Feedback"].includes(section)) {
@@ -427,12 +452,46 @@ function parentView() {
   const studentCards = students.length ? students.map(student => `<article class="info-card"><h3>${escapeHtml(student.name)}</h3><div class="big">${escapeHtml(student.level)} · ${escapeHtml(student.grade)}</div><p>${escapeHtml(student.country)} · ${escapeHtml(student.curriculum)}</p><button class="button-light request-add" data-action="request-new" data-student="${student.id}">Find a tutor</button></article>`).join("") : `<article class="info-card"><h3>Start with a learner profile</h3><p>Add a learner's country, curriculum and exact academic level. These criteria make tutor matches relevant.</p><button class="button-light request-add" data-action="student-new">Add learner</button></article>`;
   const requestRows = requests.map(request => `<div class="request-card"><div class="request-card-head"><strong>${escapeHtml(request.subject)} · ${escapeHtml(request.level)} ${escapeHtml(request.grade)}</strong><span class="status ${escapeHtml(request.status.toLowerCase())}">${escapeHtml(request.status)}</span></div><p>${escapeHtml(request.curriculum)} · ${escapeHtml(request.location_label)} · ${escapeHtml(request.mode)}</p><p>Preferred: ${escapeHtml(request.availability)}</p><div class="progress-track request-progress ${escapeHtml(request.status.toLowerCase())}"><span></span></div></div>`).join("");
   const proposals = pitches.length ? pitches.map(pitch => `<div class="family-match-card"><div class="tutor-avatar">${initials(pitch.teacher_name)}</div><div class="tutor-info"><strong>${escapeHtml(pitch.teacher_name)} · ${pitch.verified ? "Verified" : "Review pending"}</strong><span>${escapeHtml(pitch.country)} · ${escapeHtml(pitch.curriculum)} · ${escapeHtml(pitch.subjects.join(", "))} · ${escapeHtml(pitch.level)}</span></div>${pitch.parent_status === "Accepted" ? `<span class="status matched">Your educator</span><button class="button-light" data-action="schedule-lesson" data-request="${pitch.request_id}">Book a lesson</button>` : `<button class="button button-compact" data-action="family-match-accept" data-request="${pitch.request_id}">Confirm educator</button>`}<div class="lesson-scheduler" id="lesson-scheduler-${pitch.request_id}"></div></div>`).join("") : `<div class="empty">A manager will send an educator for your review after the educator accepts the offer.</div>`;
-  return `${heading("A little closer to their goals.", "Review your assigned educator, confirm the match and book lesson dates from their weekly availability.", action)}<section class="info-grid">${studentCards}</section><section class="app-grid"><article class="panel"><div class="panel-head"><div><h2>Your learning requests</h2><p>Review matching progress and educator proposals.</p></div><span class="tag">${requests.length}</span></div>${requestRows || `<div class="empty">No learning requests yet. Add a learner profile to begin.</div>`}</article><article class="panel"><div class="panel-head"><div><h2>Educator match</h2><p>Confirm the assigned educator before scheduling lessons.</p></div></div>${proposals}</article></section><section class="app-grid"><article class="panel"><div class="panel-head"><div><h2>Upcoming lessons</h2><p>Scheduled sessions from your confirmed educator matches.</p></div></div>${lessonList(lessons, true)}</article><article class="panel"><div class="panel-head"><div><h2>Mobile Money payments</h2><p>Payment before each lesson</p></div></div><div class="privacy-note">${paymentStatusMessage()}</div></article></section>`;
+  return `${heading("A little closer to their goals.", "Review your assigned educator, confirm the match and book lesson dates from their weekly availability.", action)}<section class="info-grid">${studentCards}</section><section class="app-grid"><article class="panel"><div class="panel-head"><div><h2>Your learning requests</h2><p>Review matching progress and educator proposals.</p></div><span class="tag">${requests.length}</span></div>${requestRows || `<div class="empty">No learning requests yet. Add a learner profile to begin.</div>`}</article><article class="panel"><div class="panel-head"><div><h2>Educator match</h2><p>Confirm the assigned educator before scheduling lessons.</p></div></div>${proposals}</article></section><section class="app-grid"><article class="panel"><div class="panel-head"><div><h2>Payment methods</h2><p>Available in ${escapeHtml(currentUser.country)}</p></div></div>${paymentMethodsPanel()}</article><article class="panel"><div class="panel-head"><div><h2>Upcoming lessons</h2><p>Scheduled sessions from your confirmed educator matches.</p></div></div>${lessonList(lessons, true)}</article></section>`;
 }
 
 function lessonList(items, includeTeacher = false) {
   if (!items.length) return `<div class="empty">No lessons scheduled yet. Confirm your educator match, then book a date from the educator's weekly availability.</div>`;
   return `<div class="tutor-list">${items.map(lesson => `<article class="lesson-card"><div class="lesson-card-date"><strong>${escapeHtml(new Date(`${lesson.lesson_date}T12:00:00`).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric", year: "numeric" }))}</strong><span>${escapeHtml(lesson.start_time)}–${escapeHtml(lesson.end_time)}</span></div><div class="tutor-info"><strong>${escapeHtml(lesson.subject)} · ${escapeHtml(lesson.level)} ${escapeHtml(lesson.grade)}</strong><span>${includeTeacher ? `Educator: ${escapeHtml(lesson.teacher_name)}` : `Learner: ${escapeHtml(lesson.learner_name)}`}</span></div><span class="status ${escapeHtml(lesson.status.toLowerCase())}">${escapeHtml(lesson.status)}</span></article>`).join("")}</div>`;
+}
+
+function timetableGrid(entries, kind) {
+  const confirmed = kind === "confirmed";
+  const byDay = new Map(weekdays.map(day => [day, []]));
+  entries.forEach(entry => {
+    const day = confirmed
+      ? weekdays[(new Date(`${entry.lesson_date}T12:00:00`).getDay() + 6) % 7]
+      : entry.weekday;
+    byDay.get(day)?.push(entry);
+  });
+  const hourRows = Array.from({ length: 24 }, (_, index) => index);
+  const rows = hourRows.map(hour => {
+    const hourStart = `${String(hour).padStart(2, "0")}:00`;
+    const hourEnd = `${String(hour + 1).padStart(2, "0")}:00`;
+    const cells = weekdays.map(day => {
+      const items = byDay.get(day).filter(entry => entry.start_time < hourEnd && entry.end_time > hourStart);
+      return `<td>${items.map(entry => {
+        if (entry.start_time < hourStart) {
+          return `<span class="timetable-slot timetable-continuation">Continues to ${escapeHtml(entry.end_time)}</span>`;
+        }
+        if (!confirmed) return `<span class="timetable-slot">${escapeHtml(entry.start_time)}–${escapeHtml(entry.end_time)}</span>`;
+        const dateLabel = new Intl.DateTimeFormat("en", { month: "short", day: "numeric" })
+          .format(new Date(`${entry.lesson_date}T12:00:00`));
+        return `<span class="timetable-slot">${escapeHtml(dateLabel)} · ${escapeHtml(entry.start_time)}–${escapeHtml(entry.end_time)}<br>${escapeHtml(entry.subject)} · ${escapeHtml(entry.learner_name)}</span>`;
+      }).join("")}</td>`;
+    }).join("");
+    return `<tr><th scope="row">${hourStart}</th>${cells}</tr>`;
+  }).join("");
+  return `<div class="timetable-scroll"><table class="weekly-timetable ${confirmed ? "confirmed-timetable" : "availability-timetable"}"><thead><tr><th scope="col">Hour</th>${weekdays.map(day => `<th scope="col">${day}</th>`).join("")}</tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+
+function teacherTimetableView() {
+  return `${heading("Your timetable.", "See suggested weekly availability and confirmed lesson slots across all seven days and hours.")}<section class="timetable-stack"><article class="panel timetable-panel availability-panel"><div class="panel-head"><div><h2>Suggested availability</h2><p>Weekly hours you added on Teaching home · all 24 hours</p></div><span class="tag">${teacherAvailability.length} weekly slots</span></div>${!teacherAvailability.length ? `<p class="timetable-empty-note">No weekly availability yet. Add hours on Teaching home to see them here.</p>` : ""}${timetableGrid(teacherAvailability, "availability")}</article><article class="panel timetable-panel confirmed-panel"><div class="panel-head"><div><h2>Confirmed lessons</h2><p>Bookings accepted by families · all 24 hours</p></div><span class="tag">${lessons.length} lessons</span></div>${!lessons.length ? `<p class="timetable-empty-note">No confirmed lessons yet. Bookings will appear here in green.</p>` : ""}${timetableGrid(lessons, "confirmed")}</article></section>`;
 }
 
 function paymentStatusMessage() {
@@ -441,7 +500,13 @@ function paymentStatusMessage() {
   const levelPrices = levels.map(level =>
     `<p>${level}: ${new Intl.NumberFormat("en").format(prices[level])} ${prices.currency}</p>`
   ).join("");
-  return `<p>Indicative price per lesson, by learner level:</p><div class="lesson-price-list">${levelPrices}</div><p>Non-RWF amounts are rounded local-currency estimates based on exchange rates dated 1 Nov 2026. Live checkout remains disabled until the direct Mobile Money provider APIs are configured and tested. No payment has been taken.</p>`;
+  return `<p>Indicative price per lesson, by learner level:</p><div class="lesson-price-list">${levelPrices}</div><p>Non-RWF amounts are rounded local-currency estimates based on exchange rates dated 1 Nov 2026. Mobile Money and card checkout remain disabled until provider integrations are configured and tested. No payment has been taken.</p>`;
+}
+
+function paymentMethodsPanel() {
+  const methods = paymentMethodsByCountry[currentUser.country] || [];
+  const buttons = methods.map(method => `<button class="payment-method-button" type="button" disabled aria-label="${escapeHtml(method.name)}, coming soon" title="Payment integration is not active yet"><span class="payment-method-logo payment-brand-${method.brand}" aria-hidden="true">${escapeHtml(method.mark)}</span><span class="payment-method-copy"><strong>${escapeHtml(method.name)}</strong><small>Coming soon</small></span></button>`).join("");
+  return `<div class="payment-method-grid">${buttons}</div><div class="payment-method-notice">${paymentStatusMessage()}</div>`;
 }
 
 async function openLessonScheduler(requestId) {
@@ -515,7 +580,7 @@ function otherSectionView() {
     if (activeSection === "Curriculum repository") return `${heading("Curricula, by country.", "Official sources for the learning systems ReRa supports.")}${resourceRepository(resources, "curriculum", true)}`;
   }
   if (currentUser.role === "teacher") {
-    if (activeSection === "My schedule") return `${heading("Your teaching schedule.", "Confirmed lesson dates with families who accepted your match.")}<section class="panel">${lessonList(lessons)}</section>`;
+    if (activeSection === "Timetable") return teacherTimetableView();
     if (activeSection === "Job offers") return teacherView();
     if (activeSection === "Teaching profile") return teacherView();
     if (activeSection === "My materials") return `${heading("Materials you share.", "Upload PDF resources aligned to the curricula you teach.", `<button class="button button-compact" data-action="resource-new">Add PDF</button>`)}${resourceRepository(resources, "material", false)}`;
@@ -532,7 +597,7 @@ function otherSectionView() {
   if (activeSection === "Learning requests") return `${heading("Learning requests.", "Track your family's educator matches.", `<button class="button button-compact" data-action="request-new">Find a tutor</button>`)}${parentView()}`;
   if (activeSection === "Materials") return `${heading("Learning materials.", "Browse resources shared by your matched educators.")}${resourceRepository(resources, "material", true)}`;
   if (activeSection === "Curriculum repository") return `${heading("Curriculum repository.", "Official sources for local curricula.")}${resourceRepository(resources, "curriculum", true)}`;
-  if (activeSection === "Payments") return `${heading("Mobile Money payments.", "Payment is due before each lesson.")}<section class="panel"><div class="privacy-note">${paymentStatusMessage()}</div></section>`;
+  if (activeSection === "Payments") return `${heading("Payment methods.", "Choose from payment methods available in your country. Checkout is not active yet.")}<section class="panel"><div class="panel-head"><div><h2>Available payment methods · ${escapeHtml(currentUser.country)}</h2><p>Mobile Money and Visa card options</p></div></div>${paymentMethodsPanel()}</section>`;
   if (activeSection === "My schedule") return `${heading("Your learning schedule.", "A family-managed view of upcoming lessons.")}<section class="panel">${lessonList(lessons, true)}</section>`;
   return parentView();
 }

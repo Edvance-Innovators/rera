@@ -199,3 +199,39 @@
 @media(max-width:850px){.teacher-workflow-hero{grid-template-columns:1fr}.manager-workflow-hero>.workflow-hero-copy{grid-template-columns:1fr}.manager-workflow-hero>.workflow-hero-copy>.button{grid-column:1;grid-row:auto}}
 @media(max-width:620px){.manager-maps{grid-template-columns:1fr}.manager-map-card .workflow-map{height:260px}.workflow-map-container,.workflow-map{height:280px}.manager-recommendations-head{align-items:flex-start;flex-direction:column}.recommendation-track{grid-auto-columns:minmax(75vw,1fr)}}
 @media(prefers-reduced-motion:reduce){.recommendation-card{animation:none}}
+.timetable-stack{display:grid;gap:16px}
+.timetable-panel{min-width:0}
+.availability-panel{border-color:#e9cf58;background:linear-gradient(135deg,#fff8cfb8,#fff0a77a)}
+.confirmed-panel{border-color:#83c6a5;background:linear-gradient(135deg,#dff5e8c2,#bfe8d276)}
+.timetable-empty-note{margin:0 0 10px;color:#716984;font-size:12px}
+.timetable-scroll{max-width:100%;overflow:auto;border:1px solid #d8d1e4;border-radius:10px;background:#ffffff8c}
+.weekly-timetable{width:100%;min-width:980px;border-collapse:separate;border-spacing:0;table-layout:fixed;color:#302743;font-size:10px}
+.weekly-timetable th,.weekly-timetable td{height:42px;padding:5px;border-right:1px solid #e3deea;border-bottom:1px solid #e3deea;text-align:left;vertical-align:top}
+.weekly-timetable thead th{position:sticky;top:0;z-index:1;height:34px;background:#ffffffed;color:#514561;font-size:10px;font-weight:800}
+.weekly-timetable thead th:first-child,.weekly-timetable tbody th{width:68px}
+.weekly-timetable tbody th{background:#ffffffa8;color:#716984;font-variant-numeric:tabular-nums;font-weight:700}
+.weekly-timetable tr:last-child>*{border-bottom:0}
+.weekly-timetable tr>*:last-child{border-right:0}
+.availability-timetable tbody td{background:#fff5c266}
+.confirmed-timetable tbody td{background:#e2f5e966}
+.timetable-slot{display:block;margin:0 0 3px;padding:4px 5px;border:1px solid #ddbd36;border-radius:6px;background:#ffed93d9;color:#594600;font-size:9px;font-weight:700;line-height:1.35;overflow-wrap:anywhere}
+.confirmed-timetable .timetable-slot{border-color:#71b88f;background:#bde8cddf;color:#164b30}
+.timetable-slot.timetable-continuation{opacity:.7;font-size:8px;font-weight:600}
+@media(max-width:620px){.weekly-timetable{min-width:900px}.weekly-timetable th,.weekly-timetable td{height:38px;padding:4px}}
+.payment-method-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
+.payment-method-button{display:flex;min-height:94px;align-items:center;gap:14px;padding:15px;border:1px solid #dcd5e8;border-radius:13px;background:#ffffffa8;text-align:left;box-shadow:0 6px 18px #40315b0b}
+.payment-method-button:disabled{cursor:not-allowed;opacity:.82}
+.payment-method-logo{display:grid;min-width:86px;height:52px;place-items:center;padding:0 8px;border-radius:9px;background:#fff;color:#302743;font-size:16px;font-weight:900;letter-spacing:-.7px;box-shadow:inset 0 0 0 1px #e8e2ef}
+.payment-brand-mtn{border-radius:50%;background:#ffcc00;color:#171717;font-size:18px;font-style:italic}
+.payment-brand-airtel{color:#ed1c24;font-size:38px;font-style:italic}
+.payment-brand-mpesa{color:#168d52;font-size:15px;font-style:italic}
+.payment-brand-visa{color:#1a1f71;font-size:22px;font-style:italic;letter-spacing:-1.3px}
+.payment-brand-mixx{color:#6b37ad;font-size:20px;font-style:italic}
+.payment-brand-halo{color:#1682bd;font-size:19px;font-style:italic}
+.payment-method-copy{display:grid;gap:6px;color:#302743}
+.payment-method-copy strong{font-size:13px}
+.payment-method-copy small{color:#837c91;font-size:10px;font-weight:700}
+.payment-method-notice{margin-top:14px;padding:12px 14px;border:1px solid #e8e2f1;border-radius:10px;background:#ffffff91;color:#716984;font-size:12px;line-height:1.55}
+.payment-method-notice p{margin:0 0 8px}
+.payment-method-notice p:last-child{margin-bottom:0}
+.payment-method-notice .lesson-price-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:2px 12px;color:#302743;font-weight:700}
